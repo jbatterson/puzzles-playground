@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { getDailyKey, getDateKey, getDayIndex, computeStreak } from '../dailyPuzzleDate.js'
+import {
+  getDailyKey,
+  getDateKey,
+  getDateLabel,
+  getDayIndex,
+  computeStreak,
+} from '../dailyPuzzleDate.js'
 
 // ── getDailyKey / getDateKey ──────────────────────────────────────────────────
 
@@ -68,6 +74,26 @@ describe('getDailyKey / getDateKey', () => {
     // Apr 3 PDT; 3 days ago → Mar 31
     vi.setSystemTime(new Date('2025-04-03T20:00:00Z'))
     expect(getDateKey(3)).toBe('2025-03-31')
+  })
+})
+
+// ── getDateLabel ──────────────────────────────────────────────────────────────
+
+describe('getDateLabel', () => {
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('does not throw for curate placeholder keys (Clueless curate mode)', () => {
+    vi.setSystemTime(new Date('2025-04-09T20:00:00Z'))
+    expect(() => getDateLabel('curate')).not.toThrow()
+    expect(getDateLabel('curate')).toBe(getDateLabel())
+  })
+
+  it('formats a valid YYYY-MM-DD key', () => {
+    vi.setSystemTime(new Date('2025-04-09T20:00:00Z'))
+    const label = getDateLabel('2025-01-15')
+    expect(label).toMatch(/January/)
+    expect(label).toMatch(/15/)
   })
 })
 

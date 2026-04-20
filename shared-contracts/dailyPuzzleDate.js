@@ -56,17 +56,26 @@ export function getDayIndex(key) {
   return Math.floor((date - epoch) / 86400000)
 }
 
+const YMD_KEY = /^(\d{4})-(\d{2})-(\d{2})$/
+
 /**
  * Human-readable date in Pacific Time, e.g. "April 9".
  * Pass a YYYY-MM-DD `dateKey` to format a specific puzzle day (safe for long-lived tabs).
  * Called without arguments falls back to the current wall-clock date.
+ * Non-YYYY-MM-DD keys (e.g. curate scope `"curate"`) fall back to today so Intl never sees an invalid Date.
  * @param {string} [dateKey]
  */
 export function getDateLabel(dateKey) {
   if (!dateKey) return PAC_LABEL.format(new Date())
-  const [y, m, d] = String(dateKey).split('-').map(Number)
+  const m = String(dateKey).match(YMD_KEY)
+  if (!m) return PAC_LABEL.format(new Date())
+  const y = Number(m[1])
+  const mo = Number(m[2])
+  const d = Number(m[3])
   // Noon UTC ensures the date is the same calendar day in Pacific time.
-  return PAC_LABEL.format(new Date(Date.UTC(y, m - 1, d, 12, 0, 0)))
+  const inst = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0))
+  if (!Number.isFinite(inst.getTime())) return PAC_LABEL.format(new Date())
+  return PAC_LABEL.format(inst)
 }
 
 /**

@@ -11,9 +11,9 @@
  */
 
 export const GRID_DEFS = {
-  small:  { rows: [3, 4, 3],       rowOffsets: [0.5, 0,   0.5]           },
-  medium: { rows: [3, 4, 4, 3],    rowOffsets: [0.5, 0,   0.5, 1.0]      },
-  large:  { rows: [3, 4, 5, 4, 3], rowOffsets: [1.0, 0.5, 0,   0.5, 1.0] },
+  small: { rows: [3, 4, 3], rowOffsets: [0.5, 0, 0.5] },
+  medium: { rows: [3, 4, 4, 3], rowOffsets: [0.5, 0, 0.5, 1.0] },
+  large: { rows: [3, 4, 5, 4, 3], rowOffsets: [1.0, 0.5, 0, 0.5, 1.0] },
 }
 
 /** Cell count for a size (a solved path visits 1…n on a full honeycomb). */
@@ -47,8 +47,12 @@ export const HONEYCOMBS_MAX_HEX_SCREEN_CR_PX = 42
 
 const VB_PAD = 10
 
-function hexWForR(r) { return r * Math.sqrt(3) + HEX_GAP }
-function hexVerForR(r) { return r * 1.5 + HEX_GAP * 0.577 }
+function hexWForR(r) {
+  return r * Math.sqrt(3) + HEX_GAP
+}
+function hexVerForR(r) {
+  return r * 1.5 + HEX_GAP * 0.577
+}
 
 /** Pointy-top hex polygon points string for SVG. */
 export function hexPoints(cx, cy, r) {

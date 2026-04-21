@@ -1,1507 +1,1841 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Sum Tiles Puzzle Factory (Tiles first)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 0;
-      background: #f8fafc;
-      font-family: 'Outfit', sans-serif;
-      color: #1e293b;
-      min-height: 100vh;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <title>Sum Tiles Puzzle Factory (Tiles first)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+        color: #1e293b;
+        min-height: 100vh;
+      }
 
-    /* ── Layout ── */
-    .app { display: flex; height: 100vh; overflow: hidden; }
-    .sidebar {
-      width: 340px; min-width: 300px;
-      background: #fff;
-      border-right: 1px solid #e2e8f0;
-      display: flex; flex-direction: column;
-      padding: 20px 18px;
-      gap: 14px;
-      overflow-y: auto;
-      box-shadow: 4px 0 20px rgba(0,0,0,.04);
-      z-index: 10;
-    }
-    .main {
-      flex: 1;
-      display: flex; flex-direction: column;
-      overflow: hidden;
-    }
+      /* ── Layout ── */
+      .app {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+      .sidebar {
+        width: 340px;
+        min-width: 300px;
+        background: #fff;
+        border-right: 1px solid #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 18px;
+        gap: 14px;
+        overflow-y: auto;
+        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.04);
+        z-index: 10;
+      }
+      .main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
 
-    /* ── Typography ── */
-    .app-title {
-      font-weight: 900; font-size: 1.15rem;
-      letter-spacing: .12em; text-transform: uppercase;
-      color: #0f172a; margin: 0 0 2px;
-    }
-    .app-sub {
-      font-size: 10px; color: #94a3b8;
-      text-transform: uppercase; letter-spacing: .1em;
-    }
-    .section-label {
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .1em;
-      color: #94a3b8; margin-bottom: 4px;
-    }
-    .section-divider {
-      border: none; border-top: 1px solid #e2e8f0;
-      margin: 2px 0;
-    }
+      /* ── Typography ── */
+      .app-title {
+        font-weight: 900;
+        font-size: 1.15rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #0f172a;
+        margin: 0 0 2px;
+      }
+      .app-sub {
+        font-size: 10px;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .section-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #94a3b8;
+        margin-bottom: 4px;
+      }
+      .section-divider {
+        border: none;
+        border-top: 1px solid #e2e8f0;
+        margin: 2px 0;
+      }
 
-    /* ── Controls ── */
-    .ctrl-group { display: flex; flex-direction: column; gap: 5px; }
-    .ctrl-row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
-    .ctrl-col { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 60px; }
+      /* ── Controls ── */
+      .ctrl-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .ctrl-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-end;
+        flex-wrap: wrap;
+      }
+      .ctrl-col {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+        min-width: 60px;
+      }
 
-    input[type="range"] {
-      width: 100%; accent-color: #3b82f6;
-    }
-    input[type="number"], input[type="text"] {
-      padding: 7px 9px;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 6px;
-      font-family: 'Outfit'; font-size: 13px;
-      background: #f8fafc;
-      width: 100%;
-      color: #1e293b;
-    }
-    input[type="number"] { width: 70px; }
-    input[type="text"] { width: 100%; }
-    .badge {
-      background: #eff6ff; color: #2563eb;
-      padding: 2px 8px; border-radius: 4px;
-      font-size: 11px; font-weight: 700;
-      white-space: nowrap;
-    }
-    .slider-header { display: flex; justify-content: space-between; align-items: center; }
+      input[type='range'] {
+        width: 100%;
+        accent-color: #3b82f6;
+      }
+      input[type='number'],
+      input[type='text'] {
+        padding: 7px 9px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 6px;
+        font-family: 'Outfit';
+        font-size: 13px;
+        background: #f8fafc;
+        width: 100%;
+        color: #1e293b;
+      }
+      input[type='number'] {
+        width: 70px;
+      }
+      input[type='text'] {
+        width: 100%;
+      }
+      .badge {
+        background: #eff6ff;
+        color: #2563eb;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
 
-    .range-row { display: flex; gap: 8px; align-items: center; }
-    .range-sep { color: #94a3b8; font-size: 12px; }
+      .range-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .range-sep {
+        color: #94a3b8;
+        font-size: 12px;
+      }
 
-    /* ── Buttons ── */
-    .btn {
-      padding: 11px 16px;
-      border: none; border-radius: 6px;
-      font-family: 'Outfit'; font-size: 12px; font-weight: 700;
-      letter-spacing: .08em; text-transform: uppercase;
-      cursor: pointer; transition: background .15s, transform .1s;
-      white-space: nowrap;
-    }
-    .btn:active { transform: scale(.97); }
-    .btn-primary { background: #3b82f6; color: #fff; width: 100%; }
-    .btn-primary:hover { background: #2563eb; }
-    .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; transform: none; }
-    .btn-secondary { background: #f1f5f9; color: #475569; }
-    .btn-secondary:hover { background: #e2e8f0; }
-    .btn-danger  { background: #fee2e2; color: #b91c1c; }
-    .btn-danger:hover  { background: #fecaca; }
-    .btn-export  { background: #0f172a; color: #fff; flex: 1; }
-    .btn-export:hover { background: #1e293b; }
-    .export-row { display: flex; gap: 8px; }
+      /* ── Buttons ── */
+      .btn {
+        padding: 11px 16px;
+        border: none;
+        border-radius: 6px;
+        font-family: 'Outfit';
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          transform 0.1s;
+        white-space: nowrap;
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn-primary {
+        background: #3b82f6;
+        color: #fff;
+        width: 100%;
+      }
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+      .btn-primary:disabled {
+        background: #93c5fd;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+      }
+      .btn-secondary:hover {
+        background: #e2e8f0;
+      }
+      .btn-danger {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+      .btn-danger:hover {
+        background: #fecaca;
+      }
+      .btn-export {
+        background: #0f172a;
+        color: #fff;
+        flex: 1;
+      }
+      .btn-export:hover {
+        background: #1e293b;
+      }
+      .export-row {
+        display: flex;
+        gap: 8px;
+      }
 
-    /* ── Progress / Status ── */
-    .progress-wrap {
-      background: #f1f5f9; border-radius: 6px;
-      height: 6px; overflow: hidden;
-    }
-    .progress-bar {
-      height: 100%; background: #3b82f6;
-      transition: width .2s;
-      border-radius: 6px;
-    }
-    .status-text {
-      font-size: 11px; color: #64748b;
-      font-weight: 600; letter-spacing: .04em;
-    }
-    .error-msg {
-      font-size: 11px; color: #ef4444;
-      font-weight: 600; display: none;
-    }
+      /* ── Progress / Status ── */
+      .progress-wrap {
+        background: #f1f5f9;
+        border-radius: 6px;
+        height: 6px;
+        overflow: hidden;
+      }
+      .progress-bar {
+        height: 100%;
+        background: #3b82f6;
+        transition: width 0.2s;
+        border-radius: 6px;
+      }
+      .status-text {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+      .error-msg {
+        font-size: 11px;
+        color: #ef4444;
+        font-weight: 600;
+        display: none;
+      }
 
-    /* ── Results panel ── */
-    .results-header {
-      padding: 12px 18px;
-      background: #fff;
-      border-bottom: 1px solid #e2e8f0;
-      display: flex; align-items: center; gap: 12px;
-      flex-wrap: wrap;
-    }
-    .results-title {
-      font-weight: 700; font-size: .85rem;
-      text-transform: uppercase; letter-spacing: .1em;
-      color: #0f172a;
-    }
-    .results-count {
-      background: #dbeafe; color: #1d4ed8;
-      padding: 2px 10px; border-radius: 20px;
-      font-size: 11px; font-weight: 700;
-    }
-    .results-spacer { flex: 1; }
+      /* ── Results panel ── */
+      .results-header {
+        padding: 12px 18px;
+        background: #fff;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .results-title {
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #0f172a;
+      }
+      .results-count {
+        background: #dbeafe;
+        color: #1d4ed8;
+        padding: 2px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+      }
+      .results-spacer {
+        flex: 1;
+      }
 
-    .results-scroll {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex; flex-direction: column; gap: 10px;
-    }
+      .results-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
 
-    /* ── Puzzle card ── */
-    .puzzle-card {
-      background: #fff;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 14px 16px;
-      display: flex; align-items: center; gap: 14px;
-      cursor: pointer;
-      transition: border-color .15s, box-shadow .15s;
-    }
-    .puzzle-card:hover { border-color: #93c5fd; box-shadow: 0 2px 12px rgba(59,130,246,.1); }
-    .puzzle-card.selected { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15); }
+      /* ── Puzzle card ── */
+      .puzzle-card {
+        background: #fff;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .puzzle-card:hover {
+        border-color: #93c5fd;
+        box-shadow: 0 2px 12px rgba(59, 130, 246, 0.1);
+      }
+      .puzzle-card.selected {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      }
 
-    .card-index {
-      font-size: 11px; font-weight: 700; color: #94a3b8;
-      min-width: 28px; text-align: right;
-    }
-    .card-thumb {
-      flex-shrink: 0;
-    }
-    .card-thumb canvas { display: block; border-radius: 4px; }
+      .card-index {
+        font-size: 11px;
+        font-weight: 700;
+        color: #94a3b8;
+        min-width: 28px;
+        text-align: right;
+      }
+      .card-thumb {
+        flex-shrink: 0;
+      }
+      .card-thumb canvas {
+        display: block;
+        border-radius: 4px;
+      }
 
-    .card-meta { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .card-difficulty {
-      font-size: 13px; font-weight: 700;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .diff-badge {
-      padding: 1px 8px; border-radius: 4px;
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-    }
-    .diff-easy   { background: #dcfce7; color: #15803d; }
-    .diff-medium { background: #fef9c3; color: #854d0e; }
-    .diff-hard   { background: #fee2e2; color: #b91c1c; }
-    .diff-expert { background: #f3e8ff; color: #7c3aed; }
-    .card-size {
-      font-size: 11px; color: #94a3b8; font-weight: 600;
-    }
-    .card-remove {
-      background: none; border: none; cursor: pointer;
-      color: #cbd5e1; font-size: 18px; padding: 2px 6px;
-      border-radius: 4px; transition: color .15s;
-      line-height: 1;
-    }
-    .card-remove:hover { color: #ef4444; }
+      .card-meta {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .card-difficulty {
+        font-size: 13px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .diff-badge {
+        padding: 1px 8px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .diff-easy {
+        background: #dcfce7;
+        color: #15803d;
+      }
+      .diff-medium {
+        background: #fef9c3;
+        color: #854d0e;
+      }
+      .diff-hard {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+      .diff-expert {
+        background: #f3e8ff;
+        color: #7c3aed;
+      }
+      .card-size {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 600;
+      }
+      .card-remove {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #cbd5e1;
+        font-size: 18px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        transition: color 0.15s;
+        line-height: 1;
+      }
+      .card-remove:hover {
+        color: #ef4444;
+      }
 
-    /* ── Preview panel ── */
-    .preview-panel {
-      display: none;
-      position: absolute; bottom: 0; right: 0;
-      width: 360px;
-      background: #fff;
-      border-left: 1px solid #e2e8f0;
-      border-top: 1px solid #e2e8f0;
-      border-radius: 12px 0 0 0;
-      padding: 16px;
-      box-shadow: -4px -4px 20px rgba(0,0,0,.06);
-      z-index: 20;
-    }
-    .preview-panel.open { display: block; }
-    .preview-close {
-      position: absolute; top: 10px; right: 12px;
-      background: none; border: none; cursor: pointer;
-      font-size: 20px; color: #94a3b8;
-    }
-    .preview-close:hover { color: #0f172a; }
+      /* ── Preview panel ── */
+      .preview-panel {
+        display: none;
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 360px;
+        background: #fff;
+        border-left: 1px solid #e2e8f0;
+        border-top: 1px solid #e2e8f0;
+        border-radius: 12px 0 0 0;
+        padding: 16px;
+        box-shadow: -4px -4px 20px rgba(0, 0, 0, 0.06);
+        z-index: 20;
+      }
+      .preview-panel.open {
+        display: block;
+      }
+      .preview-close {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 20px;
+        color: #94a3b8;
+      }
+      .preview-close:hover {
+        color: #0f172a;
+      }
 
-    /* ── Empty state ── */
-    .empty-state {
-      flex: 1;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 10px; color: #94a3b8;
-    }
-    .empty-icon { font-size: 3rem; }
-    .empty-text { font-size: .9rem; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; }
+      /* ── Empty state ── */
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        color: #94a3b8;
+      }
+      .empty-icon {
+        font-size: 3rem;
+      }
+      .empty-text {
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
 
-    /* ── JSON output ── */
-    .json-output {
-      font-family: 'Courier New', monospace;
-      font-size: 11px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 10px;
-      max-height: 140px;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-all;
-      color: #334155;
-    }
-    .copied-flash {
-      display: none;
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      background: #0f172a; color: #fff;
-      padding: 10px 24px; border-radius: 8px;
-      font-weight: 700; font-size: 13px;
-      letter-spacing: .06em;
-      z-index: 9999;
-      animation: fadeUp .3s ease;
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateX(-50%) translateY(6px); }
-      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
+      /* ── JSON output ── */
+      .json-output {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 10px;
+        max-height: 140px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+        color: #334155;
+      }
+      .copied-flash {
+        display: none;
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #0f172a;
+        color: #fff;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        z-index: 9999;
+        animation: fadeUp 0.3s ease;
+      }
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
 
-    /* ── Tabs ── */
-    .tab-bar {
-      display: flex; gap: 0;
-      border-bottom: 2px solid #e2e8f0;
-      margin-bottom: 4px;
-    }
-    .tab-btn {
-      flex: 1; padding: 8px 4px;
-      background: none; border: none;
-      font-family: 'Outfit'; font-size: 11px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .09em;
-      color: #94a3b8; cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -2px;
-      transition: color .15s;
-    }
-    .tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; }
-    .tab-btn:hover:not(.active) { color: #475569; }
-    .tab-pane { display: none; flex-direction: column; gap: 14px; }
-    .tab-pane.active { display: flex; }
+      /* ── Tabs ── */
+      .tab-bar {
+        display: flex;
+        gap: 0;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 4px;
+      }
+      .tab-btn {
+        flex: 1;
+        padding: 8px 4px;
+        background: none;
+        border: none;
+        font-family: 'Outfit';
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: #94a3b8;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: color 0.15s;
+      }
+      .tab-btn.active {
+        color: #3b82f6;
+        border-bottom-color: #3b82f6;
+      }
+      .tab-btn:hover:not(.active) {
+        color: #475569;
+      }
+      .tab-pane {
+        display: none;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .tab-pane.active {
+        display: flex;
+      }
 
-    /* ── Annotate panel ── */
-    textarea.json-input {
-      font-family: 'Courier New', monospace;
-      font-size: 11px;
-      background: #f8fafc;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 6px;
-      padding: 10px;
-      height: 140px;
-      resize: vertical;
-      width: 100%;
-      color: #334155;
-    }
-    textarea.json-input:focus { outline: none; border-color: #93c5fd; }
-    .annotate-progress {
-      font-size: 11px; color: #64748b; font-weight: 600;
-    }
+      /* ── Annotate panel ── */
+      textarea.json-input {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        background: #f8fafc;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 10px;
+        height: 140px;
+        resize: vertical;
+        width: 100%;
+        color: #334155;
+      }
+      textarea.json-input:focus {
+        outline: none;
+        border-color: #93c5fd;
+      }
+      .annotate-progress {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
+      }
 
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-  </style>
-</head>
-<body>
+      /* ── Scrollbar ── */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- ═══════════════ SIDEBAR ═══════════════ -->
+      <div class="sidebar">
+        <div>
+          <div class="app-title">Sum Tiles · Tiles first</div>
+          <div class="app-sub">Puzzle Factory (experimental)</div>
+        </div>
 
-<div class="app">
+        <!-- Tabs -->
+        <div class="tab-bar">
+          <button class="tab-btn active" id="tabGenBtn" onclick="switchTab('gen')">Generate</button>
+          <button class="tab-btn" id="tabAnnBtn" onclick="switchTab('ann')">Annotate</button>
+        </div>
 
-  <!-- ═══════════════ SIDEBAR ═══════════════ -->
-  <div class="sidebar">
-    <div>
-      <div class="app-title">Sum Tiles · Tiles first</div>
-      <div class="app-sub">Puzzle Factory (experimental)</div>
+        <!-- ══ TAB: GENERATE ══ -->
+        <div class="tab-pane active" id="paneGen">
+          <!-- Grid size -->
+          <div class="ctrl-group">
+            <div class="slider-header">
+              <span class="section-label">Grid Size</span>
+              <span class="badge" id="sizeVal">4 × 4</span>
+            </div>
+            <input type="range" id="gridSize" min="3" max="5" value="4" />
+          </div>
+
+          <!-- Number pool -->
+          <div class="ctrl-group">
+            <span class="section-label" id="poolLabel">Number Pool</span>
+            <input type="text" id="numInput" value="2,3,4,5,2,3,4,5" />
+            <div id="poolError" class="error-msg">Pool must have between 1 and size² numbers!</div>
+            <div class="status-text" style="margin-top: 4px; line-height: 1.35">
+              Tiles-first: pack polys, then add 1×1s so every pool entry (including 0) has a tile
+              cell; 0 is stored and shown blank. Leftover grid cells stay empty for sliding. Extra
+              1×1s if the pool is longer than current slots.
+            </div>
+          </div>
+
+          <hr class="section-divider" />
+
+          <!-- Tile counts -->
+          <div class="ctrl-group">
+            <span class="section-label">Tile Composition</span>
+            <div class="ctrl-row">
+              <div class="ctrl-col">
+                <span class="section-label">H-Dom</span
+                ><input type="number" id="hCount" value="1" min="0" max="8" />
+              </div>
+              <div class="ctrl-col">
+                <span class="section-label">V-Dom</span
+                ><input type="number" id="vCount" value="1" min="0" max="8" />
+              </div>
+              <div class="ctrl-col">
+                <span class="section-label">H-1×3</span
+                ><input type="number" id="h3Count" value="0" min="0" max="4" />
+              </div>
+              <div class="ctrl-col">
+                <span class="section-label">V-1×3</span
+                ><input type="number" id="v3Count" value="0" min="0" max="4" />
+              </div>
+              <div class="ctrl-col">
+                <span class="section-label">2×2</span
+                ><input type="number" id="sq2Count" value="1" min="0" max="2" />
+              </div>
+            </div>
+          </div>
+
+          <hr class="section-divider" />
+
+          <!-- Scramble moves -->
+          <div class="ctrl-group">
+            <div class="slider-header">
+              <span class="section-label">Scramble Moves</span>
+              <span class="badge" id="moveVal">80</span>
+            </div>
+            <input type="range" id="scrambleMoves" min="10" max="300" value="80" />
+          </div>
+
+          <!-- Difficulty filter -->
+          <div class="ctrl-group">
+            <span class="section-label">Min Moves Filter</span>
+            <div class="range-row">
+              <input type="number" id="minMoves" value="5" min="0" max="99" style="width: 70px" />
+              <span class="range-sep">to</span>
+              <input type="number" id="maxMoves" value="20" min="0" max="999" style="width: 70px" />
+              <span class="section-label" style="margin: 0"> moves</span>
+            </div>
+          </div>
+
+          <!-- Target count -->
+          <div class="ctrl-group">
+            <span class="section-label">Puzzles to Find</span>
+            <input
+              type="number"
+              id="targetCount"
+              value="10"
+              min="1"
+              max="100"
+              style="width: 80px"
+            />
+          </div>
+
+          <!-- BFS cap -->
+          <div class="ctrl-group">
+            <div class="slider-header">
+              <span class="section-label">BFS Node Cap</span>
+              <span class="badge" id="bfsCapVal">200k</span>
+            </div>
+            <input type="range" id="bfsCap" min="1" max="10" value="2" />
+          </div>
+
+          <hr class="section-divider" />
+
+          <button class="btn btn-primary" id="genBtn">Generate Puzzles</button>
+          <button class="btn btn-danger" id="stopBtn" style="display: none">Stop</button>
+
+          <div class="ctrl-group" id="progressWrap" style="display: none">
+            <div class="slider-header">
+              <span class="status-text" id="statusText">Starting…</span>
+              <span class="status-text" id="foundCount">0 found</span>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <hr class="section-divider" />
+
+          <div class="export-row">
+            <button class="btn btn-export" id="exportBtn" disabled>Copy All JSON</button>
+            <button class="btn btn-secondary" id="clearBtn" disabled>Clear</button>
+          </div>
+          <div id="jsonOut" class="json-output" style="display: none"></div>
+        </div>
+        <!-- /paneGen -->
+
+        <!-- ══ TAB: ANNOTATE ══ -->
+        <div class="tab-pane" id="paneAnn">
+          <div class="ctrl-group">
+            <span class="section-label">Paste puzzle JSON here</span>
+            <textarea
+              class="json-input"
+              id="annInput"
+              placeholder="Paste from puzzles.js, e.g. one line:&#10;    { s: 3, t: { rows: [4, 10, 2], cols: [3, 3, 10] }, b: [[0, 1, 2, 1, 3, 1], ...] },&#10;or a JSON array. JS object literals are OK (not strict JSON)."
+            ></textarea>
+            <div id="annParseError" class="error-msg"></div>
+          </div>
+
+          <!-- BFS cap (shared value, separate display) -->
+          <div class="ctrl-group">
+            <div class="slider-header">
+              <span class="section-label">BFS Node Cap</span>
+              <span class="badge" id="annBfsCapVal">200k</span>
+            </div>
+            <input type="range" id="annBfsCap" min="1" max="10" value="2" />
+          </div>
+
+          <button class="btn btn-primary" id="annRunBtn">Annotate with minMoves</button>
+          <button class="btn btn-danger" id="annStopBtn" style="display: none">Stop</button>
+
+          <div class="ctrl-group" id="annProgressWrap" style="display: none">
+            <div class="slider-header">
+              <span class="status-text" id="annStatusText">Starting…</span>
+              <span class="status-text" id="annCountText"></span>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress-bar" id="annProgressBar" style="width: 0%"></div>
+            </div>
+          </div>
+
+          <hr class="section-divider" />
+
+          <div class="export-row">
+            <button class="btn btn-export" id="annExportBtn" disabled>Copy Annotated JSON</button>
+            <button class="btn btn-secondary" id="annClearBtn">Clear All</button>
+          </div>
+          <div id="annJsonOut" class="json-output" style="display: none"></div>
+        </div>
+        <!-- /paneAnn -->
+      </div>
+
+      <!-- ═══════════════ MAIN RESULTS ═══════════════ -->
+      <div class="main" style="position: relative">
+        <div class="results-header">
+          <span class="results-title">Results</span>
+          <span class="results-count" id="resultsBadge">0 puzzles</span>
+          <span class="results-spacer"></span>
+          <span class="status-text" id="headerStatus"></span>
+        </div>
+
+        <div class="results-scroll" id="resultsList">
+          <div class="empty-state" id="emptyState">
+            <div class="empty-icon">🧩</div>
+            <div class="empty-text">No puzzles yet</div>
+            <div class="status-text">Configure parameters and click Generate</div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Tabs -->
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tabGenBtn"  onclick="switchTab('gen')">Generate</button>
-      <button class="tab-btn"        id="tabAnnBtn"  onclick="switchTab('ann')">Annotate</button>
-    </div>
+    <div class="copied-flash" id="copiedFlash">Copied!</div>
 
-    <!-- ══ TAB: GENERATE ══ -->
-    <div class="tab-pane active" id="paneGen">
+    <script>
+      // ═══════════════════════════════════════════════════════════
+      // HELPERS
+      // ═══════════════════════════════════════════════════════════
+      const $ = (id) => document.getElementById(id)
+      let puzzles = [] // accumulated results
+      let stopFlag = false
 
-      <!-- Grid size -->
-      <div class="ctrl-group">
-        <div class="slider-header">
-          <span class="section-label">Grid Size</span>
-          <span class="badge" id="sizeVal">4 × 4</span>
-        </div>
-        <input type="range" id="gridSize" min="3" max="5" value="4">
-      </div>
+      function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[arr[i], arr[j]] = [arr[j], arr[i]]
+        }
+        return arr
+      }
 
-      <!-- Number pool -->
-      <div class="ctrl-group">
-        <span class="section-label" id="poolLabel">Number Pool</span>
-        <input type="text" id="numInput" value="2,3,4,5,2,3,4,5">
-        <div id="poolError" class="error-msg">Pool must have between 1 and size² numbers!</div>
-        <div class="status-text" style="margin-top:4px;line-height:1.35">
-          Tiles-first: pack polys, then add 1×1s so every pool entry (including 0) has a tile cell; 0 is stored and shown blank. Leftover grid cells stay empty for sliding. Extra 1×1s if the pool is longer than current slots.
-        </div>
-      </div>
+      /** One puzzle line matching puzzlegames/sumtiles/puzzles.js (spaces after commas, key order s → t → b → minMoves). */
+      function formatTilePuzzleLine(p) {
+        const rows = p.t.rows.join(', ')
+        const cols = p.t.cols.join(', ')
+        const bStr = p.b.map((row) => '[' + row.join(', ') + ']').join(', ')
+        let line = `{ s: ${p.s}, t: { rows: [${rows}], cols: [${cols}] }, b: [${bStr}]`
+        if (Number.isFinite(p.minMoves)) line += `, minMoves: ${p.minMoves}`
+        line += ' }'
+        return line
+      }
 
-      <hr class="section-divider">
+      function formatTilePuzzlesExportBlock(flatPuzzles) {
+        return (
+          '[\n' + flatPuzzles.map((p) => '    ' + formatTilePuzzleLine(p)).join(',\n') + '\n  ]'
+        )
+      }
 
-      <!-- Tile counts -->
-      <div class="ctrl-group">
-        <span class="section-label">Tile Composition</span>
-        <div class="ctrl-row">
-          <div class="ctrl-col"><span class="section-label">H-Dom</span><input type="number" id="hCount" value="1" min="0" max="8"></div>
-          <div class="ctrl-col"><span class="section-label">V-Dom</span><input type="number" id="vCount" value="1" min="0" max="8"></div>
-          <div class="ctrl-col"><span class="section-label">H-1×3</span><input type="number" id="h3Count" value="0" min="0" max="4"></div>
-          <div class="ctrl-col"><span class="section-label">V-1×3</span><input type="number" id="v3Count" value="0" min="0" max="4"></div>
-          <div class="ctrl-col"><span class="section-label">2×2</span><input type="number" id="sq2Count" value="1" min="0" max="2"></div>
-        </div>
-      </div>
-
-      <hr class="section-divider">
-
-      <!-- Scramble moves -->
-      <div class="ctrl-group">
-        <div class="slider-header">
-          <span class="section-label">Scramble Moves</span>
-          <span class="badge" id="moveVal">80</span>
-        </div>
-        <input type="range" id="scrambleMoves" min="10" max="300" value="80">
-      </div>
-
-      <!-- Difficulty filter -->
-      <div class="ctrl-group">
-        <span class="section-label">Min Moves Filter</span>
-        <div class="range-row">
-          <input type="number" id="minMoves" value="5" min="0" max="99" style="width:70px">
-          <span class="range-sep">to</span>
-          <input type="number" id="maxMoves" value="20" min="0" max="999" style="width:70px">
-          <span class="section-label" style="margin:0"> moves</span>
-        </div>
-      </div>
-
-      <!-- Target count -->
-      <div class="ctrl-group">
-        <span class="section-label">Puzzles to Find</span>
-        <input type="number" id="targetCount" value="10" min="1" max="100" style="width:80px">
-      </div>
-
-      <!-- BFS cap -->
-      <div class="ctrl-group">
-        <div class="slider-header">
-          <span class="section-label">BFS Node Cap</span>
-          <span class="badge" id="bfsCapVal">200k</span>
-        </div>
-        <input type="range" id="bfsCap" min="1" max="10" value="2">
-      </div>
-
-      <hr class="section-divider">
-
-      <button class="btn btn-primary" id="genBtn">Generate Puzzles</button>
-      <button class="btn btn-danger" id="stopBtn" style="display:none">Stop</button>
-
-      <div class="ctrl-group" id="progressWrap" style="display:none">
-        <div class="slider-header">
-          <span class="status-text" id="statusText">Starting…</span>
-          <span class="status-text" id="foundCount">0 found</span>
-        </div>
-        <div class="progress-wrap"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
-      </div>
-
-      <hr class="section-divider">
-
-      <div class="export-row">
-        <button class="btn btn-export" id="exportBtn" disabled>Copy All JSON</button>
-        <button class="btn btn-secondary" id="clearBtn" disabled>Clear</button>
-      </div>
-      <div id="jsonOut" class="json-output" style="display:none"></div>
-
-    </div><!-- /paneGen -->
-
-    <!-- ══ TAB: ANNOTATE ══ -->
-    <div class="tab-pane" id="paneAnn">
-
-      <div class="ctrl-group">
-        <span class="section-label">Paste puzzle JSON here</span>
-        <textarea class="json-input" id="annInput" placeholder="Paste from puzzles.js, e.g. one line:&#10;    { s: 3, t: { rows: [4, 10, 2], cols: [3, 3, 10] }, b: [[0, 1, 2, 1, 3, 1], ...] },&#10;or a JSON array. JS object literals are OK (not strict JSON)."></textarea>
-        <div id="annParseError" class="error-msg"></div>
-      </div>
-
-      <!-- BFS cap (shared value, separate display) -->
-      <div class="ctrl-group">
-        <div class="slider-header">
-          <span class="section-label">BFS Node Cap</span>
-          <span class="badge" id="annBfsCapVal">200k</span>
-        </div>
-        <input type="range" id="annBfsCap" min="1" max="10" value="2">
-      </div>
-
-      <button class="btn btn-primary" id="annRunBtn">Annotate with minMoves</button>
-      <button class="btn btn-danger"  id="annStopBtn" style="display:none">Stop</button>
-
-      <div class="ctrl-group" id="annProgressWrap" style="display:none">
-        <div class="slider-header">
-          <span class="status-text" id="annStatusText">Starting…</span>
-          <span class="status-text" id="annCountText"></span>
-        </div>
-        <div class="progress-wrap"><div class="progress-bar" id="annProgressBar" style="width:0%"></div></div>
-      </div>
-
-      <hr class="section-divider">
-
-      <div class="export-row">
-        <button class="btn btn-export" id="annExportBtn" disabled>Copy Annotated JSON</button>
-        <button class="btn btn-secondary" id="annClearBtn">Clear All</button>
-      </div>
-      <div id="annJsonOut" class="json-output" style="display:none"></div>
-
-    </div><!-- /paneAnn -->
-
-  </div>
-
-  <!-- ═══════════════ MAIN RESULTS ═══════════════ -->
-  <div class="main" style="position:relative">
-    <div class="results-header">
-      <span class="results-title">Results</span>
-      <span class="results-count" id="resultsBadge">0 puzzles</span>
-      <span class="results-spacer"></span>
-      <span class="status-text" id="headerStatus"></span>
-    </div>
-
-    <div class="results-scroll" id="resultsList">
-      <div class="empty-state" id="emptyState">
-        <div class="empty-icon">🧩</div>
-        <div class="empty-text">No puzzles yet</div>
-        <div class="status-text">Configure parameters and click Generate</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="copied-flash" id="copiedFlash">Copied!</div>
-
-<script>
-// ═══════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════
-const $ = id => document.getElementById(id);
-let puzzles = [];   // accumulated results
-let stopFlag = false;
-
-function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-/** One puzzle line matching puzzlegames/sumtiles/puzzles.js (spaces after commas, key order s → t → b → minMoves). */
-function formatTilePuzzleLine(p) {
-  const rows = p.t.rows.join(', ');
-  const cols = p.t.cols.join(', ');
-  const bStr = p.b.map((row) => '[' + row.join(', ') + ']').join(', ');
-  let line = `{ s: ${p.s}, t: { rows: [${rows}], cols: [${cols}] }, b: [${bStr}]`;
-  if (Number.isFinite(p.minMoves)) line += `, minMoves: ${p.minMoves}`;
-  line += ' }';
-  return line;
-}
-
-function formatTilePuzzlesExportBlock(flatPuzzles) {
-  return '[\n' + flatPuzzles.map((p) => '    ' + formatTilePuzzleLine(p)).join(',\n') + '\n  ]';
-}
-
-/**
- * Parse Annotate input: strict JSON array, or JS like puzzles.js (unquoted keys, single puzzle or comma-separated).
- * Local tool only — uses Function fallback after JSON.parse fails.
- */
-function parseTileAnnotateInput(raw) {
-  let s = raw.trim().replace(/^\uFEFF/, '');
-  s = s.split('\n').filter((line) => !/^\s*\/\/.*$/.test(line)).join('\n').trim();
-  s = s.replace(/,\s*([}\]])/g, '$1');
-  s = s.replace(/,\s*$/, '').trim();
-  if (!s.startsWith('[')) s = '[' + s + ']';
-  let parsed;
-  try {
-    parsed = JSON.parse(s);
-  } catch (e1) {
-    try {
-      parsed = new Function('"use strict"; return ' + s)();
-    } catch (e2) {
-      throw new Error('Not valid JSON or JS (paste lines from puzzles.js): ' + e1.message);
-    }
-  }
-  if (!Array.isArray(parsed)) parsed = [parsed];
-  return parsed;
-}
-
-// ── UI sync ──
-$('gridSize').oninput = () => {
-  const s = +$('gridSize').value;
-  $('sizeVal').textContent = `${s} × ${s}`;
-  $('poolLabel').textContent = `Number Pool`;
-};
-$('scrambleMoves').oninput = () => $('moveVal').textContent = $('scrambleMoves').value;
-
-const BFS_CAPS = [50000, 100000, 200000, 300000, 500000, 750000, 1000000, 1500000, 2000000, 5000000];
-const BFS_LABELS = ['50k','100k','200k','300k','500k','750k','1M','1.5M','2M','5M'];
-$('bfsCap').oninput = () => {
-  const i = +$('bfsCap').value - 1;
-  $('bfsCapVal').textContent = BFS_LABELS[i];
-};
-
-// ═══════════════════════════════════════════════════════════
-// GENERATION — solved state + scramble
-// ═══════════════════════════════════════════════════════════
-
-function getAllowedDirs(tile) {
-  if (tile.w === tile.h) return [{dr:0,dc:1},{dr:0,dc:-1},{dr:1,dc:0},{dr:-1,dc:0}];
-  if (tile.w > tile.h)  return [{dr:0,dc:1},{dr:0,dc:-1}];
-  return [{dr:1,dc:0},{dr:-1,dc:0}];
-}
-
-function canStep(puzzle, t, dr, dc) {
-  const nr = t.r + dr, nc = t.c + dc;
-  if (nr < 0 || nc < 0 || nr + t.h > puzzle.size || nc + t.w > puzzle.size) return false;
-  return !puzzle.tiles.some(o => {
-    if (o.id === t.id) return false;
-    return !(nc + t.w <= o.c || nc >= o.c + o.w || nr + t.h <= o.r || nr >= o.r + o.h);
-  });
-}
-
-function hasAtLeastOneMove(puzzle) {
-  return puzzle.tiles.every(t =>
-    getAllowedDirs(t).some(d => canStep(puzzle, t, d.dr, d.dc))
-  );
-}
-
-function scramblePuzzle(puzzle, moveLimit) {
-  let movesMade = 0, lastTileId = null, reverseDir = null;
-  for (let safety = 0; safety < moveLimit * 20 && movesMade < moveLimit; safety++) {
-    const tile = puzzle.tiles[Math.floor(Math.random() * puzzle.tiles.length)];
-    let dirs = [...getAllowedDirs(tile)];
-    if (lastTileId === tile.id && reverseDir)
-      dirs = dirs.filter(d => !(d.dr === reverseDir.dr && d.dc === reverseDir.dc));
-    if (!dirs.length) dirs = [...getAllowedDirs(tile)];
-    const d = dirs[Math.floor(Math.random() * dirs.length)];
-    if (canStep(puzzle, tile, d.dr, d.dc)) {
-      tile.r += d.dr; tile.c += d.dc;
-      movesMade++; lastTileId = tile.id;
-      reverseDir = {dr: -d.dr, dc: -d.dc};
-    }
-  }
-}
-
-function isNonTrivialScramble(tiles, solvedTiles) {
-  let moved = 0, dist = 0;
-  for (let i = 0; i < tiles.length; i++) {
-    dist += Math.abs(tiles[i].r - solvedTiles[i].r) + Math.abs(tiles[i].c - solvedTiles[i].c);
-    if (tiles[i].r !== solvedTiles[i].r || tiles[i].c !== solvedTiles[i].c) moved++;
-  }
-  return moved >= Math.min(2, tiles.length) && dist >= 3;
-}
-
-// ═══════════════════════════════════════════════════════════
-// TILES-FIRST BUILD (random pack → mobility → unbiased digits → targets)
-// ═══════════════════════════════════════════════════════════
-
-/** Count of 1×1 tiles implied by composition so total area = size². */
-function countImpliedOnes(size, cfg) {
-  return (
-    size * size -
-    (4 * cfg.sq2 + 3 * cfg.h3 + 3 * cfg.v3 + 2 * cfg.hC + 2 * cfg.vC)
-  );
-}
-
-/** Non-1×1 pieces from the UI only (1×1s are added later to fill holes). */
-function buildPolyMultiset(cfg) {
-  const pieces = [];
-  for (let i = 0; i < cfg.sq2; i++) pieces.push({ w: 2, h: 2 });
-  for (let i = 0; i < cfg.h3; i++) pieces.push({ w: 3, h: 1 });
-  for (let i = 0; i < cfg.v3; i++) pieces.push({ w: 1, h: 3 });
-  for (let i = 0; i < cfg.hC; i++) pieces.push({ w: 2, h: 1 });
-  for (let i = 0; i < cfg.vC; i++) pieces.push({ w: 1, h: 2 });
-  return pieces;
-}
-
-/**
- * Randomly place only the polyomino multiset (no 1×1). Shuffled order; uniform random anchor per piece.
- * Returns tiles (vals all 0), [] if there are no polys, or null if a piece cannot be placed.
- */
-function tryPackPolysRandom(size, polyPieces) {
-  if (!polyPieces.length) return [];
-  const occ = Array.from({ length: size }, () => Array(size).fill(false));
-  const tiles = [];
-  const order = [...polyPieces];
-  shuffleArray(order);
-  for (const ph of order) {
-    const spots = [];
-    for (let r = 0; r <= size - ph.h; r++) {
-      for (let c = 0; c <= size - ph.w; c++) {
-        let clear = true;
-        for (let rr = 0; rr < ph.h && clear; rr++) {
-          for (let cc = 0; cc < ph.w && clear; cc++) {
-            if (occ[r + rr][c + cc]) clear = false;
+      /**
+       * Parse Annotate input: strict JSON array, or JS like puzzles.js (unquoted keys, single puzzle or comma-separated).
+       * Local tool only — uses Function fallback after JSON.parse fails.
+       */
+      function parseTileAnnotateInput(raw) {
+        let s = raw.trim().replace(/^\uFEFF/, '')
+        s = s
+          .split('\n')
+          .filter((line) => !/^\s*\/\/.*$/.test(line))
+          .join('\n')
+          .trim()
+        s = s.replace(/,\s*([}\]])/g, '$1')
+        s = s.replace(/,\s*$/, '').trim()
+        if (!s.startsWith('[')) s = '[' + s + ']'
+        let parsed
+        try {
+          parsed = JSON.parse(s)
+        } catch (e1) {
+          try {
+            parsed = new Function('"use strict"; return ' + s)()
+          } catch (e2) {
+            throw new Error('Not valid JSON or JS (paste lines from puzzles.js): ' + e1.message)
           }
         }
-        if (clear) spots.push({ r, c });
+        if (!Array.isArray(parsed)) parsed = [parsed]
+        return parsed
       }
-    }
-    if (!spots.length) return null;
-    const pick = spots[Math.floor(Math.random() * spots.length)];
-    for (let rr = 0; rr < ph.h; rr++) {
-      for (let cc = 0; cc < ph.w; cc++) {
-        occ[pick.r + rr][pick.c + cc] = true;
-      }
-    }
-    tiles.push({
-      id: tiles.length + 1,
-      r: pick.r,
-      c: pick.c,
-      w: ph.w,
-      h: ph.h,
-      vals: new Array(ph.w * ph.h).fill(0),
-    });
-  }
-  return tiles;
-}
 
-/**
- * After polys are placed, add 1×1 tiles on random empty cells only until there are enough
- * tile cells for every pool entry (`poolSlotCount`, including zeros as explicit blanks).
- * Remaining cells stay untiled (holes).
- */
-function addPartialOnesForDigitCount(size, tiles, poolSlotCount) {
-  const polySlots = countSlots(tiles);
-  const needed = Math.max(0, poolSlotCount - polySlots);
-  const occ = Array.from({ length: size }, () => Array(size).fill(false));
-  for (const t of tiles) {
-    for (let rr = 0; rr < t.h; rr++) {
-      for (let cc = 0; cc < t.w; cc++) {
-        occ[t.r + rr][t.c + cc] = true;
+      // ── UI sync ──
+      $('gridSize').oninput = () => {
+        const s = +$('gridSize').value
+        $('sizeVal').textContent = `${s} × ${s}`
+        $('poolLabel').textContent = `Number Pool`
       }
-    }
-  }
-  const empty = [];
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (!occ[r][c]) empty.push({ r, c });
-    }
-  }
-  if (needed > empty.length) return false; // pool longer than grid
-  shuffleArray(empty);
-  for (let i = 0; i < needed; i++) {
-    const p = empty[i];
-    tiles.push({
-      id: tiles.length + 1,
-      r: p.r,
-      c: p.c,
-      w: 1,
-      h: 1,
-      vals: [0],
-    });
-  }
-  return true;
-}
+      $('scrambleMoves').oninput = () => ($('moveVal').textContent = $('scrambleMoves').value)
 
-/**
- * Row/col targets from current tile vals (non-zero cells contribute, same as legacy finder).
- */
-function computeTargetsFromTiles(size, tiles) {
-  const numGrid = Array.from({ length: size }, () => Array(size).fill(0));
-  for (const t of tiles) {
-    for (let rr = 0; rr < t.h; rr++) {
-      for (let cc = 0; cc < t.w; cc++) {
-        numGrid[t.r + rr][t.c + cc] = t.vals[rr * t.w + cc];
+      const BFS_CAPS = [
+        50000, 100000, 200000, 300000, 500000, 750000, 1000000, 1500000, 2000000, 5000000,
+      ]
+      const BFS_LABELS = ['50k', '100k', '200k', '300k', '500k', '750k', '1M', '1.5M', '2M', '5M']
+      $('bfsCap').oninput = () => {
+        const i = +$('bfsCap').value - 1
+        $('bfsCapVal').textContent = BFS_LABELS[i]
       }
-    }
-  }
-  const rows = Array(size).fill(0);
-  const cols = Array(size).fill(0);
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      if (numGrid[r][c]) {
-        rows[r] += numGrid[r][c];
-        cols[c] += numGrid[r][c];
-      }
-    }
-  }
-  return { rows, cols };
-}
 
-/**
- * Full pool multiset is placed (including 0 = explicit blank cell in vals). Unbiased: shuffle pool
- * copy and slot indices, assign min(|pool|, |slots|) entries. Remaining slots stay 0.
- * If pool length > cells: add 1×1 on empty grid cells until slots suffice or impossible.
- */
-function assignDigitsUnbiased(size, tiles, nums) {
-  const tokens = [...nums];
-  shuffleArray(tokens);
+      // ═══════════════════════════════════════════════════════════
+      // GENERATION — solved state + scramble
+      // ═══════════════════════════════════════════════════════════
 
-  function markOcc(occ) {
-    for (let r = 0; r < size; r++) {
-      for (let c = 0; c < size; c++) {
-        occ[r][c] = false;
+      function getAllowedDirs(tile) {
+        if (tile.w === tile.h)
+          return [
+            { dr: 0, dc: 1 },
+            { dr: 0, dc: -1 },
+            { dr: 1, dc: 0 },
+            { dr: -1, dc: 0 },
+          ]
+        if (tile.w > tile.h)
+          return [
+            { dr: 0, dc: 1 },
+            { dr: 0, dc: -1 },
+          ]
+        return [
+          { dr: 1, dc: 0 },
+          { dr: -1, dc: 0 },
+        ]
       }
-    }
-    for (const t of tiles) {
-      for (let rr = 0; rr < t.h; rr++) {
-        for (let cc = 0; cc < t.w; cc++) {
-          occ[t.r + rr][t.c + cc] = true;
+
+      function canStep(puzzle, t, dr, dc) {
+        const nr = t.r + dr,
+          nc = t.c + dc
+        if (nr < 0 || nc < 0 || nr + t.h > puzzle.size || nc + t.w > puzzle.size) return false
+        return !puzzle.tiles.some((o) => {
+          if (o.id === t.id) return false
+          return !(nc + t.w <= o.c || nc >= o.c + o.w || nr + t.h <= o.r || nr >= o.r + o.h)
+        })
+      }
+
+      function hasAtLeastOneMove(puzzle) {
+        return puzzle.tiles.every((t) =>
+          getAllowedDirs(t).some((d) => canStep(puzzle, t, d.dr, d.dc))
+        )
+      }
+
+      function scramblePuzzle(puzzle, moveLimit) {
+        let movesMade = 0,
+          lastTileId = null,
+          reverseDir = null
+        for (let safety = 0; safety < moveLimit * 20 && movesMade < moveLimit; safety++) {
+          const tile = puzzle.tiles[Math.floor(Math.random() * puzzle.tiles.length)]
+          let dirs = [...getAllowedDirs(tile)]
+          if (lastTileId === tile.id && reverseDir)
+            dirs = dirs.filter((d) => !(d.dr === reverseDir.dr && d.dc === reverseDir.dc))
+          if (!dirs.length) dirs = [...getAllowedDirs(tile)]
+          const d = dirs[Math.floor(Math.random() * dirs.length)]
+          if (canStep(puzzle, tile, d.dr, d.dc)) {
+            tile.r += d.dr
+            tile.c += d.dc
+            movesMade++
+            lastTileId = tile.id
+            reverseDir = { dr: -d.dr, dc: -d.dc }
+          }
         }
       }
-    }
-  }
 
-  const occ = Array.from({ length: size }, () => Array(size).fill(false));
-
-  for (const t of tiles) {
-    t.vals = new Array(t.w * t.h).fill(0);
-  }
-
-  while (tokens.length > countSlots(tiles)) {
-    markOcc(occ);
-    const empty = [];
-    for (let r = 0; r < size; r++) {
-      for (let c = 0; c < size; c++) {
-        if (!occ[r][c]) empty.push({ r, c });
+      function isNonTrivialScramble(tiles, solvedTiles) {
+        let moved = 0,
+          dist = 0
+        for (let i = 0; i < tiles.length; i++) {
+          dist += Math.abs(tiles[i].r - solvedTiles[i].r) + Math.abs(tiles[i].c - solvedTiles[i].c)
+          if (tiles[i].r !== solvedTiles[i].r || tiles[i].c !== solvedTiles[i].c) moved++
+        }
+        return moved >= Math.min(2, tiles.length) && dist >= 3
       }
-    }
-    if (!empty.length) return false;
-    const p = empty[Math.floor(Math.random() * empty.length)];
-    tiles.push({
-      id: tiles.length + 1,
-      r: p.r,
-      c: p.c,
-      w: 1,
-      h: 1,
-      vals: [0],
-    });
-  }
 
-  const slots = [];
-  for (const t of tiles) {
-    for (let li = 0; li < t.w * t.h; li++) {
-      slots.push({ t, li });
-    }
-  }
-  const S = slots.length;
-  const order = [...Array(S).keys()];
-  shuffleArray(order);
-  const n = Math.min(S, tokens.length);
-  for (let j = 0; j < n; j++) {
-    const { t, li } = slots[order[j]];
-    t.vals[li] = tokens[j];
-  }
-  return true;
-}
+      // ═══════════════════════════════════════════════════════════
+      // TILES-FIRST BUILD (random pack → mobility → unbiased digits → targets)
+      // ═══════════════════════════════════════════════════════════
 
-function countSlots(tiles) {
-  let n = 0;
-  for (const t of tiles) n += t.w * t.h;
-  return n;
-}
-
-/**
- * nums: parsed pool (0 = blank digit, placed in vals and shown empty in thumbnails).
- * cfg: tile counts from UI.
- * Returns { size, tiles, targets } or null after LAYOUT_TRIES.
- */
-function buildPuzzleTilesFirst(size, nums, cfg) {
-  if (nums.length === 0 || nums.length > size * size) return null;
-
-  const ones = countImpliedOnes(size, cfg);
-  if (ones < 0) return null;
-
-  const polyPieces = buildPolyMultiset(cfg);
-  const poolSlotCount = nums.length;
-
-  const LAYOUT_TRIES = 2000;
-  const dummyTargets = { rows: Array(size).fill(0), cols: Array(size).fill(0) };
-
-  for (let attempt = 0; attempt < LAYOUT_TRIES; attempt++) {
-    const polyTiles = tryPackPolysRandom(size, polyPieces);
-    if (polyTiles === null) continue;
-    const tiles = polyTiles.map((t) => ({ ...t, vals: [...t.vals] }));
-    if (!addPartialOnesForDigitCount(size, tiles, poolSlotCount)) continue;
-
-    const skeleton = { size, tiles, targets: dummyTargets };
-    if (!hasAtLeastOneMove(skeleton)) continue;
-
-    const tilesWork = JSON.parse(JSON.stringify(tiles));
-    if (!assignDigitsUnbiased(size, tilesWork, nums)) continue;
-
-    const targets = computeTargetsFromTiles(size, tilesWork);
-    const puz = { size, tiles: tilesWork, targets };
-    if (!hasAtLeastOneMove(puz)) continue;
-
-    return puz;
-  }
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════
-// BFS SOLVER (adapted from Sums solver, win cond = products)
-// ═══════════════════════════════════════════════════════════
-
-function allowedAxes(tile) {
-  const sq = tile.w === tile.h;
-  return { h: sq || tile.w > tile.h, v: sq || tile.h > tile.w };
-}
-
-function stateKey(pos) {
-  return pos.map(p => `${p.r},${p.c}`).join('|');
-}
-
-function computeValuesFromState(fixed, pos) {
-  // KEY DIFFERENCE: sums not products
-  const curR = new Array(fixed.size).fill(0);
-  const curC = new Array(fixed.size).fill(0);
-  for (let i = 0; i < fixed.tiles.length; i++) {
-    const t = fixed.tiles[i];
-    const base = pos[i];
-    for (let rr = 0; rr < t.h; rr++) {
-      for (let cc = 0; cc < t.w; cc++) {
-        const v = t.vals[rr * t.w + cc];
-        if (!v) continue;
-        curR[base.r + rr] += v;
-        curC[base.c + cc] += v;
+      /** Count of 1×1 tiles implied by composition so total area = size². */
+      function countImpliedOnes(size, cfg) {
+        return size * size - (4 * cfg.sq2 + 3 * cfg.h3 + 3 * cfg.v3 + 2 * cfg.hC + 2 * cfg.vC)
       }
-    }
-  }
-  return { curR, curC };
-}
 
-function isSolvedState(fixed, pos) {
-  const {curR, curC} = computeValuesFromState(fixed, pos);
-  for (let i = 0; i < fixed.size; i++) {
-    if (curR[i] !== fixed.targets.rows[i]) return false;
-    if (curC[i] !== fixed.targets.cols[i]) return false;
-  }
-  return true;
-}
+      /** Non-1×1 pieces from the UI only (1×1s are added later to fill holes). */
+      function buildPolyMultiset(cfg) {
+        const pieces = []
+        for (let i = 0; i < cfg.sq2; i++) pieces.push({ w: 2, h: 2 })
+        for (let i = 0; i < cfg.h3; i++) pieces.push({ w: 3, h: 1 })
+        for (let i = 0; i < cfg.v3; i++) pieces.push({ w: 1, h: 3 })
+        for (let i = 0; i < cfg.hC; i++) pieces.push({ w: 2, h: 1 })
+        for (let i = 0; i < cfg.vC; i++) pieces.push({ w: 1, h: 2 })
+        return pieces
+      }
 
-function puzzleToFixed(puz) {
-  return {
-    size: puz.size,
-    targets: puz.targets,
-    tiles: puz.tiles.map(t => ({...t, r0: t.r, c0: t.c}))
-  };
-}
-
-function buildOccupancy(fixed, pos) {
-  const occ = Array.from({length: fixed.size}, () => new Array(fixed.size).fill(-1));
-  for (let i = 0; i < fixed.tiles.length; i++) {
-    const t = fixed.tiles[i];
-    const base = pos[i];
-    for (let rr = 0; rr < t.h; rr++)
-      for (let cc = 0; cc < t.w; cc++)
-        occ[base.r + rr][base.c + cc] = i;
-  }
-  return occ;
-}
-
-function leadingEdgeCells(tile, base, axis, dir) {
-  const cells = [];
-  if (axis === 'h') {
-    const col = base.c + (dir > 0 ? tile.w : -1);
-    for (let rr = 0; rr < tile.h; rr++) cells.push([base.r + rr, col]);
-  } else {
-    const row = base.r + (dir > 0 ? tile.h : -1);
-    for (let cc = 0; cc < tile.w; cc++) cells.push([row, base.c + cc]);
-  }
-  return cells;
-}
-
-function canPush(fixed, pos, occ, idx, axis, dir, visiting) {
-  if (visiting.has(idx)) return true;
-  visiting.add(idx);
-  const tile = fixed.tiles[idx];
-  const base = pos[idx];
-  const ax = allowedAxes(tile);
-  if (axis === 'h' && !ax.h) return false;
-  if (axis === 'v' && !ax.v) return false;
-  const nr = base.r + (axis === 'v' ? dir : 0);
-  const nc = base.c + (axis === 'h' ? dir : 0);
-  if (nr < 0 || nc < 0 || nr + tile.h > fixed.size || nc + tile.w > fixed.size) return false;
-  const edge = leadingEdgeCells(tile, base, axis, dir);
-  for (const [r, c] of edge) {
-    const b = occ[r]?.[c];
-    if (b === -1 || b === idx) continue;
-    if (!canPush(fixed, pos, occ, b, axis, dir, visiting)) return false;
-  }
-  return true;
-}
-
-function applyMoveGrid(fixed, pos, idx, axis, dir) {
-  const occ = buildOccupancy(fixed, pos);
-  if (!canPush(fixed, pos, occ, idx, axis, dir, new Set())) return null;
-  const newPos = pos.map(p => ({r: p.r, c: p.c}));
-  const moved = new Set();
-  function push(i) {
-    if (moved.has(i)) return;
-    moved.add(i);
-    const tile = fixed.tiles[i];
-    const base = newPos[i];
-    const occ2 = buildOccupancy(fixed, newPos);
-    const edge = leadingEdgeCells(tile, base, axis, dir);
-    for (const [r, c] of edge) {
-      const b = occ2[r]?.[c];
-      if (b === -1 || b === i) continue;
-      push(b);
-    }
-    if (axis === 'h') newPos[i].c += dir;
-    else newPos[i].r += dir;
-  }
-  push(idx);
-  return newPos;
-}
-
-function bfsSolve(puz, maxNodes) {
-  const fixed = puzzleToFixed(puz);
-  const start = fixed.tiles.map(t => ({r: t.r0, c: t.c0}));
-  const startKey = stateKey(start);
-  if (isSolvedState(fixed, start)) return {minMoves: 0, path: []};
-
-  const queue = [start];
-  let head = 0, explored = 0;
-  const parent = new Map();
-  parent.set(startKey, null);
-
-  while (head < queue.length) {
-    const cur = queue[head++];
-    const curKey = stateKey(cur);
-    explored++;
-    if (explored > maxNodes)
-      return {minMoves: null, path: null, explored, reason: 'node cap'};
-
-    for (let i = 0; i < fixed.tiles.length; i++) {
-      const tile = fixed.tiles[i];
-      const ax = allowedAxes(tile);
-      const axes = [];
-      if (ax.h) axes.push('h');
-      if (ax.v) axes.push('v');
-      for (const axis of axes) {
-        for (const dir of [-1, 1]) {
-          // Enumerate all slide distances: keep stepping until blocked.
-          // Each distinct distance costs 1 move regardless of how far.
-          let pos = cur;
-          for (;;) {
-            const nxt = applyMoveGrid(fixed, pos, i, axis, dir);
-            if (!nxt) break;
-            const k = stateKey(nxt);
-            if (!parent.has(k)) {
-              parent.set(k, {prev: curKey, move: {tileIndex: i, axis, dir}});
-              if (parent.size > maxNodes)
-                return {minMoves: null, path: null, explored, reason: 'node cap'};
-              if (isSolvedState(fixed, nxt)) {
-                const path = [];
-                let walk = k;
-                while (walk !== startKey) {
-                  const info = parent.get(walk);
-                  path.push(info.move);
-                  walk = info.prev;
+      /**
+       * Randomly place only the polyomino multiset (no 1×1). Shuffled order; uniform random anchor per piece.
+       * Returns tiles (vals all 0), [] if there are no polys, or null if a piece cannot be placed.
+       */
+      function tryPackPolysRandom(size, polyPieces) {
+        if (!polyPieces.length) return []
+        const occ = Array.from({ length: size }, () => Array(size).fill(false))
+        const tiles = []
+        const order = [...polyPieces]
+        shuffleArray(order)
+        for (const ph of order) {
+          const spots = []
+          for (let r = 0; r <= size - ph.h; r++) {
+            for (let c = 0; c <= size - ph.w; c++) {
+              let clear = true
+              for (let rr = 0; rr < ph.h && clear; rr++) {
+                for (let cc = 0; cc < ph.w && clear; cc++) {
+                  if (occ[r + rr][c + cc]) clear = false
                 }
-                path.reverse();
-                return {minMoves: path.length, path};
               }
-              queue.push(nxt);
+              if (clear) spots.push({ r, c })
             }
-            pos = nxt;
+          }
+          if (!spots.length) return null
+          const pick = spots[Math.floor(Math.random() * spots.length)]
+          for (let rr = 0; rr < ph.h; rr++) {
+            for (let cc = 0; cc < ph.w; cc++) {
+              occ[pick.r + rr][pick.c + cc] = true
+            }
+          }
+          tiles.push({
+            id: tiles.length + 1,
+            r: pick.r,
+            c: pick.c,
+            w: ph.w,
+            h: ph.h,
+            vals: new Array(ph.w * ph.h).fill(0),
+          })
+        }
+        return tiles
+      }
+
+      /**
+       * After polys are placed, add 1×1 tiles on random empty cells only until there are enough
+       * tile cells for every pool entry (`poolSlotCount`, including zeros as explicit blanks).
+       * Remaining cells stay untiled (holes).
+       */
+      function addPartialOnesForDigitCount(size, tiles, poolSlotCount) {
+        const polySlots = countSlots(tiles)
+        const needed = Math.max(0, poolSlotCount - polySlots)
+        const occ = Array.from({ length: size }, () => Array(size).fill(false))
+        for (const t of tiles) {
+          for (let rr = 0; rr < t.h; rr++) {
+            for (let cc = 0; cc < t.w; cc++) {
+              occ[t.r + rr][t.c + cc] = true
+            }
           }
         }
+        const empty = []
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (!occ[r][c]) empty.push({ r, c })
+          }
+        }
+        if (needed > empty.length) return false // pool longer than grid
+        shuffleArray(empty)
+        for (let i = 0; i < needed; i++) {
+          const p = empty[i]
+          tiles.push({
+            id: tiles.length + 1,
+            r: p.r,
+            c: p.c,
+            w: 1,
+            h: 1,
+            vals: [0],
+          })
+        }
+        return true
       }
-    }
-  }
-  return {minMoves: null, path: null, explored, reason: 'exhausted'};
-}
 
-// ═══════════════════════════════════════════════════════════
-// THUMBNAIL RENDERER
-// ═══════════════════════════════════════════════════════════
-
-const THUMB_CELL = 14;
-const TILE_COLORS = {
-  '2x2': '#1e3a8a',
-  '3x1': '#b91c1c', '1x3': '#b91c1c',
-  '2x1': '#0369a1', '1x2': '#0369a1',
-  '1x1': '#64748b'
-};
-
-function tileColor(t) {
-  if (t.w === 2 && t.h === 2) return TILE_COLORS['2x2'];
-  if (t.w === 3 || t.h === 3) return TILE_COLORS['3x1'];
-  if (t.w === 2 || t.h === 2) return TILE_COLORS['2x1'];
-  return TILE_COLORS['1x1'];
-}
-
-function renderThumb(puz) {
-  const c = document.createElement('canvas');
-  const s = puz.size;
-  c.width = s * THUMB_CELL + 2;
-  c.height = s * THUMB_CELL + 2;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#f8fafc';
-  ctx.fillRect(0, 0, c.width, c.height);
-
-  // Grid lines
-  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 0.5;
-  for (let i = 0; i <= s; i++) {
-    ctx.beginPath(); ctx.moveTo(i * THUMB_CELL + 1, 1); ctx.lineTo(i * THUMB_CELL + 1, s * THUMB_CELL + 1); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(1, i * THUMB_CELL + 1); ctx.lineTo(s * THUMB_CELL + 1, i * THUMB_CELL + 1); ctx.stroke();
-  }
-
-  // Tiles (bodies first, then digits; 0 in vals = blank)
-  puz.tiles.forEach(t => {
-    ctx.fillStyle = tileColor(t);
-    const x = t.c * THUMB_CELL + 2, y = t.r * THUMB_CELL + 2;
-    const w = t.w * THUMB_CELL - 2, h = t.h * THUMB_CELL - 2;
-    ctx.beginPath();
-    ctx.roundRect(x, y, w, h, 2);
-    ctx.fill();
-  });
-
-  ctx.fillStyle = '#fff';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  puz.tiles.forEach((t) => {
-    const left = t.c * THUMB_CELL + 2;
-    const top = t.r * THUMB_CELL + 2;
-    const innerW = t.w * THUMB_CELL - 2;
-    const innerH = t.h * THUMB_CELL - 2;
-    const cw = innerW / t.w;
-    const ch = innerH / t.h;
-    ctx.font = `600 ${Math.max(7, Math.round(Math.min(cw, ch) * 0.42))}px Outfit`;
-    for (let rr = 0; rr < t.h; rr++) {
-      for (let cc = 0; cc < t.w; cc++) {
-        const v = t.vals[rr * t.w + cc];
-        if (!v) continue;
-        const cx = left + cc * cw + cw / 2;
-        const cy = top + rr * ch + ch / 2;
-        ctx.fillText(String(v), cx, cy);
+      /**
+       * Row/col targets from current tile vals (non-zero cells contribute, same as legacy finder).
+       */
+      function computeTargetsFromTiles(size, tiles) {
+        const numGrid = Array.from({ length: size }, () => Array(size).fill(0))
+        for (const t of tiles) {
+          for (let rr = 0; rr < t.h; rr++) {
+            for (let cc = 0; cc < t.w; cc++) {
+              numGrid[t.r + rr][t.c + cc] = t.vals[rr * t.w + cc]
+            }
+          }
+        }
+        const rows = Array(size).fill(0)
+        const cols = Array(size).fill(0)
+        for (let r = 0; r < size; r++) {
+          for (let c = 0; c < size; c++) {
+            if (numGrid[r][c]) {
+              rows[r] += numGrid[r][c]
+              cols[c] += numGrid[r][c]
+            }
+          }
+        }
+        return { rows, cols }
       }
-    }
-  });
 
-  return c;
-}
+      /**
+       * Full pool multiset is placed (including 0 = explicit blank cell in vals). Unbiased: shuffle pool
+       * copy and slot indices, assign min(|pool|, |slots|) entries. Remaining slots stay 0.
+       * If pool length > cells: add 1×1 on empty grid cells until slots suffice or impossible.
+       */
+      function assignDigitsUnbiased(size, tiles, nums) {
+        const tokens = [...nums]
+        shuffleArray(tokens)
 
-// ═══════════════════════════════════════════════════════════
-// DIFFICULTY LABEL
-// ═══════════════════════════════════════════════════════════
+        function markOcc(occ) {
+          for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+              occ[r][c] = false
+            }
+          }
+          for (const t of tiles) {
+            for (let rr = 0; rr < t.h; rr++) {
+              for (let cc = 0; cc < t.w; cc++) {
+                occ[t.r + rr][t.c + cc] = true
+              }
+            }
+          }
+        }
 
-function diffLabel(mm) {
-  if (mm <= 6)  return {label: 'Easy',   cls: 'diff-easy'};
-  if (mm <= 12) return {label: 'Medium', cls: 'diff-medium'};
-  if (mm <= 20) return {label: 'Hard',   cls: 'diff-hard'};
-  return {label: 'Expert', cls: 'diff-expert'};
-}
+        const occ = Array.from({ length: size }, () => Array(size).fill(false))
 
-// ═══════════════════════════════════════════════════════════
-// RESULTS RENDERING
-// ═══════════════════════════════════════════════════════════
+        for (const t of tiles) {
+          t.vals = new Array(t.w * t.h).fill(0)
+        }
 
-function addPuzzleCard(puzEntry, index) {
-  const list = $('resultsList');
-  const empty = $('emptyState');
-  if (empty) empty.remove();
+        while (tokens.length > countSlots(tiles)) {
+          markOcc(occ)
+          const empty = []
+          for (let r = 0; r < size; r++) {
+            for (let c = 0; c < size; c++) {
+              if (!occ[r][c]) empty.push({ r, c })
+            }
+          }
+          if (!empty.length) return false
+          const p = empty[Math.floor(Math.random() * empty.length)]
+          tiles.push({
+            id: tiles.length + 1,
+            r: p.r,
+            c: p.c,
+            w: 1,
+            h: 1,
+            vals: [0],
+          })
+        }
 
-  const {puz, minMoves} = puzEntry;
-  const diff = diffLabel(minMoves);
+        const slots = []
+        for (const t of tiles) {
+          for (let li = 0; li < t.w * t.h; li++) {
+            slots.push({ t, li })
+          }
+        }
+        const S = slots.length
+        const order = [...Array(S).keys()]
+        shuffleArray(order)
+        const n = Math.min(S, tokens.length)
+        for (let j = 0; j < n; j++) {
+          const { t, li } = slots[order[j]]
+          t.vals[li] = tokens[j]
+        }
+        return true
+      }
 
-  const card = document.createElement('div');
-  card.className = 'puzzle-card';
-  card.dataset.idx = index;
+      function countSlots(tiles) {
+        let n = 0
+        for (const t of tiles) n += t.w * t.h
+        return n
+      }
 
-  const thumb = renderThumb(puz);
-  thumb.className = '';
-  const thumbWrap = document.createElement('div');
-  thumbWrap.className = 'card-thumb';
-  thumbWrap.appendChild(thumb);
+      /**
+       * nums: parsed pool (0 = blank digit, placed in vals and shown empty in thumbnails).
+       * cfg: tile counts from UI.
+       * Returns { size, tiles, targets } or null after LAYOUT_TRIES.
+       */
+      function buildPuzzleTilesFirst(size, nums, cfg) {
+        if (nums.length === 0 || nums.length > size * size) return null
 
-  const indexEl = document.createElement('div');
-  indexEl.className = 'card-index';
-  indexEl.textContent = `#${index + 1}`;
+        const ones = countImpliedOnes(size, cfg)
+        if (ones < 0) return null
 
-  const meta = document.createElement('div');
-  meta.className = 'card-meta';
-  meta.innerHTML = `
+        const polyPieces = buildPolyMultiset(cfg)
+        const poolSlotCount = nums.length
+
+        const LAYOUT_TRIES = 2000
+        const dummyTargets = { rows: Array(size).fill(0), cols: Array(size).fill(0) }
+
+        for (let attempt = 0; attempt < LAYOUT_TRIES; attempt++) {
+          const polyTiles = tryPackPolysRandom(size, polyPieces)
+          if (polyTiles === null) continue
+          const tiles = polyTiles.map((t) => ({ ...t, vals: [...t.vals] }))
+          if (!addPartialOnesForDigitCount(size, tiles, poolSlotCount)) continue
+
+          const skeleton = { size, tiles, targets: dummyTargets }
+          if (!hasAtLeastOneMove(skeleton)) continue
+
+          const tilesWork = JSON.parse(JSON.stringify(tiles))
+          if (!assignDigitsUnbiased(size, tilesWork, nums)) continue
+
+          const targets = computeTargetsFromTiles(size, tilesWork)
+          const puz = { size, tiles: tilesWork, targets }
+          if (!hasAtLeastOneMove(puz)) continue
+
+          return puz
+        }
+        return null
+      }
+
+      // ═══════════════════════════════════════════════════════════
+      // BFS SOLVER (adapted from Sums solver, win cond = products)
+      // ═══════════════════════════════════════════════════════════
+
+      function allowedAxes(tile) {
+        const sq = tile.w === tile.h
+        return { h: sq || tile.w > tile.h, v: sq || tile.h > tile.w }
+      }
+
+      function stateKey(pos) {
+        return pos.map((p) => `${p.r},${p.c}`).join('|')
+      }
+
+      function computeValuesFromState(fixed, pos) {
+        // KEY DIFFERENCE: sums not products
+        const curR = new Array(fixed.size).fill(0)
+        const curC = new Array(fixed.size).fill(0)
+        for (let i = 0; i < fixed.tiles.length; i++) {
+          const t = fixed.tiles[i]
+          const base = pos[i]
+          for (let rr = 0; rr < t.h; rr++) {
+            for (let cc = 0; cc < t.w; cc++) {
+              const v = t.vals[rr * t.w + cc]
+              if (!v) continue
+              curR[base.r + rr] += v
+              curC[base.c + cc] += v
+            }
+          }
+        }
+        return { curR, curC }
+      }
+
+      function isSolvedState(fixed, pos) {
+        const { curR, curC } = computeValuesFromState(fixed, pos)
+        for (let i = 0; i < fixed.size; i++) {
+          if (curR[i] !== fixed.targets.rows[i]) return false
+          if (curC[i] !== fixed.targets.cols[i]) return false
+        }
+        return true
+      }
+
+      function puzzleToFixed(puz) {
+        return {
+          size: puz.size,
+          targets: puz.targets,
+          tiles: puz.tiles.map((t) => ({ ...t, r0: t.r, c0: t.c })),
+        }
+      }
+
+      function buildOccupancy(fixed, pos) {
+        const occ = Array.from({ length: fixed.size }, () => new Array(fixed.size).fill(-1))
+        for (let i = 0; i < fixed.tiles.length; i++) {
+          const t = fixed.tiles[i]
+          const base = pos[i]
+          for (let rr = 0; rr < t.h; rr++)
+            for (let cc = 0; cc < t.w; cc++) occ[base.r + rr][base.c + cc] = i
+        }
+        return occ
+      }
+
+      function leadingEdgeCells(tile, base, axis, dir) {
+        const cells = []
+        if (axis === 'h') {
+          const col = base.c + (dir > 0 ? tile.w : -1)
+          for (let rr = 0; rr < tile.h; rr++) cells.push([base.r + rr, col])
+        } else {
+          const row = base.r + (dir > 0 ? tile.h : -1)
+          for (let cc = 0; cc < tile.w; cc++) cells.push([row, base.c + cc])
+        }
+        return cells
+      }
+
+      function canPush(fixed, pos, occ, idx, axis, dir, visiting) {
+        if (visiting.has(idx)) return true
+        visiting.add(idx)
+        const tile = fixed.tiles[idx]
+        const base = pos[idx]
+        const ax = allowedAxes(tile)
+        if (axis === 'h' && !ax.h) return false
+        if (axis === 'v' && !ax.v) return false
+        const nr = base.r + (axis === 'v' ? dir : 0)
+        const nc = base.c + (axis === 'h' ? dir : 0)
+        if (nr < 0 || nc < 0 || nr + tile.h > fixed.size || nc + tile.w > fixed.size) return false
+        const edge = leadingEdgeCells(tile, base, axis, dir)
+        for (const [r, c] of edge) {
+          const b = occ[r]?.[c]
+          if (b === -1 || b === idx) continue
+          if (!canPush(fixed, pos, occ, b, axis, dir, visiting)) return false
+        }
+        return true
+      }
+
+      function applyMoveGrid(fixed, pos, idx, axis, dir) {
+        const occ = buildOccupancy(fixed, pos)
+        if (!canPush(fixed, pos, occ, idx, axis, dir, new Set())) return null
+        const newPos = pos.map((p) => ({ r: p.r, c: p.c }))
+        const moved = new Set()
+        function push(i) {
+          if (moved.has(i)) return
+          moved.add(i)
+          const tile = fixed.tiles[i]
+          const base = newPos[i]
+          const occ2 = buildOccupancy(fixed, newPos)
+          const edge = leadingEdgeCells(tile, base, axis, dir)
+          for (const [r, c] of edge) {
+            const b = occ2[r]?.[c]
+            if (b === -1 || b === i) continue
+            push(b)
+          }
+          if (axis === 'h') newPos[i].c += dir
+          else newPos[i].r += dir
+        }
+        push(idx)
+        return newPos
+      }
+
+      function bfsSolve(puz, maxNodes) {
+        const fixed = puzzleToFixed(puz)
+        const start = fixed.tiles.map((t) => ({ r: t.r0, c: t.c0 }))
+        const startKey = stateKey(start)
+        if (isSolvedState(fixed, start)) return { minMoves: 0, path: [] }
+
+        const queue = [start]
+        let head = 0,
+          explored = 0
+        const parent = new Map()
+        parent.set(startKey, null)
+
+        while (head < queue.length) {
+          const cur = queue[head++]
+          const curKey = stateKey(cur)
+          explored++
+          if (explored > maxNodes)
+            return { minMoves: null, path: null, explored, reason: 'node cap' }
+
+          for (let i = 0; i < fixed.tiles.length; i++) {
+            const tile = fixed.tiles[i]
+            const ax = allowedAxes(tile)
+            const axes = []
+            if (ax.h) axes.push('h')
+            if (ax.v) axes.push('v')
+            for (const axis of axes) {
+              for (const dir of [-1, 1]) {
+                // Enumerate all slide distances: keep stepping until blocked.
+                // Each distinct distance costs 1 move regardless of how far.
+                let pos = cur
+                for (;;) {
+                  const nxt = applyMoveGrid(fixed, pos, i, axis, dir)
+                  if (!nxt) break
+                  const k = stateKey(nxt)
+                  if (!parent.has(k)) {
+                    parent.set(k, { prev: curKey, move: { tileIndex: i, axis, dir } })
+                    if (parent.size > maxNodes)
+                      return { minMoves: null, path: null, explored, reason: 'node cap' }
+                    if (isSolvedState(fixed, nxt)) {
+                      const path = []
+                      let walk = k
+                      while (walk !== startKey) {
+                        const info = parent.get(walk)
+                        path.push(info.move)
+                        walk = info.prev
+                      }
+                      path.reverse()
+                      return { minMoves: path.length, path }
+                    }
+                    queue.push(nxt)
+                  }
+                  pos = nxt
+                }
+              }
+            }
+          }
+        }
+        return { minMoves: null, path: null, explored, reason: 'exhausted' }
+      }
+
+      // ═══════════════════════════════════════════════════════════
+      // THUMBNAIL RENDERER
+      // ═══════════════════════════════════════════════════════════
+
+      const THUMB_CELL = 14
+      const TILE_COLORS = {
+        '2x2': '#1e3a8a',
+        '3x1': '#b91c1c',
+        '1x3': '#b91c1c',
+        '2x1': '#0369a1',
+        '1x2': '#0369a1',
+        '1x1': '#64748b',
+      }
+
+      function tileColor(t) {
+        if (t.w === 2 && t.h === 2) return TILE_COLORS['2x2']
+        if (t.w === 3 || t.h === 3) return TILE_COLORS['3x1']
+        if (t.w === 2 || t.h === 2) return TILE_COLORS['2x1']
+        return TILE_COLORS['1x1']
+      }
+
+      function renderThumb(puz) {
+        const c = document.createElement('canvas')
+        const s = puz.size
+        c.width = s * THUMB_CELL + 2
+        c.height = s * THUMB_CELL + 2
+        const ctx = c.getContext('2d')
+        ctx.fillStyle = '#f8fafc'
+        ctx.fillRect(0, 0, c.width, c.height)
+
+        // Grid lines
+        ctx.strokeStyle = '#e2e8f0'
+        ctx.lineWidth = 0.5
+        for (let i = 0; i <= s; i++) {
+          ctx.beginPath()
+          ctx.moveTo(i * THUMB_CELL + 1, 1)
+          ctx.lineTo(i * THUMB_CELL + 1, s * THUMB_CELL + 1)
+          ctx.stroke()
+          ctx.beginPath()
+          ctx.moveTo(1, i * THUMB_CELL + 1)
+          ctx.lineTo(s * THUMB_CELL + 1, i * THUMB_CELL + 1)
+          ctx.stroke()
+        }
+
+        // Tiles (bodies first, then digits; 0 in vals = blank)
+        puz.tiles.forEach((t) => {
+          ctx.fillStyle = tileColor(t)
+          const x = t.c * THUMB_CELL + 2,
+            y = t.r * THUMB_CELL + 2
+          const w = t.w * THUMB_CELL - 2,
+            h = t.h * THUMB_CELL - 2
+          ctx.beginPath()
+          ctx.roundRect(x, y, w, h, 2)
+          ctx.fill()
+        })
+
+        ctx.fillStyle = '#fff'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        puz.tiles.forEach((t) => {
+          const left = t.c * THUMB_CELL + 2
+          const top = t.r * THUMB_CELL + 2
+          const innerW = t.w * THUMB_CELL - 2
+          const innerH = t.h * THUMB_CELL - 2
+          const cw = innerW / t.w
+          const ch = innerH / t.h
+          ctx.font = `600 ${Math.max(7, Math.round(Math.min(cw, ch) * 0.42))}px Outfit`
+          for (let rr = 0; rr < t.h; rr++) {
+            for (let cc = 0; cc < t.w; cc++) {
+              const v = t.vals[rr * t.w + cc]
+              if (!v) continue
+              const cx = left + cc * cw + cw / 2
+              const cy = top + rr * ch + ch / 2
+              ctx.fillText(String(v), cx, cy)
+            }
+          }
+        })
+
+        return c
+      }
+
+      // ═══════════════════════════════════════════════════════════
+      // DIFFICULTY LABEL
+      // ═══════════════════════════════════════════════════════════
+
+      function diffLabel(mm) {
+        if (mm <= 6) return { label: 'Easy', cls: 'diff-easy' }
+        if (mm <= 12) return { label: 'Medium', cls: 'diff-medium' }
+        if (mm <= 20) return { label: 'Hard', cls: 'diff-hard' }
+        return { label: 'Expert', cls: 'diff-expert' }
+      }
+
+      // ═══════════════════════════════════════════════════════════
+      // RESULTS RENDERING
+      // ═══════════════════════════════════════════════════════════
+
+      function addPuzzleCard(puzEntry, index) {
+        const list = $('resultsList')
+        const empty = $('emptyState')
+        if (empty) empty.remove()
+
+        const { puz, minMoves } = puzEntry
+        const diff = diffLabel(minMoves)
+
+        const card = document.createElement('div')
+        card.className = 'puzzle-card'
+        card.dataset.idx = index
+
+        const thumb = renderThumb(puz)
+        thumb.className = ''
+        const thumbWrap = document.createElement('div')
+        thumbWrap.className = 'card-thumb'
+        thumbWrap.appendChild(thumb)
+
+        const indexEl = document.createElement('div')
+        indexEl.className = 'card-index'
+        indexEl.textContent = `#${index + 1}`
+
+        const meta = document.createElement('div')
+        meta.className = 'card-meta'
+        meta.innerHTML = `
     <div class="card-difficulty">
       <span>${minMoves} moves</span>
       <span class="diff-badge ${diff.cls}">${diff.label}</span>
     </div>
     <div class="card-size">${puz.size}×${puz.size} · ${puz.tiles.length} tiles</div>
-  `;
+  `
 
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'card-remove';
-  removeBtn.title = 'Remove';
-  removeBtn.textContent = '×';
-  removeBtn.onclick = (e) => {
-    e.stopPropagation();
-    removePuzzle(index);
-  };
+        const removeBtn = document.createElement('button')
+        removeBtn.className = 'card-remove'
+        removeBtn.title = 'Remove'
+        removeBtn.textContent = '×'
+        removeBtn.onclick = (e) => {
+          e.stopPropagation()
+          removePuzzle(index)
+        }
 
-  card.appendChild(indexEl);
-  card.appendChild(thumbWrap);
-  card.appendChild(meta);
-  card.appendChild(removeBtn);
-  list.appendChild(card);
-}
-
-function rebuildList() {
-  const list = $('resultsList');
-  list.innerHTML = '';
-  if (puzzles.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state'; empty.id = 'emptyState';
-    empty.innerHTML = `<div class="empty-icon">🧩</div><div class="empty-text">No puzzles yet</div><div class="status-text">Configure parameters and click Generate</div>`;
-    list.appendChild(empty);
-  } else {
-    puzzles.forEach((p, i) => addPuzzleCard(p, i));
-  }
-  updateBadge();
-  updateExportButtons();
-}
-
-function removePuzzle(idx) {
-  puzzles.splice(idx, 1);
-  rebuildList();
-}
-
-function updateBadge() {
-  $('resultsBadge').textContent = `${puzzles.length} puzzle${puzzles.length !== 1 ? 's' : ''}`;
-}
-
-function updateExportButtons() {
-  const has = puzzles.length > 0;
-  $('exportBtn').disabled = !has;
-  $('clearBtn').disabled = !has;
-}
-
-// ═══════════════════════════════════════════════════════════
-// GENERATION LOOP
-// ═══════════════════════════════════════════════════════════
-
-async function runGeneration() {
-  // Read params
-  const size = +$('gridSize').value;
-  const rawNums = $('numInput').value.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
-  const targetCount = +$('targetCount').value;
-  if (rawNums.length === 0 || rawNums.length > size * size) {
-    $('poolError').textContent = 'Pool must have between 1 and size² numbers!';
-    $('poolError').style.display = 'block';
-    return;
-  }
-  $('poolError').textContent = 'Pool must have between 1 and size² numbers!';
-  $('poolError').style.display = 'none';
-
-  const cfg = {
-    sq2: +$('sq2Count').value,
-    h3:  +$('h3Count').value,
-    v3:  +$('v3Count').value,
-    hC:  +$('hCount').value,
-    vC:  +$('vCount').value,
-  };
-
-  const impliedOnes = countImpliedOnes(size, cfg);
-  if (impliedOnes < 0) {
-    $('poolError').textContent =
-      'Tile composition does not fit the grid (negative implied 1×1 count). Reduce larger tiles.';
-    $('poolError').style.display = 'block';
-    return;
-  }
-
-  const scrambleMoves = +$('scrambleMoves').value;
-  const minM = +$('minMoves').value;
-  const maxM = +$('maxMoves').value;
-  const bfsCapIdx = +$('bfsCap').value - 1;
-  const bfsCap = BFS_CAPS[bfsCapIdx];
-
-  // UI state
-  stopFlag = false;
-  $('genBtn').style.display = 'none';
-  $('stopBtn').style.display = 'block';
-  $('progressWrap').style.display = 'flex';
-
-  let found = 0, attempts = 0, unsolvable = 0, outOfRange = 0, layoutFail = 0;
-  const MAX_ATTEMPTS = targetCount * 500;
-
-  const updateProgress = () => {
-    const pct = Math.min(100, (found / targetCount) * 100);
-    $('progressBar').style.width = pct + '%';
-    $('foundCount').textContent = `${found} / ${targetCount}`;
-    $('statusText').textContent = `Attempt ${attempts} · ${layoutFail} no layout · ${unsolvable} skipped (BFS cap) · ${outOfRange} out of range`;
-    $('headerStatus').textContent = $('statusText').textContent;
-  };
-
-  // Yield to the browser every N attempts
-  const YIELD_EVERY = 5;
-  let yieldCounter = 0;
-
-  while (found < targetCount && attempts < MAX_ATTEMPTS && !stopFlag) {
-    attempts++;
-    yieldCounter++;
-
-    // Build a fresh puzzle attempt (tiles-first pack inside buildPuzzleTilesFirst)
-    const nums = [...rawNums]; // copy so shuffleArray doesn't mutate original
-    const puz = buildPuzzleTilesFirst(size, nums, cfg);
-    if (!puz) {
-      layoutFail++;
-      if (yieldCounter >= YIELD_EVERY) {
-        yieldCounter = 0;
-        updateProgress();
-        await yieldFrame();
+        card.appendChild(indexEl)
+        card.appendChild(thumbWrap)
+        card.appendChild(meta)
+        card.appendChild(removeBtn)
+        list.appendChild(card)
       }
-      continue;
-    }
 
-    const solvedSnapshot = JSON.parse(JSON.stringify(puz.tiles));
+      function rebuildList() {
+        const list = $('resultsList')
+        list.innerHTML = ''
+        if (puzzles.length === 0) {
+          const empty = document.createElement('div')
+          empty.className = 'empty-state'
+          empty.id = 'emptyState'
+          empty.innerHTML = `<div class="empty-icon">🧩</div><div class="empty-text">No puzzles yet</div><div class="status-text">Configure parameters and click Generate</div>`
+          list.appendChild(empty)
+        } else {
+          puzzles.forEach((p, i) => addPuzzleCard(p, i))
+        }
+        updateBadge()
+        updateExportButtons()
+      }
 
-    // Scramble
-    scramblePuzzle(puz, scrambleMoves);
+      function removePuzzle(idx) {
+        puzzles.splice(idx, 1)
+        rebuildList()
+      }
 
-    // Must be non-trivial
-    if (!isNonTrivialScramble(puz.tiles, solvedSnapshot)) continue;
+      function updateBadge() {
+        $('resultsBadge').textContent = `${puzzles.length} puzzle${puzzles.length !== 1 ? 's' : ''}`
+      }
 
-    // BFS solve
-    const res = bfsSolve(puz, bfsCap);
+      function updateExportButtons() {
+        const has = puzzles.length > 0
+        $('exportBtn').disabled = !has
+        $('clearBtn').disabled = !has
+      }
 
-    if (res.minMoves === null) {
-      unsolvable++;
-      if (yieldCounter >= YIELD_EVERY) { yieldCounter = 0; updateProgress(); await yieldFrame(); }
-      continue;
-    }
+      // ═══════════════════════════════════════════════════════════
+      // GENERATION LOOP
+      // ═══════════════════════════════════════════════════════════
 
-    if (res.minMoves < minM || res.minMoves > maxM) {
-      outOfRange++;
-      if (yieldCounter >= YIELD_EVERY) { yieldCounter = 0; updateProgress(); await yieldFrame(); }
-      continue;
-    }
+      async function runGeneration() {
+        // Read params
+        const size = +$('gridSize').value
+        const rawNums = $('numInput')
+          .value.split(',')
+          .map((n) => parseInt(n.trim()))
+          .filter((n) => !isNaN(n))
+        const targetCount = +$('targetCount').value
+        if (rawNums.length === 0 || rawNums.length > size * size) {
+          $('poolError').textContent = 'Pool must have between 1 and size² numbers!'
+          $('poolError').style.display = 'block'
+          return
+        }
+        $('poolError').textContent = 'Pool must have between 1 and size² numbers!'
+        $('poolError').style.display = 'none'
 
-    // Winner!
-    const entry = {puz: JSON.parse(JSON.stringify(puz)), minMoves: res.minMoves};
-    puzzles.push(entry);
-    addPuzzleCard(entry, puzzles.length - 1);
-    found++;
-    updateBadge();
-    updateExportButtons();
+        const cfg = {
+          sq2: +$('sq2Count').value,
+          h3: +$('h3Count').value,
+          v3: +$('v3Count').value,
+          hC: +$('hCount').value,
+          vC: +$('vCount').value,
+        }
 
-    yieldCounter = 0;
-    updateProgress();
-    await yieldFrame();
-  }
+        const impliedOnes = countImpliedOnes(size, cfg)
+        if (impliedOnes < 0) {
+          $('poolError').textContent =
+            'Tile composition does not fit the grid (negative implied 1×1 count). Reduce larger tiles.'
+          $('poolError').style.display = 'block'
+          return
+        }
 
-  // Done
-  updateProgress();
-  $('genBtn').style.display = 'block';
-  $('stopBtn').style.display = 'none';
+        const scrambleMoves = +$('scrambleMoves').value
+        const minM = +$('minMoves').value
+        const maxM = +$('maxMoves').value
+        const bfsCapIdx = +$('bfsCap').value - 1
+        const bfsCap = BFS_CAPS[bfsCapIdx]
 
-  if (stopFlag) {
-    $('statusText').textContent = `Stopped. Found ${found} puzzle${found!==1?'s':''}.`;
-  } else if (found < targetCount) {
-    $('statusText').textContent = `Exhausted ${MAX_ATTEMPTS} attempts. Found ${found}/${targetCount}.`;
-  } else {
-    $('statusText').textContent = `Done! Found ${found} puzzle${found!==1?'s':''} in ${attempts} attempts.`;
-  }
-  $('headerStatus').textContent = $('statusText').textContent;
-}
+        // UI state
+        stopFlag = false
+        $('genBtn').style.display = 'none'
+        $('stopBtn').style.display = 'block'
+        $('progressWrap').style.display = 'flex'
 
-function yieldFrame() {
-  return new Promise(resolve => requestAnimationFrame(() => resolve()));
-}
+        let found = 0,
+          attempts = 0,
+          unsolvable = 0,
+          outOfRange = 0,
+          layoutFail = 0
+        const MAX_ATTEMPTS = targetCount * 500
 
-// ═══════════════════════════════════════════════════════════
-// EXPORT
-// ═══════════════════════════════════════════════════════════
+        const updateProgress = () => {
+          const pct = Math.min(100, (found / targetCount) * 100)
+          $('progressBar').style.width = pct + '%'
+          $('foundCount').textContent = `${found} / ${targetCount}`
+          $('statusText').textContent =
+            `Attempt ${attempts} · ${layoutFail} no layout · ${unsolvable} skipped (BFS cap) · ${outOfRange} out of range`
+          $('headerStatus').textContent = $('statusText').textContent
+        }
 
-function buildExportFlat() {
-  return puzzles.map(({puz, minMoves}) => {
-    const compactTiles = puz.tiles.map(t => [t.r, t.c, t.w, t.h, ...t.vals]);
-    return {
-      s: puz.size,
-      t: puz.targets,
-      b: compactTiles,
-      minMoves
-    };
-  });
-}
+        // Yield to the browser every N attempts
+        const YIELD_EVERY = 5
+        let yieldCounter = 0
 
-$('exportBtn').onclick = () => {
-  const data = buildExportFlat();
-  const json = formatTilePuzzlesExportBlock(data);
-  // Show inline
-  $('jsonOut').style.display = 'block';
-  $('jsonOut').textContent = json;
-  // Copy to clipboard
-  navigator.clipboard.writeText(json).then(() => {
-    const flash = $('copiedFlash');
-    flash.style.display = 'block';
-    setTimeout(() => flash.style.display = 'none', 1500);
-  });
-};
+        while (found < targetCount && attempts < MAX_ATTEMPTS && !stopFlag) {
+          attempts++
+          yieldCounter++
 
-$('clearBtn').onclick = () => {
-  puzzles = [];
-  $('jsonOut').style.display = 'none';
-  rebuildList();
-  $('progressWrap').style.display = 'none';
-  $('headerStatus').textContent = '';
-};
+          // Build a fresh puzzle attempt (tiles-first pack inside buildPuzzleTilesFirst)
+          const nums = [...rawNums] // copy so shuffleArray doesn't mutate original
+          const puz = buildPuzzleTilesFirst(size, nums, cfg)
+          if (!puz) {
+            layoutFail++
+            if (yieldCounter >= YIELD_EVERY) {
+              yieldCounter = 0
+              updateProgress()
+              await yieldFrame()
+            }
+            continue
+          }
 
-$('genBtn').onclick = () => runGeneration();
-$('stopBtn').onclick = () => { stopFlag = true; };
+          const solvedSnapshot = JSON.parse(JSON.stringify(puz.tiles))
 
-// ═══════════════════════════════════════════════════════════
-// TABS
-// ═══════════════════════════════════════════════════════════
-function switchTab(tab) {
-  $('tabGenBtn').classList.toggle('active', tab === 'gen');
-  $('tabAnnBtn').classList.toggle('active', tab === 'ann');
-  $('paneGen').classList.toggle('active', tab === 'gen');
-  $('paneAnn').classList.toggle('active', tab === 'ann');
-}
+          // Scramble
+          scramblePuzzle(puz, scrambleMoves)
 
-// ═══════════════════════════════════════════════════════════
-// ANNOTATE TAB
-// ═══════════════════════════════════════════════════════════
-let annStopFlag = false;
-let annResults = [];
+          // Must be non-trivial
+          if (!isNonTrivialScramble(puz.tiles, solvedSnapshot)) continue
 
-$('annBfsCap').oninput = () => {
-  const i = +$('annBfsCap').value - 1;
-  $('annBfsCapVal').textContent = BFS_LABELS[i];
-};
+          // BFS solve
+          const res = bfsSolve(puz, bfsCap)
 
-$('annRunBtn').onclick = () => runAnnotate();
-$('annStopBtn').onclick = () => { annStopFlag = true; };
+          if (res.minMoves === null) {
+            unsolvable++
+            if (yieldCounter >= YIELD_EVERY) {
+              yieldCounter = 0
+              updateProgress()
+              await yieldFrame()
+            }
+            continue
+          }
 
-async function runAnnotate() {
-  const raw = $('annInput').value.trim();
-  const errEl = $('annParseError');
-  errEl.style.display = 'none';
+          if (res.minMoves < minM || res.minMoves > maxM) {
+            outOfRange++
+            if (yieldCounter >= YIELD_EVERY) {
+              yieldCounter = 0
+              updateProgress()
+              await yieldFrame()
+            }
+            continue
+          }
 
-  let incoming;
-  try {
-    incoming = parseTileAnnotateInput(raw);
-  } catch(e) {
-    errEl.textContent = 'Parse error: ' + e.message;
-    errEl.style.display = 'block';
-    return;
-  }
+          // Winner!
+          const entry = { puz: JSON.parse(JSON.stringify(puz)), minMoves: res.minMoves }
+          puzzles.push(entry)
+          addPuzzleCard(entry, puzzles.length - 1)
+          found++
+          updateBadge()
+          updateExportButtons()
 
-  const bfsCapIdx = +$('annBfsCap').value - 1;
-  const bfsCap = BFS_CAPS[bfsCapIdx];
-  const total = incoming.length;
-  annResults = incoming.map(p => ({...p})); // shallow copy array
-  annStopFlag = false;
+          yieldCounter = 0
+          updateProgress()
+          await yieldFrame()
+        }
 
-  $('annRunBtn').style.display = 'none';
-  $('annStopBtn').style.display = 'block';
-  $('annProgressWrap').style.display = 'flex';
-  $('annExportBtn').disabled = true;
-  $('annJsonOut').style.display = 'none';
+        // Done
+        updateProgress()
+        $('genBtn').style.display = 'block'
+        $('stopBtn').style.display = 'none'
 
-  let done = 0, skipped = 0, alreadyHad = 0, failed = 0;
+        if (stopFlag) {
+          $('statusText').textContent = `Stopped. Found ${found} puzzle${found !== 1 ? 's' : ''}.`
+        } else if (found < targetCount) {
+          $('statusText').textContent =
+            `Exhausted ${MAX_ATTEMPTS} attempts. Found ${found}/${targetCount}.`
+        } else {
+          $('statusText').textContent =
+            `Done! Found ${found} puzzle${found !== 1 ? 's' : ''} in ${attempts} attempts.`
+        }
+        $('headerStatus').textContent = $('statusText').textContent
+      }
 
-  const setStatus = () => {
-    $('annStatusText').textContent = `${done}/${total} done · ${alreadyHad} already annotated · ${failed} BFS cap`;
-    $('annCountText').textContent = `${skipped} skipped`;
-    $('annProgressBar').style.width = (done / total * 100) + '%';
-  };
+      function yieldFrame() {
+        return new Promise((resolve) => requestAnimationFrame(() => resolve()))
+      }
 
-  for (let i = 0; i < annResults.length; i++) {
-    if (annStopFlag) break;
+      // ═══════════════════════════════════════════════════════════
+      // EXPORT
+      // ═══════════════════════════════════════════════════════════
 
-    const puz = annResults[i];
+      function buildExportFlat() {
+        return puzzles.map(({ puz, minMoves }) => {
+          const compactTiles = puz.tiles.map((t) => [t.r, t.c, t.w, t.h, ...t.vals])
+          return {
+            s: puz.size,
+            t: puz.targets,
+            b: compactTiles,
+            minMoves,
+          }
+        })
+      }
 
-    // Already has a valid minMoves — skip
-    if (Number.isFinite(puz.minMoves)) {
-      alreadyHad++;
-      done++;
-      setStatus();
-      continue;
-    }
+      $('exportBtn').onclick = () => {
+        const data = buildExportFlat()
+        const json = formatTilePuzzlesExportBlock(data)
+        // Show inline
+        $('jsonOut').style.display = 'block'
+        $('jsonOut').textContent = json
+        // Copy to clipboard
+        navigator.clipboard.writeText(json).then(() => {
+          const flash = $('copiedFlash')
+          flash.style.display = 'block'
+          setTimeout(() => (flash.style.display = 'none'), 1500)
+        })
+      }
 
-    // Validate minimal structure
-    if (!puz.s || !puz.t || !Array.isArray(puz.b)) {
-      skipped++;
-      done++;
-      setStatus();
-      continue;
-    }
+      $('clearBtn').onclick = () => {
+        puzzles = []
+        $('jsonOut').style.display = 'none'
+        rebuildList()
+        $('progressWrap').style.display = 'none'
+        $('headerStatus').textContent = ''
+      }
 
-    // Reconstruct puzzle object in the format bfsSolve expects
-    const reconstructed = {
-      size: puz.s,
-      targets: puz.t,
-      tiles: puz.b.map((row, idx) => {
-        const [r, c, w, h, ...vals] = row;
-        return { id: idx + 1, r, c, r0: r, c0: c, w, h, vals };
-      })
-    };
+      $('genBtn').onclick = () => runGeneration()
+      $('stopBtn').onclick = () => {
+        stopFlag = true
+      }
 
-    const res = bfsSolve(reconstructed, bfsCap);
-    if (res.minMoves !== null) {
-      annResults[i] = { ...puz, minMoves: res.minMoves };
-    } else {
-      failed++;
-    }
+      // ═══════════════════════════════════════════════════════════
+      // TABS
+      // ═══════════════════════════════════════════════════════════
+      function switchTab(tab) {
+        $('tabGenBtn').classList.toggle('active', tab === 'gen')
+        $('tabAnnBtn').classList.toggle('active', tab === 'ann')
+        $('paneGen').classList.toggle('active', tab === 'gen')
+        $('paneAnn').classList.toggle('active', tab === 'ann')
+      }
 
-    done++;
-    setStatus();
-    await yieldFrame();
-  }
+      // ═══════════════════════════════════════════════════════════
+      // ANNOTATE TAB
+      // ═══════════════════════════════════════════════════════════
+      let annStopFlag = false
+      let annResults = []
 
-  $('annRunBtn').style.display = 'block';
-  $('annStopBtn').style.display = 'none';
+      $('annBfsCap').oninput = () => {
+        const i = +$('annBfsCap').value - 1
+        $('annBfsCapVal').textContent = BFS_LABELS[i]
+      }
 
-  if (annStopFlag) {
-    $('annStatusText').textContent = `Stopped at ${done}/${total}.`;
-  }
+      $('annRunBtn').onclick = () => runAnnotate()
+      $('annStopBtn').onclick = () => {
+        annStopFlag = true
+      }
 
-  const exportRows = annResults
-    .filter((p) => p && p.s && p.t && Array.isArray(p.t.rows) && Array.isArray(p.t.cols) && Array.isArray(p.b))
-    .map((p) => ({
-      s: p.s,
-      t: { rows: [...p.t.rows], cols: [...p.t.cols] },
-      b: p.b.map((row) => [...row]),
-      ...(Number.isFinite(p.minMoves) ? { minMoves: p.minMoves } : {}),
-    }));
-  const json = exportRows.length ? formatTilePuzzlesExportBlock(exportRows) : '// No valid puzzles to export';
-  $('annJsonOut').style.display = 'block';
-  $('annJsonOut').textContent = json;
-  $('annExportBtn').disabled = false;
-}
+      async function runAnnotate() {
+        const raw = $('annInput').value.trim()
+        const errEl = $('annParseError')
+        errEl.style.display = 'none'
 
-$('annClearBtn').onclick = () => {
-  $('annInput').value = '';
-  $('annJsonOut').style.display = 'none';
-  $('annJsonOut').textContent = '';
-  $('annParseError').style.display = 'none';
-  $('annProgressWrap').style.display = 'none';
-  $('annProgressBar').style.width = '0%';
-  $('annStatusText').textContent = 'Starting…';
-  $('annCountText').textContent = '';
-  $('annExportBtn').disabled = true;
-  annResults = [];
-};
+        let incoming
+        try {
+          incoming = parseTileAnnotateInput(raw)
+        } catch (e) {
+          errEl.textContent = 'Parse error: ' + e.message
+          errEl.style.display = 'block'
+          return
+        }
 
-$('annExportBtn').onclick = () => {
-  const exportRows = annResults
-    .filter((p) => p && p.s && p.t && Array.isArray(p.t.rows) && Array.isArray(p.t.cols) && Array.isArray(p.b))
-    .map((p) => ({
-      s: p.s,
-      t: { rows: [...p.t.rows], cols: [...p.t.cols] },
-      b: p.b.map((row) => [...row]),
-      ...(Number.isFinite(p.minMoves) ? { minMoves: p.minMoves } : {}),
-    }));
-  const json = exportRows.length ? formatTilePuzzlesExportBlock(exportRows) : '';
-  navigator.clipboard.writeText(json).then(() => {
-    const flash = $('copiedFlash');
-    flash.style.display = 'block';
-    setTimeout(() => flash.style.display = 'none', 1500);
-  });
-};
+        const bfsCapIdx = +$('annBfsCap').value - 1
+        const bfsCap = BFS_CAPS[bfsCapIdx]
+        const total = incoming.length
+        annResults = incoming.map((p) => ({ ...p })) // shallow copy array
+        annStopFlag = false
 
-// Initial badge
-updateBadge();
-</script>
-</body>
+        $('annRunBtn').style.display = 'none'
+        $('annStopBtn').style.display = 'block'
+        $('annProgressWrap').style.display = 'flex'
+        $('annExportBtn').disabled = true
+        $('annJsonOut').style.display = 'none'
+
+        let done = 0,
+          skipped = 0,
+          alreadyHad = 0,
+          failed = 0
+
+        const setStatus = () => {
+          $('annStatusText').textContent =
+            `${done}/${total} done · ${alreadyHad} already annotated · ${failed} BFS cap`
+          $('annCountText').textContent = `${skipped} skipped`
+          $('annProgressBar').style.width = (done / total) * 100 + '%'
+        }
+
+        for (let i = 0; i < annResults.length; i++) {
+          if (annStopFlag) break
+
+          const puz = annResults[i]
+
+          // Already has a valid minMoves — skip
+          if (Number.isFinite(puz.minMoves)) {
+            alreadyHad++
+            done++
+            setStatus()
+            continue
+          }
+
+          // Validate minimal structure
+          if (!puz.s || !puz.t || !Array.isArray(puz.b)) {
+            skipped++
+            done++
+            setStatus()
+            continue
+          }
+
+          // Reconstruct puzzle object in the format bfsSolve expects
+          const reconstructed = {
+            size: puz.s,
+            targets: puz.t,
+            tiles: puz.b.map((row, idx) => {
+              const [r, c, w, h, ...vals] = row
+              return { id: idx + 1, r, c, r0: r, c0: c, w, h, vals }
+            }),
+          }
+
+          const res = bfsSolve(reconstructed, bfsCap)
+          if (res.minMoves !== null) {
+            annResults[i] = { ...puz, minMoves: res.minMoves }
+          } else {
+            failed++
+          }
+
+          done++
+          setStatus()
+          await yieldFrame()
+        }
+
+        $('annRunBtn').style.display = 'block'
+        $('annStopBtn').style.display = 'none'
+
+        if (annStopFlag) {
+          $('annStatusText').textContent = `Stopped at ${done}/${total}.`
+        }
+
+        const exportRows = annResults
+          .filter(
+            (p) =>
+              p &&
+              p.s &&
+              p.t &&
+              Array.isArray(p.t.rows) &&
+              Array.isArray(p.t.cols) &&
+              Array.isArray(p.b)
+          )
+          .map((p) => ({
+            s: p.s,
+            t: { rows: [...p.t.rows], cols: [...p.t.cols] },
+            b: p.b.map((row) => [...row]),
+            ...(Number.isFinite(p.minMoves) ? { minMoves: p.minMoves } : {}),
+          }))
+        const json = exportRows.length
+          ? formatTilePuzzlesExportBlock(exportRows)
+          : '// No valid puzzles to export'
+        $('annJsonOut').style.display = 'block'
+        $('annJsonOut').textContent = json
+        $('annExportBtn').disabled = false
+      }
+
+      $('annClearBtn').onclick = () => {
+        $('annInput').value = ''
+        $('annJsonOut').style.display = 'none'
+        $('annJsonOut').textContent = ''
+        $('annParseError').style.display = 'none'
+        $('annProgressWrap').style.display = 'none'
+        $('annProgressBar').style.width = '0%'
+        $('annStatusText').textContent = 'Starting…'
+        $('annCountText').textContent = ''
+        $('annExportBtn').disabled = true
+        annResults = []
+      }
+
+      $('annExportBtn').onclick = () => {
+        const exportRows = annResults
+          .filter(
+            (p) =>
+              p &&
+              p.s &&
+              p.t &&
+              Array.isArray(p.t.rows) &&
+              Array.isArray(p.t.cols) &&
+              Array.isArray(p.b)
+          )
+          .map((p) => ({
+            s: p.s,
+            t: { rows: [...p.t.rows], cols: [...p.t.cols] },
+            b: p.b.map((row) => [...row]),
+            ...(Number.isFinite(p.minMoves) ? { minMoves: p.minMoves } : {}),
+          }))
+        const json = exportRows.length ? formatTilePuzzlesExportBlock(exportRows) : ''
+        navigator.clipboard.writeText(json).then(() => {
+          const flash = $('copiedFlash')
+          flash.style.display = 'block'
+          setTimeout(() => (flash.style.display = 'none'), 1500)
+        })
+      }
+
+      // Initial badge
+      updateBadge()
+    </script>
+  </body>
 </html>

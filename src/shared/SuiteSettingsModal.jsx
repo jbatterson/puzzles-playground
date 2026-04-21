@@ -211,7 +211,14 @@ export default function SuiteSettingsModal({ show, onClose, games, onSaved }) {
                   <span style={knobStyle(puzzleOn)} />
                 </button>
                 {tiers ? (
-                  <div style={{ display: 'flex', gap: '6px', width: diceTrackWidth, justifyContent: 'flex-end' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '6px',
+                      width: diceTrackWidth,
+                      justifyContent: 'flex-end',
+                    }}
+                  >
                     {[0, 1, 2].map((ti) => {
                       const on = tiers[ti]
                       const onlyOne = tiers.filter(Boolean).length === 1 && on

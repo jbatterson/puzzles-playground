@@ -5,12 +5,7 @@
 
 import { GAME_KEYS } from './gameChrome.js'
 import { computeStreak } from './dailyPuzzleDate.js'
-import {
-  lsGet,
-  CLUELESS_DIFFS,
-  loadCluelessAttempt,
-  loadCluelessAttempts,
-} from './hubProgress.js'
+import { lsGet, CLUELESS_DIFFS, loadCluelessAttempt, loadCluelessAttempts } from './hubProgress.js'
 import {
   getEnabledTierIndices,
   isSuiteCompleteForPrefs,

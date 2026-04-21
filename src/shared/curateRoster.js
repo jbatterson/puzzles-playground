@@ -56,7 +56,8 @@ function formatBoardRecordForPuzzlesJs(board) {
 function formatTilePuzzleForPuzzlesJs(puzzle) {
   if (!puzzle || typeof puzzle !== 'object') return null
   const t = puzzle.t
-  if (!t || !Array.isArray(t.rows) || !Array.isArray(t.cols) || !Array.isArray(puzzle.b)) return null
+  if (!t || !Array.isArray(t.rows) || !Array.isArray(t.cols) || !Array.isArray(puzzle.b))
+    return null
   const rows = t.rows.join(', ')
   const cols = t.cols.join(', ')
   const bStr = puzzle.b.map((row) => '[' + row.join(', ') + ']').join(', ')
@@ -115,7 +116,9 @@ function formatCluelessPuzzleForPuzzlesJs(puzzle) {
   if (keys.length === 0) return null
   const parts = keys.map((k) => {
     const v = puzzle[k]
-    return typeof v === 'string' ? `${k}: '${escapeJsSingleQuotedString(v)}'` : `${k}: ${JSON.stringify(v)}`
+    return typeof v === 'string'
+      ? `${k}: '${escapeJsSingleQuotedString(v)}'`
+      : `${k}: ${JSON.stringify(v)}`
   })
   return '{ ' + parts.join(', ') + ' }'
 }

@@ -25,12 +25,20 @@ export default function SmartRightButton({
   if (primaryHref) {
     return (
       <a
-        className={mergeClass('btn-primary', attention && 'btn-primary--solve-attention', className)}
+        className={mergeClass(
+          'btn-primary',
+          attention && 'btn-primary--solve-attention',
+          className
+        )}
         href={primaryHref}
         style={{ textAlign: 'center', textDecoration: 'none' }}
         {...rest}
       >
-        {attention ? <span className="btn-primary__pulse-label">{primaryLabel}</span> : primaryLabel}
+        {attention ? (
+          <span className="btn-primary__pulse-label">{primaryLabel}</span>
+        ) : (
+          primaryLabel
+        )}
       </a>
     )
   }
@@ -39,11 +47,19 @@ export default function SmartRightButton({
     return (
       <button
         type="button"
-        className={mergeClass('btn-primary', attention && 'btn-primary--solve-attention', className)}
+        className={mergeClass(
+          'btn-primary',
+          attention && 'btn-primary--solve-attention',
+          className
+        )}
         onClick={onPrimaryClick}
         {...rest}
       >
-        {attention ? <span className="btn-primary__pulse-label">{primaryLabel}</span> : primaryLabel}
+        {attention ? (
+          <span className="btn-primary__pulse-label">{primaryLabel}</span>
+        ) : (
+          primaryLabel
+        )}
       </button>
     )
   }

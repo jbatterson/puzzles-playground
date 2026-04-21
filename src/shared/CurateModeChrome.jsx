@@ -47,9 +47,7 @@ export function CurateLevelNav({
         <a className="skip-link" href={exitCurateHref}>
           Exit curate
         </a>
-        {metricsSlot ? (
-          <div className="stats-group stats-group--left">{metricsSlot}</div>
-        ) : null}
+        {metricsSlot ? <div className="stats-group stats-group--left">{metricsSlot}</div> : null}
       </div>
       <div className="selector-group">
         <button

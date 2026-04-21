@@ -1,482 +1,855 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>FOLDS – Level Forge</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:#f8f8f6;font-family:system-ui,sans-serif;}
-</style>
-</head>
-<body>
-<div id="root"></div>
-<script type="text/babel">
-const { useState, useCallback, useRef, useEffect } = React;
-
-const S=62, H=S*Math.sqrt(3)/2, PAD=40, N=4, ANIM_MS=450;
-const easeIO=t=>t<0.5?2*t*t:1-(-2*t+2)**2/2;
-const up=(r,c)=>(r+c)%2===0;
-const cent=(r,c)=>({x:PAD+(c+1)*S/2, y:PAD+(up(r,c)?H*(r+2/3):H*(r+1/3))});
-const pts=(r,c)=>{
-  const x=PAD+c*S/2, y=PAD+r*H;
-  return up(r,c)?`${x+S/2},${y} ${x},${y+H} ${x+S},${y+H}`:`${x},${y} ${x+S},${y} ${x+S/2},${y+H}`;
-};
-
-const HEX_POLY=(()=>{
-  const L=N*S;
-  const V0={x:PAD+S/2,y:PAD}, V1={x:V0.x+L,y:V0.y};
-  const V2={x:V1.x+L/2,y:V1.y+N*H}, V3={x:V2.x-L/2,y:V2.y+N*H};
-  const V4={x:V3.x-L,y:V3.y}, V5={x:V4.x-L/2,y:V4.y-N*H};
-  return [V0,V1,V2,V3,V4,V5];
-})();
-
-const HEX_BOUNDS=(()=>{
-  let mnX=Infinity,mxX=-Infinity,mnY=Infinity,mxY=-Infinity;
-  for(let i=0;i<HEX_POLY.length;i++){
-    const p=HEX_POLY[i];
-    if(p.x<mnX)mnX=p.x; if(p.x>mxX)mxX=p.x;
-    if(p.y<mnY)mnY=p.y; if(p.y>mxY)mxY=p.y;
-  }
-  return{mnX,mnY,w:mxX-mnX,h:mxY-mnY};
-})();
-const VBP=8;
-const VB={x:HEX_BOUNDS.mnX-VBP, y:HEX_BOUNDS.mnY-VBP,
-          w:HEX_BOUNDS.w+2*VBP, h:HEX_BOUNDS.h+2*VBP};
-
-const isInsideHex=(r,c)=>{
-  const p=cent(r,c);
-  let inside=false;
-  for(let i=0,j=HEX_POLY.length-1;i<HEX_POLY.length;j=i++){
-    const xi=HEX_POLY[i].x,yi=HEX_POLY[i].y,xj=HEX_POLY[j].x,yj=HEX_POLY[j].y;
-    if(((yi>p.y)!==(yj>p.y))&&(p.x<(xj-xi)*(p.y-yi)/(yj-yi+1e-12)+xi))inside=!inside;
-  }
-  return inside;
-};
-
-const snap=(px,py)=>{
-  const re=Math.round((py-PAD)/H), ce=Math.round(2*(px-PAD)/S)-1;
-  let best=Infinity,br=0,bc=0;
-  for(let r=Math.max(0,re-2);r<=Math.min(10,re+2);r++)
-    for(let c=Math.max(-6,ce-4);c<=Math.min(20,ce+4);c++){
-      const p=cent(r,c), d=(p.x-px)**2+(p.y-py)**2;
-      if(d<best){best=d;br=r;bc=c;}
-    }
-  return [br,bc];
-};
-
-const ALL_TRIANGLES=(()=>{
-  const tris=[];
-  for(let r=0;r<=8;r++)
-    for(let c=-5;c<=18;c++)
-      if(isInsideHex(r,c)) tris.push({r,c,key:r+','+c});
-  return tris;
-})();
-
-const ALL_LINES=(()=>{
-  const seen={}, lines=[];
-  const addLine=(theta,px,py)=>{
-    const tn=((theta%Math.PI)+Math.PI)%Math.PI;
-    const a=-Math.sin(tn), b=Math.cos(tn), cv=a*px+b*py;
-    const key=Math.round(tn*1000)+'_'+Math.round(cv*100);
-    if(seen[key])return;
-    const hits=[];
-    for(let i=0;i<HEX_POLY.length;i++){
-      const p1=HEX_POLY[i], p2=HEX_POLY[(i+1)%HEX_POLY.length];
-      const dx=p2.x-p1.x, dy=p2.y-p1.y, denom=a*dx+b*dy;
-      if(Math.abs(denom)<1e-9)continue;
-      const t=(cv-(a*p1.x+b*p1.y))/denom;
-      if(t>=-0.01&&t<=1.01)hits.push({x:p1.x+t*dx,y:p1.y+t*dy});
-    }
-    if(hits.length<2)return;
-    let dMax=-1, pA=hits[0], pB=hits[1];
-    for(let i=0;i<hits.length;i++)
-      for(let j=i+1;j<hits.length;j++){
-        const d=(hits[i].x-hits[j].x)**2+(hits[i].y-hits[j].y)**2;
-        if(d>dMax){dMax=d;pA=hits[i];pB=hits[j];}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FOLDS – Level Forge</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
       }
-    seen[key]=true;
-    lines.push({lineKey:key,theta:tn,px,py,x1:pA.x,y1:pA.y,x2:pB.x,y2:pB.y});
-  };
-  for(let r=-1;r<=9;r++)
-    for(let c=-1;c<=17;c++){
-      const x=PAD+c*S/2, y=PAD+r*H;
-      if(up(r,c)){
-        addLine(Math.atan2(H,-S/2),x+S/2,y);
-        addLine(Math.atan2(H,S/2),x+S/2,y);
-        addLine(0,x,y+H);
-      } else {
-        addLine(0,x,y);
-        addLine(Math.atan2(H,-S/2),x,y);
-        addLine(Math.atan2(H,S/2),x+S,y);
+      body {
+        background: #f8f8f6;
+        font-family: system-ui, sans-serif;
       }
-    }
-  return lines;
-})();
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="text/babel">
+      const { useState, useCallback, useRef, useEffect } = React
 
-// Match puzzlegames/folds/puzzles.js literal style (single-quoted keys and tokens)
-const compareCellKeys=(ka,kb)=>{
-  const [ar,ac]=ka.split(',').map(Number), [br,bc]=kb.split(',').map(Number);
-  return ar!==br?ar-br:ac-bc;
-};
-const formatBoardRecordForPuzzlesJs=(board)=>{
-  const keys=Object.keys(board).sort(compareCellKeys);
-  return '{ '+keys.map(k=>`'${k}': '${board[k]}'`).join(', ')+' }';
-};
-const formatFoldsPuzzleForPuzzlesJs=(start,target,folds)=>
-  `    {\n      start: ${formatBoardRecordForPuzzlesJs(start)},\n      target: ${formatBoardRecordForPuzzlesJs(target)},\n      folds: ${folds},\n    },`;
-
-const applyFold=(board,line)=>{
-  const next=Object.assign({},board);
-  const c2=Math.cos(2*line.theta), s2=Math.sin(2*line.theta);
-  const ks=Object.keys(board);
-  for(let i=0;i<ks.length;i++){
-    const key=ks[i], color=board[key];
-    const parts=key.split(','), r=+parts[0], c=+parts[1];
-    const cp=cent(r,c);
-    const nx=line.px+(cp.x-line.px)*c2+(cp.y-line.py)*s2;
-    const ny=line.py+(cp.x-line.px)*s2-(cp.y-line.py)*c2;
-    const rc=snap(nx,ny);
-    if(!isInsideHex(rc[0],rc[1]))continue;
-    const nk=rc[0]+','+rc[1];
-    if(next[nk]&&next[nk]!==color)return null;
-  }
-  for(let i=0;i<ks.length;i++){
-    const key=ks[i], color=board[key];
-    const parts=key.split(','), r=+parts[0], c=+parts[1];
-    const cp=cent(r,c);
-    const nx=line.px+(cp.x-line.px)*c2+(cp.y-line.py)*s2;
-    const ny=line.py+(cp.x-line.px)*s2-(cp.y-line.py)*c2;
-    const rc=snap(nx,ny);
-    if(isInsideHex(rc[0],rc[1]))next[rc[0]+','+rc[1]]=color;
-  }
-  return next;
-};
-
-// Token → hex: keep in sync with Puzzles/puzzlegames/folds/palette.js (FOLDS_PALETTE).
-const FOLDS_PALETTE={
-  red:'#9d270c',
-  green:'#3f6d37',
-  dkblue:'#1a3d5b',
-  blue:'#2571b1',
-  amber:'#ea9a19',
-};
-const FOLD_COLOR_ORDER=['dkblue','red','green','blue','amber'];
-const fillHex=(v)=>{
-  if(v==null)return'#888888';
-  if(typeof v==='string'&&v.startsWith('#'))return v;
-  return FOLDS_PALETTE[v]||'#888888';
-};
-const bg='#f8f8f6', surface='#ffffff', bdr='#e5e5e5';
-const textP='#1a1a1a', textM='#888880', textF='#c8c8c4';
-const aBlue='#2563eb', aRed='#b91c1c', aGreen='#15803d';
-const baseBtn={background:surface,border:'1px solid '+bdr,color:textP,
-  padding:'7px 13px',borderRadius:6,cursor:'pointer',fontSize:13};
-
-function App(){
-  const [mode,setMode]=useState('paint');
-  const [paintColor,setPaintColor]=useState('dkblue');
-  const [initBoard,setInitBoard]=useState({});
-  const [playBoard,setPlayBoard]=useState({});
-  const [foldKeys,setFoldKeys]=useState([]);
-  const [hovLine,setHovLine]=useState(null);
-  const [conflictMsg,setConflictMsg]=useState('');
-  const [copied,setCopied]=useState(false);
-  const [anim,setAnim]=useState(null);
-  const t0=useRef(null);
-
-  useEffect(()=>{
-    if(!anim||anim.rawT>=1)return;
-    const id=requestAnimationFrame(()=>{
-      const rawT=Math.min(1,(performance.now()-t0.current)/ANIM_MS);
-      if(rawT>=1){
-        setPlayBoard(anim.finalBoard);
-        setAnim(null);
-      } else {
-        setAnim(a=>a?Object.assign({},a,{rawT}):a);
+      const S = 62,
+        H = (S * Math.sqrt(3)) / 2,
+        PAD = 40,
+        N = 4,
+        ANIM_MS = 450
+      const easeIO = (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2)
+      const up = (r, c) => (r + c) % 2 === 0
+      const cent = (r, c) => ({
+        x: PAD + ((c + 1) * S) / 2,
+        y: PAD + (up(r, c) ? H * (r + 2 / 3) : H * (r + 1 / 3)),
+      })
+      const pts = (r, c) => {
+        const x = PAD + (c * S) / 2,
+          y = PAD + r * H
+        return up(r, c)
+          ? `${x + S / 2},${y} ${x},${y + H} ${x + S},${y + H}`
+          : `${x},${y} ${x + S},${y} ${x + S / 2},${y + H}`
       }
-    });
-    return ()=>cancelAnimationFrame(id);
-  },[anim]);
 
-  const startRecording=()=>{
-    if(!Object.keys(initBoard).length)return;
-    setPlayBoard(Object.assign({},initBoard));
-    setFoldKeys([]);
-    setMode('record');
-    setConflictMsg('');
-    setAnim(null);
-  };
+      const HEX_POLY = (() => {
+        const L = N * S
+        const V0 = { x: PAD + S / 2, y: PAD },
+          V1 = { x: V0.x + L, y: V0.y }
+        const V2 = { x: V1.x + L / 2, y: V1.y + N * H },
+          V3 = { x: V2.x - L / 2, y: V2.y + N * H }
+        const V4 = { x: V3.x - L, y: V3.y },
+          V5 = { x: V4.x - L / 2, y: V4.y - N * H }
+        return [V0, V1, V2, V3, V4, V5]
+      })()
 
-  const handleLineClick=useCallback(lineKey=>{
-    if(mode!=='record'||anim)return;
-    let line=null;
-    for(let i=0;i<ALL_LINES.length;i++){if(ALL_LINES[i].lineKey===lineKey){line=ALL_LINES[i];break;}}
-    if(!line)return;
-    const next=applyFold(playBoard,line);
-    if(next===null){
-      setConflictMsg('Color conflict — pieces of different colors would overlap');
-      setTimeout(()=>setConflictMsg(''),2500);
-      return;
-    }
-    t0.current=performance.now();
-    setAnim({line,startBoard:Object.assign({},playBoard),finalBoard:next,rawT:0});
-    setFoldKeys(prev=>prev.concat([lineKey]));
-    setConflictMsg('');
-  },[mode,anim,playBoard]);
+      const HEX_BOUNDS = (() => {
+        let mnX = Infinity,
+          mxX = -Infinity,
+          mnY = Infinity,
+          mxY = -Infinity
+        for (let i = 0; i < HEX_POLY.length; i++) {
+          const p = HEX_POLY[i]
+          if (p.x < mnX) mnX = p.x
+          if (p.x > mxX) mxX = p.x
+          if (p.y < mnY) mnY = p.y
+          if (p.y > mxY) mxY = p.y
+        }
+        return { mnX, mnY, w: mxX - mnX, h: mxY - mnY }
+      })()
+      const VBP = 8
+      const VB = {
+        x: HEX_BOUNDS.mnX - VBP,
+        y: HEX_BOUNDS.mnY - VBP,
+        w: HEX_BOUNDS.w + 2 * VBP,
+        h: HEX_BOUNDS.h + 2 * VBP,
+      }
 
-  const undoFold=()=>{
-    if(anim||!foldKeys.length)return;
-    const newKeys=foldKeys.slice(0,-1);
-    let b=Object.assign({},initBoard);
-    for(let i=0;i<newKeys.length;i++){
-      let line=null;
-      for(let j=0;j<ALL_LINES.length;j++){if(ALL_LINES[j].lineKey===newKeys[i]){line=ALL_LINES[j];break;}}
-      if(line){const r=applyFold(b,line);if(r)b=r;}
-    }
-    setPlayBoard(b);
-    setFoldKeys(newKeys);
-  };
+      const isInsideHex = (r, c) => {
+        const p = cent(r, c)
+        let inside = false
+        for (let i = 0, j = HEX_POLY.length - 1; i < HEX_POLY.length; j = i++) {
+          const xi = HEX_POLY[i].x,
+            yi = HEX_POLY[i].y,
+            xj = HEX_POLY[j].x,
+            yj = HEX_POLY[j].y
+          if (yi > p.y !== yj > p.y && p.x < ((xj - xi) * (p.y - yi)) / (yj - yi + 1e-12) + xi)
+            inside = !inside
+        }
+        return inside
+      }
 
-  const handleTriClick=(r,c)=>{
-    if(mode!=='paint')return;
-    const key=r+','+c;
-    setInitBoard(prev=>{
-      const next=Object.assign({},prev);
-      if(paintColor===null)delete next[key];
-      else next[key]=paintColor;
-      return next;
-    });
-  };
+      const snap = (px, py) => {
+        const re = Math.round((py - PAD) / H),
+          ce = Math.round((2 * (px - PAD)) / S) - 1
+        let best = Infinity,
+          br = 0,
+          bc = 0
+        for (let r = Math.max(0, re - 2); r <= Math.min(10, re + 2); r++)
+          for (let c = Math.max(-6, ce - 4); c <= Math.min(20, ce + 4); c++) {
+            const p = cent(r, c),
+              d = (p.x - px) ** 2 + (p.y - py) ** 2
+            if (d < best) {
+              best = d
+              br = r
+              bc = c
+            }
+          }
+        return [br, bc]
+      }
 
-  const generateCode=()=>{
-    if(!Object.keys(initBoard).length)return '// Paint some triangles first';
-    return formatFoldsPuzzleForPuzzlesJs(initBoard, playBoard, foldKeys.length);
-  };
+      const ALL_TRIANGLES = (() => {
+        const tris = []
+        for (let r = 0; r <= 8; r++)
+          for (let c = -5; c <= 18; c++)
+            if (isInsideHex(r, c)) tris.push({ r, c, key: r + ',' + c })
+        return tris
+      })()
 
-  const copyCode=()=>{
-    navigator.clipboard.writeText(generateCode()).then(()=>{
-      setCopied(true); setTimeout(()=>setCopied(false),2000);
-    });
-  };
+      const ALL_LINES = (() => {
+        const seen = {},
+          lines = []
+        const addLine = (theta, px, py) => {
+          const tn = ((theta % Math.PI) + Math.PI) % Math.PI
+          const a = -Math.sin(tn),
+            b = Math.cos(tn),
+            cv = a * px + b * py
+          const key = Math.round(tn * 1000) + '_' + Math.round(cv * 100)
+          if (seen[key]) return
+          const hits = []
+          for (let i = 0; i < HEX_POLY.length; i++) {
+            const p1 = HEX_POLY[i],
+              p2 = HEX_POLY[(i + 1) % HEX_POLY.length]
+            const dx = p2.x - p1.x,
+              dy = p2.y - p1.y,
+              denom = a * dx + b * dy
+            if (Math.abs(denom) < 1e-9) continue
+            const t = (cv - (a * p1.x + b * p1.y)) / denom
+            if (t >= -0.01 && t <= 1.01) hits.push({ x: p1.x + t * dx, y: p1.y + t * dy })
+          }
+          if (hits.length < 2) return
+          let dMax = -1,
+            pA = hits[0],
+            pB = hits[1]
+          for (let i = 0; i < hits.length; i++)
+            for (let j = i + 1; j < hits.length; j++) {
+              const d = (hits[i].x - hits[j].x) ** 2 + (hits[i].y - hits[j].y) ** 2
+              if (d > dMax) {
+                dMax = d
+                pA = hits[i]
+                pB = hits[j]
+              }
+            }
+          seen[key] = true
+          lines.push({ lineKey: key, theta: tn, px, py, x1: pA.x, y1: pA.y, x2: pB.x, y2: pB.y })
+        }
+        for (let r = -1; r <= 9; r++)
+          for (let c = -1; c <= 17; c++) {
+            const x = PAD + (c * S) / 2,
+              y = PAD + r * H
+            if (up(r, c)) {
+              addLine(Math.atan2(H, -S / 2), x + S / 2, y)
+              addLine(Math.atan2(H, S / 2), x + S / 2, y)
+              addLine(0, x, y + H)
+            } else {
+              addLine(0, x, y)
+              addLine(Math.atan2(H, -S / 2), x, y)
+              addLine(Math.atan2(H, S / 2), x + S, y)
+            }
+          }
+        return lines
+      })()
 
-  const reset=()=>{
-    setInitBoard({}); setPlayBoard({}); setFoldKeys([]);
-    setMode('paint'); setAnim(null); setConflictMsg('');
-  };
+      // Match puzzlegames/folds/puzzles.js literal style (single-quoted keys and tokens)
+      const compareCellKeys = (ka, kb) => {
+        const [ar, ac] = ka.split(',').map(Number),
+          [br, bc] = kb.split(',').map(Number)
+        return ar !== br ? ar - br : ac - bc
+      }
+      const formatBoardRecordForPuzzlesJs = (board) => {
+        const keys = Object.keys(board).sort(compareCellKeys)
+        return '{ ' + keys.map((k) => `'${k}': '${board[k]}'`).join(', ') + ' }'
+      }
+      const formatFoldsPuzzleForPuzzlesJs = (start, target, folds) =>
+        `    {\n      start: ${formatBoardRecordForPuzzlesJs(start)},\n      target: ${formatBoardRecordForPuzzlesJs(target)},\n      folds: ${folds},\n    },`
 
-  const currentBoard=mode==='paint'?initBoard:playBoard;
-  const hasInit=Object.keys(initBoard).length>0;
+      const applyFold = (board, line) => {
+        const next = Object.assign({}, board)
+        const c2 = Math.cos(2 * line.theta),
+          s2 = Math.sin(2 * line.theta)
+        const ks = Object.keys(board)
+        for (let i = 0; i < ks.length; i++) {
+          const key = ks[i],
+            color = board[key]
+          const parts = key.split(','),
+            r = +parts[0],
+            c = +parts[1]
+          const cp = cent(r, c)
+          const nx = line.px + (cp.x - line.px) * c2 + (cp.y - line.py) * s2
+          const ny = line.py + (cp.x - line.px) * s2 - (cp.y - line.py) * c2
+          const rc = snap(nx, ny)
+          if (!isInsideHex(rc[0], rc[1])) continue
+          const nk = rc[0] + ',' + rc[1]
+          if (next[nk] && next[nk] !== color) return null
+        }
+        for (let i = 0; i < ks.length; i++) {
+          const key = ks[i],
+            color = board[key]
+          const parts = key.split(','),
+            r = +parts[0],
+            c = +parts[1]
+          const cp = cent(r, c)
+          const nx = line.px + (cp.x - line.px) * c2 + (cp.y - line.py) * s2
+          const ny = line.py + (cp.x - line.px) * s2 - (cp.y - line.py) * c2
+          const rc = snap(nx, ny)
+          if (isInsideHex(rc[0], rc[1])) next[rc[0] + ',' + rc[1]] = color
+        }
+        return next
+      }
 
-  return(
-    <div style={{background:bg,minHeight:'100vh',color:textP,fontFamily:'system-ui,sans-serif',
-      display:'flex',flexDirection:'column',alignItems:'center',padding:'24px 16px',gap:20}}>
+      // Token → hex: keep in sync with Puzzles/puzzlegames/folds/palette.js (FOLDS_PALETTE).
+      const FOLDS_PALETTE = {
+        red: '#9d270c',
+        green: '#3f6d37',
+        dkblue: '#1a3d5b',
+        blue: '#2571b1',
+        amber: '#ea9a19',
+      }
+      const FOLD_COLOR_ORDER = ['dkblue', 'red', 'green', 'blue', 'amber']
+      const fillHex = (v) => {
+        if (v == null) return '#888888'
+        if (typeof v === 'string' && v.startsWith('#')) return v
+        return FOLDS_PALETTE[v] || '#888888'
+      }
+      const bg = '#f8f8f6',
+        surface = '#ffffff',
+        bdr = '#e5e5e5'
+      const textP = '#1a1a1a',
+        textM = '#888880',
+        textF = '#c8c8c4'
+      const aBlue = '#2563eb',
+        aRed = '#b91c1c',
+        aGreen = '#15803d'
+      const baseBtn = {
+        background: surface,
+        border: '1px solid ' + bdr,
+        color: textP,
+        padding: '7px 13px',
+        borderRadius: 6,
+        cursor: 'pointer',
+        fontSize: 13,
+      }
 
-      <div style={{textAlign:'center'}}>
-        <div style={{fontSize:18,fontWeight:'300',letterSpacing:8,color:'#1e293b',textTransform:'uppercase'}}>Folds</div>
-        <div style={{fontSize:11,color:textM,letterSpacing:3,marginTop:2}}>LEVEL FORGE</div>
-      </div>
+      function App() {
+        const [mode, setMode] = useState('paint')
+        const [paintColor, setPaintColor] = useState('dkblue')
+        const [initBoard, setInitBoard] = useState({})
+        const [playBoard, setPlayBoard] = useState({})
+        const [foldKeys, setFoldKeys] = useState([])
+        const [hovLine, setHovLine] = useState(null)
+        const [conflictMsg, setConflictMsg] = useState('')
+        const [copied, setCopied] = useState(false)
+        const [anim, setAnim] = useState(null)
+        const t0 = useRef(null)
 
-      <div style={{display:'flex',gap:20,alignItems:'flex-start',flexWrap:'wrap',justifyContent:'center',width:'100%',maxWidth:820}}>
+        useEffect(() => {
+          if (!anim || anim.rawT >= 1) return
+          const id = requestAnimationFrame(() => {
+            const rawT = Math.min(1, (performance.now() - t0.current) / ANIM_MS)
+            if (rawT >= 1) {
+              setPlayBoard(anim.finalBoard)
+              setAnim(null)
+            } else {
+              setAnim((a) => (a ? Object.assign({}, a, { rawT }) : a))
+            }
+          })
+          return () => cancelAnimationFrame(id)
+        }, [anim])
 
-        {/* Left panel */}
-        <div style={{display:'flex',flexDirection:'column',gap:12,width:212,flexShrink:0}}>
+        const startRecording = () => {
+          if (!Object.keys(initBoard).length) return
+          setPlayBoard(Object.assign({}, initBoard))
+          setFoldKeys([])
+          setMode('record')
+          setConflictMsg('')
+          setAnim(null)
+        }
 
-          <div style={{background:surface,border:'1px solid '+(mode==='paint'?aBlue:bdr),
-            borderRadius:8,padding:14,display:'flex',flexDirection:'column',gap:10}}>
-            <div style={{fontSize:11,fontWeight:'bold',letterSpacing:1,color:mode==='paint'?aBlue:textM}}>
-              1 · PAINT START STATE
-            </div>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
-              {FOLD_COLOR_ORDER.map(tok=>(
-                <div key={tok} onClick={()=>{setMode('paint');setPaintColor(tok);}}
-                     style={{width:26,height:26,background:fillHex(tok),borderRadius:'50%',cursor:'pointer',
-                       border:paintColor===tok&&mode==='paint'?'3px solid '+textP:'3px solid transparent',
-                       boxSizing:'border-box'}}/>
-              ))}
-              <div onClick={()=>{setMode('paint');setPaintColor(null);}}
-                   style={{width:26,height:26,borderRadius:'50%',cursor:'pointer',
-                     border:paintColor===null&&mode==='paint'?'3px solid '+textP:'2px dashed '+bdr,
-                     display:'flex',alignItems:'center',justifyContent:'center',
-                     fontSize:11,color:textM,boxSizing:'border-box'}}>✕</div>
-            </div>
-            <div style={{fontSize:11,color:textF}}>Click triangles inside the hex. ✕ = erase.</div>
-          </div>
+        const handleLineClick = useCallback(
+          (lineKey) => {
+            if (mode !== 'record' || anim) return
+            let line = null
+            for (let i = 0; i < ALL_LINES.length; i++) {
+              if (ALL_LINES[i].lineKey === lineKey) {
+                line = ALL_LINES[i]
+                break
+              }
+            }
+            if (!line) return
+            const next = applyFold(playBoard, line)
+            if (next === null) {
+              setConflictMsg('Color conflict — pieces of different colors would overlap')
+              setTimeout(() => setConflictMsg(''), 2500)
+              return
+            }
+            t0.current = performance.now()
+            setAnim({ line, startBoard: Object.assign({}, playBoard), finalBoard: next, rawT: 0 })
+            setFoldKeys((prev) => prev.concat([lineKey]))
+            setConflictMsg('')
+          },
+          [mode, anim, playBoard]
+        )
 
-          <div style={{background:surface,border:'1px solid '+(mode==='record'?aBlue:bdr),
-            borderRadius:8,padding:14,display:'flex',flexDirection:'column',gap:10}}>
-            <div style={{fontSize:11,fontWeight:'bold',letterSpacing:1,color:mode==='record'?aBlue:textM}}>
-              2 · RECORD FOLDS
-            </div>
-            <button onClick={startRecording} disabled={!hasInit} style={{
-              ...baseBtn,
-              background:mode==='record'?'#dbeafe':surface,
-              borderColor:mode==='record'?aBlue:bdr,
-              fontWeight:'bold',opacity:!hasInit?0.4:1
-            }}>{mode==='record'?'● Recording…':'▶ Start Recording'}</button>
+        const undoFold = () => {
+          if (anim || !foldKeys.length) return
+          const newKeys = foldKeys.slice(0, -1)
+          let b = Object.assign({}, initBoard)
+          for (let i = 0; i < newKeys.length; i++) {
+            let line = null
+            for (let j = 0; j < ALL_LINES.length; j++) {
+              if (ALL_LINES[j].lineKey === newKeys[i]) {
+                line = ALL_LINES[j]
+                break
+              }
+            }
+            if (line) {
+              const r = applyFold(b, line)
+              if (r) b = r
+            }
+          }
+          setPlayBoard(b)
+          setFoldKeys(newKeys)
+        }
 
-            {conflictMsg&&(
-              <div style={{fontSize:11,color:aRed,background:'#fef2f2',
-                border:'1px solid #fca5a5',borderRadius:4,padding:'4px 8px',lineHeight:1.4}}>
-                {conflictMsg}
+        const handleTriClick = (r, c) => {
+          if (mode !== 'paint') return
+          const key = r + ',' + c
+          setInitBoard((prev) => {
+            const next = Object.assign({}, prev)
+            if (paintColor === null) delete next[key]
+            else next[key] = paintColor
+            return next
+          })
+        }
+
+        const generateCode = () => {
+          if (!Object.keys(initBoard).length) return '// Paint some triangles first'
+          return formatFoldsPuzzleForPuzzlesJs(initBoard, playBoard, foldKeys.length)
+        }
+
+        const copyCode = () => {
+          navigator.clipboard.writeText(generateCode()).then(() => {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+          })
+        }
+
+        const reset = () => {
+          setInitBoard({})
+          setPlayBoard({})
+          setFoldKeys([])
+          setMode('paint')
+          setAnim(null)
+          setConflictMsg('')
+        }
+
+        const currentBoard = mode === 'paint' ? initBoard : playBoard
+        const hasInit = Object.keys(initBoard).length > 0
+
+        return (
+          <div
+            style={{
+              background: bg,
+              minHeight: '100vh',
+              color: textP,
+              fontFamily: 'system-ui,sans-serif',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              padding: '24px 16px',
+              gap: 20,
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <div
+                style={{
+                  fontSize: 18,
+                  fontWeight: '300',
+                  letterSpacing: 8,
+                  color: '#1e293b',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Folds
               </div>
-            )}
+              <div style={{ fontSize: 11, color: textM, letterSpacing: 3, marginTop: 2 }}>
+                LEVEL FORGE
+              </div>
+            </div>
 
-            {mode==='record'&&(
-              <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                <div style={{fontSize:11,color:textM,lineHeight:1.5}}>
-                  Hover grid lines to highlight. Click to fold. Pieces outside the hex are removed.
-                </div>
-                <button onClick={undoFold} disabled={!foldKeys.length||!!anim} style={{
-                  ...baseBtn,borderColor:aRed,
-                  opacity:!foldKeys.length||anim?0.4:1
-                }}>⟲ Undo Last Fold</button>
-                {foldKeys.length>0&&(
-                  <div style={{display:'flex',flexDirection:'column',gap:3}}>
-                    <div style={{fontSize:10,color:textF,letterSpacing:1,marginBottom:2}}>FOLDS RECORDED</div>
-                    {foldKeys.map((_,i)=>(
-                      <div key={i} style={{fontSize:11,color:textP,background:'#f8f8f5',
-                        border:'1px solid '+bdr,borderRadius:4,padding:'3px 7px',
-                        display:'flex',gap:6,alignItems:'center'}}>
-                        <span style={{color:textF,minWidth:16}}>{i+1}.</span>
-                        <span>Fold</span>
-                      </div>
-                    ))}
+            <div
+              style={{
+                display: 'flex',
+                gap: 20,
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+                width: '100%',
+                maxWidth: 820,
+              }}
+            >
+              {/* Left panel */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  width: 212,
+                  flexShrink: 0,
+                }}
+              >
+                <div
+                  style={{
+                    background: surface,
+                    border: '1px solid ' + (mode === 'paint' ? aBlue : bdr),
+                    borderRadius: 8,
+                    padding: 14,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 'bold',
+                      letterSpacing: 1,
+                      color: mode === 'paint' ? aBlue : textM,
+                    }}
+                  >
+                    1 · PAINT START STATE
                   </div>
-                )}
-              </div>
-            )}
-          </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {FOLD_COLOR_ORDER.map((tok) => (
+                      <div
+                        key={tok}
+                        onClick={() => {
+                          setMode('paint')
+                          setPaintColor(tok)
+                        }}
+                        style={{
+                          width: 26,
+                          height: 26,
+                          background: fillHex(tok),
+                          borderRadius: '50%',
+                          cursor: 'pointer',
+                          border:
+                            paintColor === tok && mode === 'paint'
+                              ? '3px solid ' + textP
+                              : '3px solid transparent',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                    ))}
+                    <div
+                      onClick={() => {
+                        setMode('paint')
+                        setPaintColor(null)
+                      }}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        border:
+                          paintColor === null && mode === 'paint'
+                            ? '3px solid ' + textP
+                            : '2px dashed ' + bdr,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 11,
+                        color: textM,
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      ✕
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: textF }}>
+                    Click triangles inside the hex. ✕ = erase.
+                  </div>
+                </div>
 
-          <div style={{background:surface,border:'1px solid '+bdr,
-            borderRadius:8,padding:14,display:'flex',flexDirection:'column',gap:8}}>
-            <div style={{fontSize:11,fontWeight:'bold',letterSpacing:1,color:textM}}>3 · EXPORT</div>
-            <textarea readOnly value={generateCode()} style={{
-              width:'100%',height:108,fontSize:10,fontFamily:'monospace',
-              padding:8,boxSizing:'border-box',border:'1px solid '+bdr,
-              borderRadius:4,resize:'none',background:'#fafaf8',color:textP,lineHeight:1.5
-            }}/>
-            <div style={{display:'flex',gap:6}}>
-              <button onClick={copyCode} style={{
-                ...baseBtn,flex:1,
-                background:copied?'#dcfce7':surface,
-                borderColor:copied?aGreen:bdr,
-                color:copied?aGreen:textP,
-                fontWeight:copied?'bold':'normal'
-              }}>{copied?'✓ Copied!':'⎘ Copy'}</button>
-              <button onClick={reset} style={{...baseBtn,color:textM}}>↺ Reset</button>
+                <div
+                  style={{
+                    background: surface,
+                    border: '1px solid ' + (mode === 'record' ? aBlue : bdr),
+                    borderRadius: 8,
+                    padding: 14,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 'bold',
+                      letterSpacing: 1,
+                      color: mode === 'record' ? aBlue : textM,
+                    }}
+                  >
+                    2 · RECORD FOLDS
+                  </div>
+                  <button
+                    onClick={startRecording}
+                    disabled={!hasInit}
+                    style={{
+                      ...baseBtn,
+                      background: mode === 'record' ? '#dbeafe' : surface,
+                      borderColor: mode === 'record' ? aBlue : bdr,
+                      fontWeight: 'bold',
+                      opacity: !hasInit ? 0.4 : 1,
+                    }}
+                  >
+                    {mode === 'record' ? '● Recording…' : '▶ Start Recording'}
+                  </button>
+
+                  {conflictMsg && (
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: aRed,
+                        background: '#fef2f2',
+                        border: '1px solid #fca5a5',
+                        borderRadius: 4,
+                        padding: '4px 8px',
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      {conflictMsg}
+                    </div>
+                  )}
+
+                  {mode === 'record' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      <div style={{ fontSize: 11, color: textM, lineHeight: 1.5 }}>
+                        Hover grid lines to highlight. Click to fold. Pieces outside the hex are
+                        removed.
+                      </div>
+                      <button
+                        onClick={undoFold}
+                        disabled={!foldKeys.length || !!anim}
+                        style={{
+                          ...baseBtn,
+                          borderColor: aRed,
+                          opacity: !foldKeys.length || anim ? 0.4 : 1,
+                        }}
+                      >
+                        ⟲ Undo Last Fold
+                      </button>
+                      {foldKeys.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                          <div
+                            style={{
+                              fontSize: 10,
+                              color: textF,
+                              letterSpacing: 1,
+                              marginBottom: 2,
+                            }}
+                          >
+                            FOLDS RECORDED
+                          </div>
+                          {foldKeys.map((_, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                fontSize: 11,
+                                color: textP,
+                                background: '#f8f8f5',
+                                border: '1px solid ' + bdr,
+                                borderRadius: 4,
+                                padding: '3px 7px',
+                                display: 'flex',
+                                gap: 6,
+                                alignItems: 'center',
+                              }}
+                            >
+                              <span style={{ color: textF, minWidth: 16 }}>{i + 1}.</span>
+                              <span>Fold</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    background: surface,
+                    border: '1px solid ' + bdr,
+                    borderRadius: 8,
+                    padding: 14,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 11, fontWeight: 'bold', letterSpacing: 1, color: textM }}>
+                    3 · EXPORT
+                  </div>
+                  <textarea
+                    readOnly
+                    value={generateCode()}
+                    style={{
+                      width: '100%',
+                      height: 108,
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                      padding: 8,
+                      boxSizing: 'border-box',
+                      border: '1px solid ' + bdr,
+                      borderRadius: 4,
+                      resize: 'none',
+                      background: '#fafaf8',
+                      color: textP,
+                      lineHeight: 1.5,
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={copyCode}
+                      style={{
+                        ...baseBtn,
+                        flex: 1,
+                        background: copied ? '#dcfce7' : surface,
+                        borderColor: copied ? aGreen : bdr,
+                        color: copied ? aGreen : textP,
+                        fontWeight: copied ? 'bold' : 'normal',
+                      }}
+                    >
+                      {copied ? '✓ Copied!' : '⎘ Copy'}
+                    </button>
+                    <button onClick={reset} style={{ ...baseBtn, color: textM }}>
+                      ↺ Reset
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Board */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  alignItems: 'center',
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                <div style={{ fontSize: 10, color: textM, letterSpacing: 2, textAlign: 'center' }}>
+                  {mode === 'paint'
+                    ? 'PAINTING START STATE'
+                    : 'RECORDING — ' +
+                      foldKeys.length +
+                      ' FOLD' +
+                      (foldKeys.length !== 1 ? 'S' : '') +
+                      ' RECORDED'}
+                </div>
+
+                <div
+                  style={{
+                    border: '1.5px solid ' + (mode === 'record' ? aBlue : bdr),
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                    width: '100%',
+                    maxWidth: 540,
+                  }}
+                >
+                  <svg
+                    viewBox={VB.x + ' ' + VB.y + ' ' + VB.w + ' ' + VB.h}
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{ display: 'block', background: surface, width: '100%', height: 'auto' }}
+                    onMouseLeave={() => setHovLine(null)}
+                  >
+                    {ALL_TRIANGLES.map((t) => (
+                      <polygon
+                        key={t.key}
+                        points={pts(t.r, t.c)}
+                        fill={mode === 'paint' ? 'rgba(0,0,0,0.015)' : surface}
+                        stroke="#b8bcc8"
+                        strokeWidth="1.5"
+                        style={{ cursor: mode === 'paint' ? 'crosshair' : 'default' }}
+                        onClick={() => handleTriClick(t.r, t.c)}
+                      />
+                    ))}
+
+                    {mode === 'record' &&
+                      Object.keys(initBoard).map((k) => {
+                        const col = initBoard[k],
+                          p = k.split(',')
+                        const hx = fillHex(col)
+                        return (
+                          <polygon
+                            key={'gh-' + k}
+                            points={pts(+p[0], +p[1])}
+                            fill={hx}
+                            opacity={0.12}
+                            stroke={hx}
+                            strokeWidth="1.5"
+                            style={{ pointerEvents: 'none' }}
+                          />
+                        )
+                      })}
+
+                    {Object.keys(currentBoard).map((k) => {
+                      const col = currentBoard[k],
+                        p = k.split(',')
+                      return (
+                        <polygon
+                          key={'bd-' + k}
+                          points={pts(+p[0], +p[1])}
+                          fill={fillHex(col)}
+                          style={{ pointerEvents: mode === 'paint' ? 'all' : 'none' }}
+                          onClick={() => {
+                            if (mode === 'paint') {
+                              const pp = k.split(',')
+                              handleTriClick(+pp[0], +pp[1])
+                            }
+                          }}
+                        />
+                      )
+                    })}
+
+                    {anim &&
+                      (() => {
+                        const l = anim.line,
+                          t = easeIO(anim.rawT)
+                        const c2 = Math.cos(2 * l.theta),
+                          s2 = Math.sin(2 * l.theta)
+                        const am = 1 + t * (c2 - 1),
+                          bm = t * s2,
+                          cm = t * s2,
+                          dm = 1 - t * (1 + c2)
+                        const em = t * (l.px * (1 - c2) - l.py * s2),
+                          fm = t * (l.py * (1 + c2) - l.px * s2)
+                        return (
+                          <g
+                            transform={`matrix(${am} ${bm} ${cm} ${dm} ${em} ${fm})`}
+                            style={{ pointerEvents: 'none' }}
+                          >
+                            {Object.keys(anim.startBoard).map((key) => {
+                              const col = anim.startBoard[key],
+                                pp = key.split(',')
+                              return (
+                                <polygon
+                                  key={'an-' + key}
+                                  points={pts(+pp[0], +pp[1])}
+                                  fill={fillHex(col)}
+                                  opacity={0.5}
+                                />
+                              )
+                            })}
+                          </g>
+                        )
+                      })()}
+
+                    {mode === 'record' &&
+                      ALL_LINES.map((l) => {
+                        const isHov = hovLine === l.lineKey
+                        const fIdx = foldKeys.indexOf(l.lineKey)
+                        const isRec = fIdx >= 0
+                        const mx = (l.x1 + l.x2) / 2,
+                          my = (l.y1 + l.y2) / 2
+                        return (
+                          <g
+                            key={l.lineKey}
+                            onMouseEnter={() => setHovLine(l.lineKey)}
+                            onMouseLeave={() => setHovLine(null)}
+                            onClick={() => handleLineClick(l.lineKey)}
+                            style={{ cursor: anim ? 'default' : 'pointer' }}
+                          >
+                            <line
+                              x1={l.x1}
+                              y1={l.y1}
+                              x2={l.x2}
+                              y2={l.y2}
+                              stroke="transparent"
+                              strokeWidth={18}
+                              style={{ pointerEvents: 'stroke' }}
+                            />
+                            <line
+                              x1={l.x1}
+                              y1={l.y1}
+                              x2={l.x2}
+                              y2={l.y2}
+                              stroke={isRec ? aBlue : isHov ? '#6366f1' : '#cbd5e1'}
+                              strokeWidth={isRec ? 2.5 : isHov ? 3.5 : 1.5}
+                              strokeOpacity={isRec ? 1 : isHov ? 0.9 : 0.8}
+                              style={{ pointerEvents: 'none' }}
+                            />
+                            {isRec && (
+                              <g style={{ pointerEvents: 'none' }}>
+                                <circle cx={mx} cy={my} r={8} fill={aBlue} />
+                                <text
+                                  x={mx}
+                                  y={my}
+                                  textAnchor="middle"
+                                  dominantBaseline="central"
+                                  fontSize={9}
+                                  fontWeight="bold"
+                                  fill="white"
+                                >
+                                  {fIdx + 1}
+                                </text>
+                              </g>
+                            )}
+                            {isHov && !isRec && (
+                              <g style={{ pointerEvents: 'none' }}>
+                                <circle cx={mx} cy={my} r={7} fill="#6366f1" opacity={0.15} />
+                              </g>
+                            )}
+                          </g>
+                        )
+                      })}
+                  </svg>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: textF,
+                    textAlign: 'center',
+                    maxWidth: 480,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {mode === 'paint'
+                    ? 'Select a color and click any triangle inside the hexagon.'
+                    : 'Hover grid lines to preview. Click to fold — pieces outside the hex are removed. Numbered badges show fold order.'}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        )
+      }
 
-        {/* Board */}
-        <div style={{display:'flex',flexDirection:'column',gap:8,alignItems:'center',flex:1,minWidth:0}}>
-          <div style={{fontSize:10,color:textM,letterSpacing:2,textAlign:'center'}}>
-            {mode==='paint'
-              ?'PAINTING START STATE'
-              :'RECORDING — '+foldKeys.length+' FOLD'+(foldKeys.length!==1?'S':'')+' RECORDED'}
-          </div>
-
-          <div style={{border:'1.5px solid '+(mode==='record'?aBlue:bdr),borderRadius:8,
-            overflow:'hidden',boxShadow:'0 2px 10px rgba(0,0,0,0.08)',width:'100%',maxWidth:540}}>
-            <svg viewBox={VB.x+' '+VB.y+' '+VB.w+' '+VB.h}
-                 preserveAspectRatio="xMidYMid meet"
-                 style={{display:'block',background:surface,width:'100%',height:'auto'}}
-                 onMouseLeave={()=>setHovLine(null)}>
-
-              {ALL_TRIANGLES.map(t=>(
-                <polygon key={t.key} points={pts(t.r,t.c)}
-                  fill={mode==='paint'?'rgba(0,0,0,0.015)':surface}
-                  stroke="#b8bcc8" strokeWidth="1.5"
-                  style={{cursor:mode==='paint'?'crosshair':'default'}}
-                  onClick={()=>handleTriClick(t.r,t.c)}/>
-              ))}
-
-              {mode==='record'&&Object.keys(initBoard).map(k=>{
-                const col=initBoard[k], p=k.split(',');
-                const hx=fillHex(col);
-                return <polygon key={'gh-'+k} points={pts(+p[0],+p[1])}
-                  fill={hx} opacity={0.12} stroke={hx} strokeWidth="1.5"
-                  style={{pointerEvents:'none'}}/>;
-              })}
-
-              {Object.keys(currentBoard).map(k=>{
-                const col=currentBoard[k], p=k.split(',');
-                return <polygon key={'bd-'+k} points={pts(+p[0],+p[1])} fill={fillHex(col)}
-                  style={{pointerEvents:mode==='paint'?'all':'none'}}
-                  onClick={()=>{ if(mode==='paint'){const pp=k.split(',');handleTriClick(+pp[0],+pp[1]);}}}
-                />;
-              })}
-
-              {anim&&(()=>{
-                const l=anim.line, t=easeIO(anim.rawT);
-                const c2=Math.cos(2*l.theta), s2=Math.sin(2*l.theta);
-                const am=1+t*(c2-1), bm=t*s2, cm=t*s2, dm=1-t*(1+c2);
-                const em=t*(l.px*(1-c2)-l.py*s2), fm=t*(l.py*(1+c2)-l.px*s2);
-                return(
-                  <g transform={`matrix(${am} ${bm} ${cm} ${dm} ${em} ${fm})`}
-                     style={{pointerEvents:'none'}}>
-                    {Object.keys(anim.startBoard).map(key=>{
-                      const col=anim.startBoard[key], pp=key.split(',');
-                      return <polygon key={'an-'+key} points={pts(+pp[0],+pp[1])}
-                        fill={fillHex(col)} opacity={0.5}/>;
-                    })}
-                  </g>
-                );
-              })()}
-
-              {mode==='record'&&ALL_LINES.map(l=>{
-                const isHov=hovLine===l.lineKey;
-                const fIdx=foldKeys.indexOf(l.lineKey);
-                const isRec=fIdx>=0;
-                const mx=(l.x1+l.x2)/2, my=(l.y1+l.y2)/2;
-                return(
-                  <g key={l.lineKey}
-                     onMouseEnter={()=>setHovLine(l.lineKey)}
-                     onMouseLeave={()=>setHovLine(null)}
-                     onClick={()=>handleLineClick(l.lineKey)}
-                     style={{cursor:anim?'default':'pointer'}}>
-                    <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
-                      stroke="transparent" strokeWidth={18}
-                      style={{pointerEvents:'stroke'}}/>
-                    <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
-                      stroke={isRec?aBlue:isHov?'#6366f1':'#cbd5e1'}
-                      strokeWidth={isRec?2.5:isHov?3.5:1.5}
-                      strokeOpacity={isRec?1:isHov?0.9:0.8}
-                      style={{pointerEvents:'none'}}/>
-                    {isRec&&(
-                      <g style={{pointerEvents:'none'}}>
-                        <circle cx={mx} cy={my} r={8} fill={aBlue}/>
-                        <text x={mx} y={my} textAnchor="middle" dominantBaseline="central"
-                          fontSize={9} fontWeight="bold" fill="white">{fIdx+1}</text>
-                      </g>
-                    )}
-                    {isHov&&!isRec&&(
-                      <g style={{pointerEvents:'none'}}>
-                        <circle cx={mx} cy={my} r={7} fill="#6366f1" opacity={0.15}/>
-                      </g>
-                    )}
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-
-          <div style={{fontSize:11,color:textF,textAlign:'center',maxWidth:480,lineHeight:1.6}}>
-            {mode==='paint'
-              ?'Select a color and click any triangle inside the hexagon.'
-              :'Hover grid lines to preview. Click to fold — pieces outside the hex are removed. Numbered badges show fold order.'}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
-</script>
-</body>
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+    </script>
+  </body>
 </html>

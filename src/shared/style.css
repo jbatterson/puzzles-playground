@@ -481,7 +481,9 @@ body {
   width: min(95%, 450px);
   /* Use available viewport height (no fixed px cap) so short modals don’t get a nested scroll well. */
   max-height: calc(100vh - 48px);
-  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 48px);
+  max-height: calc(
+    100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 48px
+  );
   overflow-x: hidden;
   overflow-y: auto;
   box-sizing: border-box;
@@ -1306,7 +1308,6 @@ body {
   background-color: var(--white);
   transform: none;
 }
-
 
 /* =============================================================================
    MODALS (Menu + optional full-bleed instructions)

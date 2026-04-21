@@ -211,8 +211,8 @@ const ALL_LINES = (() => {
         addLine(0, x, y)
         addLine(Math.atan2(H, -S / 2), x, y)
         addLine(Math.atan2(H, S / 2), x + S, y)
+      }
     }
-  }
   return lines.map((line) => ({
     ...line,
     isBoardOuterEdge: isBoardOuterEdgeFoldLine(line),
@@ -1139,9 +1139,7 @@ const Folds = () => {
 
   /** `hoverLine` is mouse-only; never treat it as emphasis on coarse pointers (see touch hover reset above). */
   const isFoldLineEmphasized = (lineKey) =>
-    (hoverLine === lineKey && !coarsePointer) ||
-    pendingFoldLine === lineKey ||
-    tapFlash === lineKey
+    (hoverLine === lineKey && !coarsePointer) || pendingFoldLine === lineKey || tapFlash === lineKey
 
   const getLineStroke = (lineKey) => {
     if (isFoldLineEmphasized(lineKey)) return FOLD_LINE_ACCENT
@@ -1704,7 +1702,8 @@ const Folds = () => {
             <FoldsIcon size={80} />
           </div>
           <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
-            Fold the shapes along the grid lines <br/>to match the <b>target pattern</b>.
+            Fold the shapes along the grid lines <br />
+            to match the <b>target pattern</b>.
             <br />
             {coarsePointer ? (
               <>
@@ -1713,8 +1712,8 @@ const Folds = () => {
               </>
             ) : (
               <>
-                Hover over a fold line to highlight it. <br/>Click the line to fold the triangles across
-                it.
+                Hover over a fold line to highlight it. <br />
+                Click the line to fold the triangles across it.
               </>
             )}
           </p>

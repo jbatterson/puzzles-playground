@@ -95,14 +95,18 @@ function orientTranslateCanonicalKey(puzzle) {
         minR = Math.min(minR, r)
         minC = Math.min(minC, c)
       }
-      const normT = sortPairs(targets.map((sq) => {
-        const [r, c] = indexToRC(sq)
-        return [r - minR, c - minC]
-      }))
-      const normP = sortPairs(prePlaced.map((sq) => {
-        const [r, c] = indexToRC(sq)
-        return [r - minR, c - minC]
-      }))
+      const normT = sortPairs(
+        targets.map((sq) => {
+          const [r, c] = indexToRC(sq)
+          return [r - minR, c - minC]
+        })
+      )
+      const normP = sortPairs(
+        prePlaced.map((sq) => {
+          const [r, c] = indexToRC(sq)
+          return [r - minR, c - minC]
+        })
+      )
       const s = JSON.stringify({
         m: puzzle.maxBugs,
         t: normT,
@@ -177,7 +181,9 @@ async function main() {
   const { write, mode, includeTutorial } = parseArgs(process.argv.slice(2))
   const keyFn = mode === 'orient' ? orientCanonicalKey : orientTranslateCanonicalKey
 
-  const tiersToDedupe = includeTutorial ? ['tutorial', 'easy', 'medium', 'hard'] : ['easy', 'medium', 'hard']
+  const tiersToDedupe = includeTutorial
+    ? ['tutorial', 'easy', 'medium', 'hard']
+    : ['easy', 'medium', 'hard']
 
   const puzzlesUrl = pathToFileURL(PUZZLES_PATH).href
   const mod = await import(puzzlesUrl)
@@ -215,7 +221,7 @@ async function main() {
     if (removed.length > 0) {
       for (const r of removed) {
         console.log(
-          `    - #${r.tierIndex + 1} duplicate of #${r.duplicateOfTierIndex + 1}: ${r.line}`,
+          `    - #${r.tierIndex + 1} duplicate of #${r.duplicateOfTierIndex + 1}: ${r.line}`
         )
       }
     }
@@ -227,7 +233,10 @@ async function main() {
   console.log(`  total puzzles in deduped tiers before → after: ${totalBefore} → ${totalAfter}`)
 
   if (write) {
-    const out = formatPuzzlesFileBody(next, TIER_ORDER.filter((t) => Array.isArray(puzzleData[t])))
+    const out = formatPuzzlesFileBody(
+      next,
+      TIER_ORDER.filter((t) => Array.isArray(puzzleData[t]))
+    )
     fs.writeFileSync(PUZZLES_PATH, out, 'utf8')
     console.log(`\nWrote ${path.relative(repoRoot, PUZZLES_PATH)}`)
   } else {

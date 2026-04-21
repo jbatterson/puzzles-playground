@@ -549,10 +549,7 @@ export default function Clueless() {
   }, [daily.key, bestAttempts, difficulty])
 
   /** Pause while post-win CTA is showing (“Next Puzzle” or “All Puzzles”). */
-  const pauseForHubCompleteCta = useMemo(
-    () => !curateMode && solved,
-    [curateMode, solved]
-  )
+  const pauseForHubCompleteCta = useMemo(() => !curateMode && solved, [curateMode, solved])
 
   useSuiteCompletionTimer(GAME_KEYS.CLUELESS, daily.key, {
     track: !curateMode,

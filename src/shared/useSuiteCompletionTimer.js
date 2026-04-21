@@ -28,8 +28,7 @@ export default function useSuiteCompletionTimer(gameKey, dateKey, opts) {
     ensureSuiteGameTimerStart(gameKey, dateKey, { track, alreadyFullyComplete })
   }, [gameKey, dateKey, track, alreadyFullyComplete])
 
-  const shouldCountMs =
-    track && !alreadyFullyComplete && tabVisible && !pauseForHubCompleteCta
+  const shouldCountMs = track && !alreadyFullyComplete && tabVisible && !pauseForHubCompleteCta
 
   useEffect(() => {
     if (!track || alreadyFullyComplete) return

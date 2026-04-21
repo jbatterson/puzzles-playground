@@ -173,19 +173,27 @@ function SinglePuzzleBox({ completed, perfect, attempts, failed }) {
       : done
         ? '#6b9b3b'
         : PUZZLE_SUITE_SURFACE_INCOMPLETE
-  const content = useAttempts
-    ? attempts != null
-      ? attempts === 1
-        ? <HubDiceStar />
-        : String(Math.min(attempts, 99))
-      : failed
-        ? '•'
-        : '1'
-    : completed
-      ? perfect
-        ? <HubDiceStar />
-        : <HubDiceCheck />
-      : '1'
+  const content = useAttempts ? (
+    attempts != null ? (
+      attempts === 1 ? (
+        <HubDiceStar />
+      ) : (
+        String(Math.min(attempts, 99))
+      )
+    ) : failed ? (
+      '•'
+    ) : (
+      '1'
+    )
+  ) : completed ? (
+    perfect ? (
+      <HubDiceStar />
+    ) : (
+      <HubDiceCheck />
+    )
+  ) : (
+    '1'
+  )
   return (
     <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
       <div
@@ -402,7 +410,10 @@ export default function Home() {
     () => GAMES.filter((g) => !isPuzzleOnInSuitePrefs(g.key, suitePrefs)),
     [suitePrefs]
   )
-  const settingsGamesList = useMemo(() => GAMES.map(({ key, title, Icon }) => ({ key, title, Icon })), [])
+  const settingsGamesList = useMemo(
+    () => GAMES.map(({ key, title, Icon }) => ({ key, title, Icon })),
+    []
+  )
 
   const [showLinks, setShowLinks] = useState(false)
 

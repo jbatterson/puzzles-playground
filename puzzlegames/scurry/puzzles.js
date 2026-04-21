@@ -355,8 +355,6 @@ export default {
     { targets: [1, 2, 4, 14, 15, 17, 19, 25], maxBugs: 5, prePlaced: [18, 14, 8] },
     { targets: [2, 4, 9, 10, 14, 17, 19, 20], maxBugs: 4, prePlaced: [8, 14, 9, 18] },
     { targets: [1, 3, 4, 5, 8, 13, 15, 16], maxBugs: 5, prePlaced: [9, 8, 12] },
-    { targets: [1, 2, 4, 7, 11, 19, 21, 22], maxBugs: 6, prePlaced: [12, 17] }
-
-
+    { targets: [1, 2, 4, 7, 11, 19, 21, 22], maxBugs: 6, prePlaced: [12, 17] },
   ],
 }

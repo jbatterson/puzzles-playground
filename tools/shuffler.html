@@ -1,200 +1,291 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Puzzle Shuffler</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; }
-    body {
-      margin: 0; padding: 40px 20px;
-      background: #f8fafc;
-      font-family: 'Outfit', sans-serif;
-      color: #1e293b;
-      min-height: 100vh;
-    }
-    .wrap {
-      max-width: 680px; margin: 0 auto;
-      display: flex; flex-direction: column; gap: 16px;
-    }
-    h1 {
-      font-size: 1.4rem; font-weight: 900;
-      letter-spacing: .15em; text-transform: uppercase;
-      margin: 0 0 4px;
-    }
-    .sub { font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
-
-    label {
-      font-size: 10px; font-weight: 700;
-      text-transform: uppercase; letter-spacing: .1em;
-      color: #94a3b8; display: block; margin-bottom: 5px;
-    }
-    textarea {
-      width: 100%; height: 200px; resize: vertical;
-      font-family: 'Courier New', monospace; font-size: 11px;
-      background: #fff; color: #334155;
-      border: 1.5px solid #e2e8f0; border-radius: 8px;
-      padding: 12px; line-height: 1.5;
-    }
-    textarea:focus { outline: none; border-color: #93c5fd; }
-
-    .btn-row { display: flex; gap: 10px; }
-    .btn {
-      padding: 12px 24px;
-      border: none; border-radius: 6px;
-      font-family: 'Outfit'; font-size: 12px; font-weight: 700;
-      letter-spacing: .08em; text-transform: uppercase;
-      cursor: pointer; transition: background .15s, transform .1s;
-    }
-    .btn:active { transform: scale(.97); }
-    .btn-primary { background: #3b82f6; color: #fff; }
-    .btn-primary:hover { background: #2563eb; }
-    .btn-secondary { background: #f1f5f9; color: #475569; }
-    .btn-secondary:hover { background: #e2e8f0; }
-    .btn-export { background: #0f172a; color: #fff; }
-    .btn-export:hover { background: #1e293b; }
-    .btn-export:disabled { opacity: .35; cursor: not-allowed; transform: none; }
-
-    .error { font-size: 11px; color: #ef4444; font-weight: 600; display: none; }
-    .count { font-size: 11px; color: #64748b; font-weight: 600; }
-
-    .copied-flash {
-      display: none;
-      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-      background: #0f172a; color: #fff;
-      padding: 10px 24px; border-radius: 8px;
-      font-weight: 700; font-size: 13px; letter-spacing: .06em;
-      z-index: 9999;
-    }
-  </style>
-</head>
-<body>
-<div class="wrap">
-  <div>
-    <h1>Puzzle Shuffler</h1>
-    <div class="sub">Paste puzzles → randomize order → copy</div>
-  </div>
-
-  <div>
-    <label>Input — paste puzzles here</label>
-    <textarea id="input" placeholder='{"s":4,"t":{...},"b":[...]},&#10;{"s":4,"t":{...},"b":[...]},&#10;...'></textarea>
-    <div class="error" id="err"></div>
-  </div>
-
-  <div class="btn-row">
-    <button class="btn btn-primary" onclick="shuffle()">Shuffle</button>
-    <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
-  </div>
-
-  <div>
-    <label>Output <span class="count" id="countLabel"></span></label>
-    <textarea id="output" readonly placeholder="Shuffled puzzles will appear here…"></textarea>
-  </div>
-
-  <div class="btn-row">
-    <button class="btn btn-export" id="copyBtn" onclick="copyOut()" disabled>Copy Output</button>
-  </div>
-</div>
-
-<div class="copied-flash" id="flash">Copied!</div>
-
-<script>
-  // Split raw text into top-level {...} blocks, preserving each block's
-  // exact original text (including internal whitespace, JS syntax, etc.)
-  function splitBlocks(raw) {
-    const blocks = [];
-    let depth = 0, start = -1;
-    let inStr = false, strChar = '', i = 0;
-
-    while (i < raw.length) {
-      const ch = raw[i];
-
-      // Track strings so we don't count braces inside them
-      if (inStr) {
-        if (ch === '\\') { i += 2; continue; }  // skip escaped char
-        if (ch === strChar) inStr = false;
-        i++; continue;
+  <head>
+    <meta charset="UTF-8" />
+    <title>Puzzle Shuffler</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
       }
-      if (ch === '"' || ch === "'" || ch === '`') {
-        inStr = true; strChar = ch;
-        i++; continue;
+      body {
+        margin: 0;
+        padding: 40px 20px;
+        background: #f8fafc;
+        font-family: 'Outfit', sans-serif;
+        color: #1e293b;
+        min-height: 100vh;
+      }
+      .wrap {
+        max-width: 680px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      h1 {
+        font-size: 1.4rem;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin: 0 0 4px;
+      }
+      .sub {
+        font-size: 11px;
+        color: #94a3b8;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
-      if (ch === '{') {
-        if (depth === 0) start = i;
-        depth++;
-      } else if (ch === '}') {
-        depth--;
-        if (depth === 0 && start !== -1) {
-          blocks.push(raw.slice(start, i + 1));
-          start = -1;
+      label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #94a3b8;
+        display: block;
+        margin-bottom: 5px;
+      }
+      textarea {
+        width: 100%;
+        height: 200px;
+        resize: vertical;
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        background: #fff;
+        color: #334155;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px;
+        line-height: 1.5;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: #93c5fd;
+      }
+
+      .btn-row {
+        display: flex;
+        gap: 10px;
+      }
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-family: 'Outfit';
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          transform 0.1s;
+      }
+      .btn:active {
+        transform: scale(0.97);
+      }
+      .btn-primary {
+        background: #3b82f6;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+      .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+      }
+      .btn-secondary:hover {
+        background: #e2e8f0;
+      }
+      .btn-export {
+        background: #0f172a;
+        color: #fff;
+      }
+      .btn-export:hover {
+        background: #1e293b;
+      }
+      .btn-export:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .error {
+        font-size: 11px;
+        color: #ef4444;
+        font-weight: 600;
+        display: none;
+      }
+      .count {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 600;
+      }
+
+      .copied-flash {
+        display: none;
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #0f172a;
+        color: #fff;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 13px;
+        letter-spacing: 0.06em;
+        z-index: 9999;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div>
+        <h1>Puzzle Shuffler</h1>
+        <div class="sub">Paste puzzles → randomize order → copy</div>
+      </div>
+
+      <div>
+        <label>Input — paste puzzles here</label>
+        <textarea
+          id="input"
+          placeholder='{"s":4,"t":{...},"b":[...]},&#10;{"s":4,"t":{...},"b":[...]},&#10;...'
+        ></textarea>
+        <div class="error" id="err"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="shuffle()">Shuffle</button>
+        <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+      </div>
+
+      <div>
+        <label>Output <span class="count" id="countLabel"></span></label>
+        <textarea id="output" readonly placeholder="Shuffled puzzles will appear here…"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-export" id="copyBtn" onclick="copyOut()" disabled>
+          Copy Output
+        </button>
+      </div>
+    </div>
+
+    <div class="copied-flash" id="flash">Copied!</div>
+
+    <script>
+      // Split raw text into top-level {...} blocks, preserving each block's
+      // exact original text (including internal whitespace, JS syntax, etc.)
+      function splitBlocks(raw) {
+        const blocks = []
+        let depth = 0,
+          start = -1
+        let inStr = false,
+          strChar = '',
+          i = 0
+
+        while (i < raw.length) {
+          const ch = raw[i]
+
+          // Track strings so we don't count braces inside them
+          if (inStr) {
+            if (ch === '\\') {
+              i += 2
+              continue
+            } // skip escaped char
+            if (ch === strChar) inStr = false
+            i++
+            continue
+          }
+          if (ch === '"' || ch === "'" || ch === '`') {
+            inStr = true
+            strChar = ch
+            i++
+            continue
+          }
+
+          if (ch === '{') {
+            if (depth === 0) start = i
+            depth++
+          } else if (ch === '}') {
+            depth--
+            if (depth === 0 && start !== -1) {
+              blocks.push(raw.slice(start, i + 1))
+              start = -1
+            }
+          }
+          i++
         }
+        return blocks
       }
-      i++;
-    }
-    return blocks;
-  }
 
-  // Detect the indentation prefix used on the first block
-  function detectIndent(raw, firstBlock) {
-    const idx = raw.indexOf(firstBlock);
-    const lineStart = raw.lastIndexOf('\n', idx);
-    return lineStart === -1 ? '    ' : raw.slice(lineStart + 1, idx);
-  }
+      // Detect the indentation prefix used on the first block
+      function detectIndent(raw, firstBlock) {
+        const idx = raw.indexOf(firstBlock)
+        const lineStart = raw.lastIndexOf('\n', idx)
+        return lineStart === -1 ? '    ' : raw.slice(lineStart + 1, idx)
+      }
 
-  // Detect the separator between blocks (comma+newline vs just newline etc.)
-  function detectSeparator(raw, blocks) {
-    if (blocks.length < 2) return ',\n';
-    const between = raw.slice(
-      raw.indexOf(blocks[0]) + blocks[0].length,
-      raw.indexOf(blocks[1])
-    );
-    return between || ',\n';
-  }
+      // Detect the separator between blocks (comma+newline vs just newline etc.)
+      function detectSeparator(raw, blocks) {
+        if (blocks.length < 2) return ',\n'
+        const between = raw.slice(raw.indexOf(blocks[0]) + blocks[0].length, raw.indexOf(blocks[1]))
+        return between || ',\n'
+      }
 
-  function shuffle() {
-    const err = document.getElementById('err');
-    err.style.display = 'none';
+      function shuffle() {
+        const err = document.getElementById('err')
+        err.style.display = 'none'
 
-    const raw = document.getElementById('input').value;
-    const blocks = splitBlocks(raw);
+        const raw = document.getElementById('input').value
+        const blocks = splitBlocks(raw)
 
-    if (blocks.length === 0) {
-      err.textContent = 'No puzzle blocks found. Make sure your puzzles use { } syntax.';
-      err.style.display = 'block';
-      return;
-    }
+        if (blocks.length === 0) {
+          err.textContent = 'No puzzle blocks found. Make sure your puzzles use { } syntax.'
+          err.style.display = 'block'
+          return
+        }
 
-    const indent = detectIndent(raw, blocks[0]);
-    const sep = detectSeparator(raw, blocks);
+        const indent = detectIndent(raw, blocks[0])
+        const sep = detectSeparator(raw, blocks)
 
-    // Fisher-Yates
-    for (let i = blocks.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
-    }
+        // Fisher-Yates
+        for (let i = blocks.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[blocks[i], blocks[j]] = [blocks[j], blocks[i]]
+        }
 
-    document.getElementById('output').value = blocks.map(b => indent + b).join(sep);
-    document.getElementById('countLabel').textContent = `— ${blocks.length} puzzle${blocks.length !== 1 ? 's' : ''}`;
-    document.getElementById('copyBtn').disabled = false;
-  }
+        document.getElementById('output').value = blocks.map((b) => indent + b).join(sep)
+        document.getElementById('countLabel').textContent =
+          `— ${blocks.length} puzzle${blocks.length !== 1 ? 's' : ''}`
+        document.getElementById('copyBtn').disabled = false
+      }
 
-  function copyOut() {
-    const text = document.getElementById('output').value;
-    navigator.clipboard.writeText(text).then(() => {
-      const f = document.getElementById('flash');
-      f.style.display = 'block';
-      setTimeout(() => f.style.display = 'none', 1500);
-    });
-  }
+      function copyOut() {
+        const text = document.getElementById('output').value
+        navigator.clipboard.writeText(text).then(() => {
+          const f = document.getElementById('flash')
+          f.style.display = 'block'
+          setTimeout(() => (f.style.display = 'none'), 1500)
+        })
+      }
 
-  function clearAll() {
-    document.getElementById('input').value = '';
-    document.getElementById('output').value = '';
-    document.getElementById('err').style.display = 'none';
-    document.getElementById('countLabel').textContent = '';
-    document.getElementById('copyBtn').disabled = true;
-  }
-</script>
-</body>
+      function clearAll() {
+        document.getElementById('input').value = ''
+        document.getElementById('output').value = ''
+        document.getElementById('err').style.display = 'none'
+        document.getElementById('countLabel').textContent = ''
+        document.getElementById('copyBtn').disabled = true
+      }
+    </script>
+  </body>
 </html>

@@ -90,9 +90,7 @@ function getStoredMoveCount(dateKey, idx) {
 
 function markComplete(dateKey, idx, movesThisRun, puzzleMinMoves) {
   const hitMin =
-    puzzleMinMoves != null &&
-    Number.isFinite(puzzleMinMoves) &&
-    movesThisRun === puzzleMinMoves
+    puzzleMinMoves != null && Number.isFinite(puzzleMinMoves) && movesThisRun === puzzleMinMoves
   const starWorthy = hitMin
   const key = `sumtiles:${dateKey}:${idx}`
   const existing = localStorage.getItem(key)

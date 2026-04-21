@@ -223,7 +223,10 @@ export function readSuiteGameElapsedMs(gameKey, dateKey) {
     const committedRaw = lsGet(suiteElapsedKey(gameKey, dateKey))
     const committed = committedRaw != null ? parseInt(committedRaw, 10) : NaN
     const base = Number.isFinite(committed) ? Math.max(0, committed) : 0
-    return Math.max(0, base + readBankMs(gameKey, dateKey) + readOpenSegmentMs(gameKey, dateKey, now))
+    return Math.max(
+      0,
+      base + readBankMs(gameKey, dateKey) + readOpenSegmentMs(gameKey, dateKey, now)
+    )
   }
   return readLegacyWallElapsedMs(gameKey, dateKey)
 }

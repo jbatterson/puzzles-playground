@@ -21,7 +21,14 @@ const write = process.argv.includes('--write')
 function canonicalKey(v) {
   if (v === null || typeof v !== 'object') return JSON.stringify(v)
   if (Array.isArray(v)) return '[' + v.map(canonicalKey).join(',') + ']'
-  return '{' + Object.keys(v).sort().map(k => `${JSON.stringify(k)}:${canonicalKey(v[k])}`).join(',') + '}'
+  return (
+    '{' +
+    Object.keys(v)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${canonicalKey(v[k])}`)
+      .join(',') +
+    '}'
+  )
 }
 
 function dedupeTier(list) {
@@ -55,13 +62,16 @@ function jsVal(v) {
 
 /** Folds: multi-line block per puzzle */
 function formatFoldsPuzzle(p) {
-  const fmtMap = obj => Object.entries(obj).map(([k, v]) => `'${k}': '${v}'`).join(', ')
+  const fmtMap = (obj) =>
+    Object.entries(obj)
+      .map(([k, v]) => `'${k}': '${v}'`)
+      .join(', ')
   return `    {\n      start: { ${fmtMap(p.start)} },\n      target: { ${fmtMap(p.target)} },\n      folds: ${p.folds},\n    },`
 }
 
 /** Honeycombs: { size: '…', clues: [[r, c, v], …] } */
 function formatHoneycombsPuzzle(p) {
-  const clues = p.clues.map(c => `[${c.join(', ')}]`).join(', ')
+  const clues = p.clues.map((c) => `[${c.join(', ')}]`).join(', ')
   return `    { size: '${p.size}', clues: [${clues}] },`
 }
 
@@ -80,10 +90,10 @@ function buildTierBlock(tier, list, fmtPuzzle) {
 // ---------------------------------------------------------------------------
 
 function writeFolds(filePath, data) {
-  const tiers = TIER_ORDER.filter(t => Array.isArray(data[t]))
-  const blocks = tiers.map(t => buildTierBlock(t, data[t], formatFoldsPuzzle))
+  const tiers = TIER_ORDER.filter((t) => Array.isArray(data[t]))
+  const blocks = tiers.map((t) => buildTierBlock(t, data[t], formatFoldsPuzzle))
   // Folds uses blank lines between puzzles within a tier
-  const foldsBlocks = tiers.map(t => {
+  const foldsBlocks = tiers.map((t) => {
     const lines = data[t].map(formatFoldsPuzzle)
     return `  ${t}: [\n${lines.join('\n\n')}\n  ],`
   })
@@ -97,15 +107,15 @@ const HONEYCOMBS_FILE_HEADER = `// Honeycombs puzzle definitions — batched lik
 `
 
 function writeHoneycombs(filePath, data) {
-  const tiers = TIER_ORDER.filter(t => Array.isArray(data[t]))
-  const blocks = tiers.map(t => buildTierBlock(t, data[t], formatHoneycombsPuzzle))
+  const tiers = TIER_ORDER.filter((t) => Array.isArray(data[t]))
+  const blocks = tiers.map((t) => buildTierBlock(t, data[t], formatHoneycombsPuzzle))
   const out = `${HONEYCOMBS_FILE_HEADER}export default {\n${blocks.join('\n\n')}\n}\n`
   fs.writeFileSync(filePath, out, 'utf8')
 }
 
 function writeGeneric(filePath, data) {
-  const tiers = TIER_ORDER.filter(t => Array.isArray(data[t]))
-  const blocks = tiers.map(t => buildTierBlock(t, data[t], formatGenericPuzzle))
+  const tiers = TIER_ORDER.filter((t) => Array.isArray(data[t]))
+  const blocks = tiers.map((t) => buildTierBlock(t, data[t], formatGenericPuzzle))
   const out = `export default {\n${blocks.join('\n\n')}\n}\n`
   fs.writeFileSync(filePath, out, 'utf8')
 }
@@ -114,11 +124,11 @@ function writeGeneric(filePath, data) {
 // Games config
 // ---------------------------------------------------------------------------
 const GAMES = [
-  { name: 'folds',      file: 'puzzlegames/folds/puzzles.js',       writer: writeFolds },
-  { name: 'honeycombs', file: 'puzzlegames/honeycombs/puzzles.js',   writer: writeHoneycombs },
-  { name: 'clueless',   file: 'puzzlegames/clueless/puzzles.js',     writer: writeGeneric },
-  { name: 'productiles',file: 'puzzlegames/productiles/puzzles.js',  writer: writeGeneric },
-  { name: 'sumtiles',   file: 'puzzlegames/sumtiles/puzzles.js',     writer: writeGeneric },
+  { name: 'folds', file: 'puzzlegames/folds/puzzles.js', writer: writeFolds },
+  { name: 'honeycombs', file: 'puzzlegames/honeycombs/puzzles.js', writer: writeHoneycombs },
+  { name: 'clueless', file: 'puzzlegames/clueless/puzzles.js', writer: writeGeneric },
+  { name: 'productiles', file: 'puzzlegames/productiles/puzzles.js', writer: writeGeneric },
+  { name: 'sumtiles', file: 'puzzlegames/sumtiles/puzzles.js', writer: writeGeneric },
   // scurry: handled by dedupe:scurry (geometry-aware)
 ]
 
@@ -171,4 +181,7 @@ async function main() {
   }
 }
 
-main().catch(e => { console.error(e); process.exit(1) })
+main().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})

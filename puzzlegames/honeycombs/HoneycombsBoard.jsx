@@ -22,14 +22,26 @@ import { nextIncompleteEnabledTierExcluding } from '@shared-contracts/suiteDashb
 // ─── keyboard layouts ────────────────────────────────────────────────────────
 
 const KB_ROWS = {
-  small:  [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10]],
-  medium: [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]],
-  large:  [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13], [14, 15, 16, 17, 18, 19]],
+  small: [
+    [1, 2, 3, 4, 5],
+    [6, 7, 8, 9, 10],
+  ],
+  medium: [
+    [1, 2, 3, 4, 5, 6, 7],
+    [8, 9, 10, 11, 12, 13, 14],
+  ],
+  large: [
+    [1, 2, 3, 4, 5, 6, 7],
+    [8, 9, 10, 11, 12, 13],
+    [14, 15, 16, 17, 18, 19],
+  ],
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-function cellKey(r, c) { return `${r},${c}` }
+function cellKey(r, c) {
+  return `${r},${c}`
+}
 
 /**
  * Build the baseline (clue-seeded) cell array for a puzzle.
@@ -234,9 +246,7 @@ export default function HoneycombsBoard({
       setCells(loaded.cells)
       setSolved(loaded.solved)
       setMoveHistory(loaded.moveHistory)
-      setActiveDigit(
-        loaded.activeDigit ?? computeActiveDigitMinMissing(loaded.cells)
-      )
+      setActiveDigit(loaded.activeDigit ?? computeActiveDigitMinMissing(loaded.cells))
       usedUndoOrResetRef.current = loaded.usedUndoOrReset
     } else {
       clearGameState(puzzleIdx, dateKey)
@@ -246,8 +256,8 @@ export default function HoneycombsBoard({
       setActiveDigit(computeActiveDigitMinMissing(baseline))
       usedUndoOrResetRef.current = false
     }
-  // puzzle identity (not reference) drives the reset; dateKey scopes storage
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // puzzle identity (not reference) drives the reset; dateKey scopes storage
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [puzzleIdx, dateKey])
 
   useEffect(() => {
@@ -384,9 +394,7 @@ export default function HoneycombsBoard({
       if (activeDigit === null) return
       // block if this number is already a clue on another cell
       if (
-        cells.some(
-          (c) => c.value === activeDigit && c.isClue && !(c.row === row && c.col === col)
-        )
+        cells.some((c) => c.value === activeDigit && c.isClue && !(c.row === row && c.col === col))
       )
         return
 
@@ -420,7 +428,17 @@ export default function HoneycombsBoard({
         dateKey,
       })
     },
-    [solved, cells, activeDigit, moveHistory, puzzle, puzzleIdx, dateKey, notifyUserInput, commitWin]
+    [
+      solved,
+      cells,
+      activeDigit,
+      moveHistory,
+      puzzle,
+      puzzleIdx,
+      dateKey,
+      notifyUserInput,
+      commitWin,
+    ]
   )
 
   const handleKeyPress = useCallback(
@@ -504,10 +522,7 @@ export default function HoneycombsBoard({
 
   // ─── derived display values ────────────────────────────────────────────────
 
-  const clueSet = useMemo(
-    () => new Set(puzzle.clues.map(([, , v]) => v)),
-    [puzzle.clues]
-  )
+  const clueSet = useMemo(() => new Set(puzzle.clues.map(([, , v]) => v)), [puzzle.clues])
   const playerUsedSet = useMemo(
     () => new Set(cells.filter((c) => !c.isClue && c.value !== null).map((c) => c.value)),
     [cells]
@@ -568,8 +583,7 @@ export default function HoneycombsBoard({
 
   useEffect(() => {
     onHubCompleteCtaPauseChange?.(
-      smartPrimaryLabel === CTA_LABELS.ALL_PUZZLES ||
-        smartPrimaryLabel === CTA_LABELS.NEXT_PUZZLE
+      smartPrimaryLabel === CTA_LABELS.ALL_PUZZLES || smartPrimaryLabel === CTA_LABELS.NEXT_PUZZLE
     )
   }, [smartPrimaryLabel, onHubCompleteCtaPauseChange])
 
@@ -625,35 +639,35 @@ export default function HoneycombsBoard({
             preserveAspectRatio="xMidYMid meet"
             style={{ display: 'block', width: '100%', height: '100%' }}
           >
-          <g id="hex-cells">
-            {cells.map((cell) => (
-              <g
-                key={cellKey(cell.row, cell.col)}
-                className={cellClassName(cell)}
-                data-row={cell.row}
-                data-col={cell.col}
-                onPointerUp={
-                  cell.isClue
-                    ? undefined
-                    : (e) => {
-                        e.stopPropagation()
-                        handleCellClick(cell.row, cell.col)
-                      }
-                }
-              >
-                <polygon points={hexPoints(cell.cx, cell.cy, HEX_R - 1)} />
-                <text
-                  x={cell.cx}
-                  y={cell.cy}
-                  className="hex-label"
-                  fontSize={cell.value !== null && cell.value >= 10 ? 12 : undefined}
+            <g id="hex-cells">
+              {cells.map((cell) => (
+                <g
+                  key={cellKey(cell.row, cell.col)}
+                  className={cellClassName(cell)}
+                  data-row={cell.row}
+                  data-col={cell.col}
+                  onPointerUp={
+                    cell.isClue
+                      ? undefined
+                      : (e) => {
+                          e.stopPropagation()
+                          handleCellClick(cell.row, cell.col)
+                        }
+                  }
                 >
-                  {cell.value !== null ? cell.value : ''}
-                </text>
-              </g>
-            ))}
-          </g>
-          {/* #hex-trace is appended imperatively by useHoneycombsTrace */}
+                  <polygon points={hexPoints(cell.cx, cell.cy, HEX_R - 1)} />
+                  <text
+                    x={cell.cx}
+                    y={cell.cy}
+                    className="hex-label"
+                    fontSize={cell.value !== null && cell.value >= 10 ? 12 : undefined}
+                  >
+                    {cell.value !== null ? cell.value : ''}
+                  </text>
+                </g>
+              ))}
+            </g>
+            {/* #hex-trace is appended imperatively by useHoneycombsTrace */}
           </svg>
         </div>
       </div>

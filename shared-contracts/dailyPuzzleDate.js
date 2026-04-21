@@ -18,8 +18,7 @@ const PAC_LABEL = new Intl.DateTimeFormat('en-US', {
 })
 
 function formatPacificDateKey(date) {
-  const dIn =
-    date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date()
+  const dIn = date instanceof Date && !Number.isNaN(date.getTime()) ? date : new Date()
   try {
     const parts = PAC_YMD.formatToParts(dIn)
     const y = parts.find((p) => p.type === 'year')?.value

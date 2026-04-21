@@ -6,10 +6,7 @@ import React from 'react'
  */
 export function HubDiceStar() {
   return (
-    <span
-      style={{ display: 'inline-block', transform: 'translateY(-1px)' }}
-      aria-hidden="true"
-    >
+    <span style={{ display: 'inline-block', transform: 'translateY(-1px)' }} aria-hidden="true">
       ★
     </span>
   )

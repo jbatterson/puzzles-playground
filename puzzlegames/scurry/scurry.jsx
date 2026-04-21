@@ -787,8 +787,8 @@ const Scurry = () => {
             Place bugs to fill all of the highlighted squares.
             <br />
             <br />
-            Placing a bug causes its neighbors to <b>scurry</b>, <br/>pushing them away in all
-            directions.
+            Placing a bug causes its neighbors to <b>scurry</b>, <br />
+            pushing them away in all directions.
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

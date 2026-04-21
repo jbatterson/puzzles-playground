@@ -171,7 +171,9 @@ export default function useHoneycombsTrace(svgRef) {
           bee,
           setPose,
           getAngle: () => angle,
-          setAngle: (deg) => { angle = deg },
+          setAngle: (deg) => {
+            angle = deg
+          },
         }
       }
 
@@ -416,7 +418,9 @@ export default function useHoneycombsTrace(svgRef) {
         }
         line.addEventListener(
           'transitionend',
-          (e) => { if (e.propertyName === 'stroke-dashoffset') next() },
+          (e) => {
+            if (e.propertyName === 'stroke-dashoffset') next()
+          },
           { once: true }
         )
         setTimeout(() => {

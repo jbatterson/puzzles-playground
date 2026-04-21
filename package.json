@@ -7,7 +7,7 @@
     "check:allten-boundary": "node tools/checkAllTenBoundary.mjs",
     "check:header-parity": "node tools/checkHeaderParity.mjs",
     "check:puzzle-schemas": "node --import ./tools/registerSharedContractsResolve.mjs tools/checkPuzzleSchemas.mjs",
-    "dedupe:scurry": "node tools/dedupeScurryPuzzles.mjs",
+    "dedupe:scurry": "node --import ./tools/registerSharedContractsResolve.mjs tools/dedupeScurryPuzzles.mjs",
     "dedupe:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/dedupePuzzles.mjs",
     "compact:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/compactPuzzleData.mjs",
     "check:clueless-ambiguity": "node tools/clueless/checkCluelessAmbiguity.mjs",

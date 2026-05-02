@@ -27,6 +27,12 @@ import{r as a,j as t,a as ce}from"./client-CF9XUsNj.js";import{g as ue,G as D,a 
           border: 2px solid #0a0a0a;
           min-width: 280px;
           touch-action: none;
+          -webkit-tap-highlight-color: transparent;
+          -webkit-touch-callout: none;
+        }
+        .swipe-game #swipe-canvas-wrap * {
+          -webkit-tap-highlight-color: transparent;
+          -webkit-touch-callout: none;
         }
         .swipe-game .grid-overlay {
           position: absolute;
@@ -39,6 +45,9 @@ import{r as a,j as t,a as ce}from"./client-CF9XUsNj.js";import{g as ue,G as D,a 
           border: 1px solid rgba(0,0,0,0.1);
           box-sizing: border-box;
           position: relative;
+          -webkit-tap-highlight-color: transparent;
+          -webkit-touch-callout: none;
+          user-select: none;
         }
         .swipe-game .grid-line.target::after {
           content: '';

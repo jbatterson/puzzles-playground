@@ -591,8 +591,7 @@
               const dirMap    = { up:'U', down:'D', left:'L', right:'R' };
               const solution  = p.solution.map(d => dirMap[d]).join('');
               const sz = p.gridSize ?? gridSize;
-              const sizePrefix = sz !== 7 ? `size: ${sz}, ` : '';
-              const line = `{ ${sizePrefix}balls: ${fmt(ballArr)}, targets: ${fmt(targetArr)}, blocks: ${fmt(blockArr)}, par: ${p.par}, solution: "${solution}" },\n`;
+              const line = `{ size: ${sz}, balls: ${fmt(ballArr)}, targets: ${fmt(targetArr)}, blocks: ${fmt(blockArr)}, par: ${p.par}, solution: "${solution}" },\n`;
               setLedger(prev => prev + line);
           };
 
@@ -675,12 +674,24 @@
                       <div style={{ marginTop: 'auto' }}>
                           <span className="label">Ledger</span>
                           <div className="ledger-code">{ledger || '// Approved puzzles...'}</div>
-                          {ledger && (
-                              <button className="btn btn-white" style={{ marginTop: 8 }}
-                                  onClick={() => navigator.clipboard.writeText(ledger)}>
+                          <div className="btn-row" style={{ marginTop: 8 }}>
+                              <button
+                                  type="button"
+                                  className="btn btn-white"
+                                  disabled={!ledger}
+                                  onClick={() => ledger && navigator.clipboard.writeText(ledger)}
+                              >
                                   Copy Ledger
                               </button>
-                          )}
+                              <button
+                                  type="button"
+                                  className="btn btn-white"
+                                  disabled={!ledger}
+                                  onClick={() => setLedger('')}
+                              >
+                                  Clear Ledger
+                              </button>
+                          </div>
                       </div>
                   </div>
 

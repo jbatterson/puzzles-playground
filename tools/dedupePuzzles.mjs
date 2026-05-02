@@ -76,12 +76,25 @@ function writeGeneric(filePath, data) {
   fs.writeFileSync(filePath, out, 'utf8')
 }
 
+const SWIPE_FILE_HEADER = `/**
+ * Swipe daily tiers + tutorial. Grid size: easy 5×5, medium 6×6, hard 7×7 (omit \`size\` for 7×7).
+ */
+`
+
+function writeSwipe(filePath, data) {
+  const tiers = TIER_ORDER.filter((t) => Array.isArray(data[t]))
+  const blocks = tiers.map((t) => buildTierBlock(t, data[t], formatGenericPuzzle))
+  const out = `${SWIPE_FILE_HEADER}export default {\n${blocks.join('\n\n')}\n}\n`
+  fs.writeFileSync(filePath, out, 'utf8')
+}
+
 // ---------------------------------------------------------------------------
 // Games config
 // ---------------------------------------------------------------------------
 const GAMES = [
   { name: 'productiles', file: 'puzzlegames/productiles/puzzles.js', writer: writeGeneric },
   { name: 'sumtiles', file: 'puzzlegames/sumtiles/puzzles.js', writer: writeGeneric },
+  { name: 'swipe', file: 'puzzlegames/swipe/puzzles.js', writer: writeSwipe },
 ]
 
 // ---------------------------------------------------------------------------

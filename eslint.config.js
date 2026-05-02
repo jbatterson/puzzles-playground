@@ -4,12 +4,9 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
-/**
- * Suite ESLint: React/browser rules for .js/.jsx; Node rules for root tooling .mjs.
- * All Ten runtime (`src/allten/runtime/`) has its own ESLint config — not linted here.
- */
+/** Suite ESLint: React/browser rules for .js/.jsx; Node rules for root tooling .mjs. */
 export default defineConfig([
-  globalIgnores(['dist', '**/node_modules', 'src/allten/runtime']),
+  globalIgnores(['dist', '**/node_modules']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

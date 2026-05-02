@@ -1,7 +1,5 @@
 /**
- * Rewrites selected puzzlegames (folds, sumtiles, productiles, honeycombs).
- * Folds: each puzzle is start / target / folds on separate lines, blank line between puzzles.
- * Other games: one puzzle object per line.
+ * Rewrites Sum Tiles / Productiles puzzle files (one puzzle object per line per tier).
  * Run from repo root: node --import ./tools/registerSharedContractsResolve.mjs tools/compactPuzzleData.mjs
  */
 import fs from 'node:fs'
@@ -11,11 +9,6 @@ import { pathToFileURL } from 'node:url'
 const repoRoot = path.resolve(import.meta.dirname, '..')
 
 const TIER_ORDER = ['tutorial', 'easy', 'medium', 'hard']
-
-const HONEYCOMBS_HEADER = `// Honeycombs puzzle definitions — batched like other suite games (easy / medium / hard).
-// Format per puzzle: { size: 'small'|'medium'|'large', clues: [[row, col, value], ...] }
-
-`
 
 /**
  * @param {string} key
@@ -61,28 +54,6 @@ function formatExportBody(data) {
   return `export default {\n${blocks.join('\n\n')}\n}\n`
 }
 
-/**
- * Folds: three property lines per puzzle (start, target, folds) plus braces; blank line between puzzles.
- * @param {Record<string, unknown[]>} data
- */
-function formatFoldsExportBody(data) {
-  const tiers = TIER_ORDER.filter((t) => Object.prototype.hasOwnProperty.call(data, t))
-  const blocks = tiers.map((tier) => {
-    const list = data[tier]
-    if (!Array.isArray(list)) throw new Error(`Folds tier "${tier}" is not an array`)
-    const puzzleBlocks = list.map((p, i) => {
-      if (!p || typeof p !== 'object') throw new Error(`Folds ${tier}[${i}] must be an object`)
-      const po = /** @type {Record<string, unknown>} */ (p)
-      for (const k of ['start', 'target', 'folds']) {
-        if (!(k in po)) throw new Error(`Folds ${tier}[${i}] missing "${k}"`)
-      }
-      return `    {\n      start: ${toJs(po.start)},\n      target: ${toJs(po.target)},\n      folds: ${toJs(po.folds)},\n    },`
-    })
-    return `  ${tier}: [\n${puzzleBlocks.join('\n\n')}\n  ],`
-  })
-  return `export default {\n${blocks.join('\n\n')}\n}\n`
-}
-
 let cacheNonce = 0
 
 async function loadDefault(rel) {
@@ -93,30 +64,12 @@ async function loadDefault(rel) {
 }
 
 async function main() {
-  const foldsPath = path.join(repoRoot, 'puzzlegames/folds/puzzles.js')
-  const foldsData = await loadDefault('puzzlegames/folds/puzzles.js')
-  fs.writeFileSync(
-    foldsPath,
-    formatFoldsExportBody(/** @type {Record<string, unknown[]>} */ (foldsData)),
-    'utf8'
-  )
-  console.log('Wrote', path.relative(repoRoot, foldsPath))
-
   for (const rel of ['puzzlegames/sumtiles/puzzles.js', 'puzzlegames/productiles/puzzles.js']) {
     const data = await loadDefault(rel)
     const abs = path.join(repoRoot, rel)
     fs.writeFileSync(abs, formatExportBody(/** @type {Record<string, unknown[]>} */ (data)), 'utf8')
     console.log('Wrote', rel)
   }
-
-  const honeyPath = path.join(repoRoot, 'puzzlegames/honeycombs/puzzles.js')
-  const honeyData = await loadDefault('puzzlegames/honeycombs/puzzles.js')
-  fs.writeFileSync(
-    honeyPath,
-    HONEYCOMBS_HEADER + formatExportBody(/** @type {Record<string, unknown[]>} */ (honeyData)),
-    'utf8'
-  )
-  console.log('Wrote puzzlegames/honeycombs/puzzles.js')
 
   console.log('Done. Run: npm run check:puzzle-schemas')
 }

@@ -20,12 +20,9 @@ import SuiteCompletionBaPlug from './SuiteCompletionBaPlug.jsx'
 
 /** Win-modal headings (uppercase + punctuation per design). */
 const COMPLETION_HEADLINE = Object.freeze({
-  [GAME_KEYS.FOLDS]: 'FOLDED!',
-  [GAME_KEYS.SCURRY]: 'SCURRIED!',
-  [GAME_KEYS.CLUELESS]: 'CLUED IN!',
   [GAME_KEYS.SUMTILES]: 'AWE-SUM!',
   [GAME_KEYS.PRODUCTILES]: 'PRODUCTIVE!',
-  [GAME_KEYS.HONEYCOMBS]: 'HEX-CELLENT!',
+  [GAME_KEYS.SWIPE]: 'SWIPED!',
 })
 
 function pluralUnit(n, singular, plural) {
@@ -34,7 +31,7 @@ function pluralUnit(n, singular, plural) {
 
 /**
  * All Ten–style completion surface: suite stats, hub dice, share + hub CTAs, BA plug.
- * @param {{ show: boolean, onClose: () => void, gameKey: string, dateKey: string, hubDiceCompletions: boolean[], hubDicePerfects: boolean[], hubDiceMoveCounts?: (number|null)[], hubCluelessAttempts?: (number|null)[] | null }} props
+ * @param {{ show: boolean, onClose: () => void, gameKey: string, dateKey: string, hubDiceCompletions: boolean[], hubDicePerfects: boolean[], hubDiceMoveCounts?: (number|null)[] }} props
  */
 export default function SuiteGameCompletionModal({
   show,
@@ -44,7 +41,6 @@ export default function SuiteGameCompletionModal({
   hubDiceCompletions,
   hubDicePerfects,
   hubDiceMoveCounts,
-  hubCluelessAttempts,
 }) {
   const base = import.meta.env.BASE_URL
   const { title: gameTitle } = getGameChrome(gameKey)
@@ -210,7 +206,6 @@ export default function SuiteGameCompletionModal({
               completions={hubDiceCompletions}
               perfects={hubDicePerfects}
               moveCounts={hubDiceMoveCounts}
-              cluelessAttempts={hubCluelessAttempts ?? null}
             />
             {timeHms != null ? (
               <div

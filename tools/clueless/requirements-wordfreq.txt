@@ -1,6 +1,0 @@
-# Optional: Wordle / Clueless tooling (python tools/clueless/wordleAnswersZipfReport.py)
-wordfreq>=3.1.0
-
-# Clueless combined report MILP (python tools/clueless/cluelessCombinedReport.py)
-ortools>=9.8.0
-pulp>=2.7.0

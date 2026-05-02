@@ -5,7 +5,7 @@
 
 import { GAME_KEYS } from './gameChrome.js'
 import { computeStreak } from './dailyPuzzleDate.js'
-import { lsGet, CLUELESS_DIFFS, loadCluelessAttempt, loadCluelessAttempts } from './hubProgress.js'
+import { lsGet } from './hubProgress.js'
 import {
   getEnabledTierIndices,
   isSuiteCompleteForPrefs,
@@ -23,12 +23,7 @@ function dayHasMultiCompletion(gameKey, dateKey) {
   return false
 }
 
-function dayHasCluelessCompletion(dateKey) {
-  return isSuiteCompleteForPrefs(GAME_KEYS.CLUELESS, dateKey)
-}
-
 function dayHasCompletion(gameKey, dateKey) {
-  if (gameKey === GAME_KEYS.CLUELESS) return dayHasCluelessCompletion(dateKey)
   return dayHasMultiCompletion(gameKey, dateKey)
 }
 
@@ -109,58 +104,19 @@ function aggregateTileMovesFromStorage(gameKey) {
   }
 }
 
-function collectCluelessDateKeysFromStorage() {
-  const dates = new Set()
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i)
-      if (!k || !k.startsWith('clueless:')) continue
-      const m = k.match(/^clueless:(\d{4}-\d{2}-\d{2})/)
-      if (m) dates.add(m[1])
-    }
-  } catch {
-    // ignore
-  }
-  return dates
-}
-
-function aggregateCluelessFromStorage() {
-  const dates = collectCluelessDateKeysFromStorage()
-  let played = 0
-  let stars = 0
-  for (const dateKey of dates) {
-    if (!isSuiteCompleteForPrefs(GAME_KEYS.CLUELESS, dateKey)) continue
-    played++
-    const attempts = loadCluelessAttempts(dateKey)
-    const enabled = getEnabledTierIndices(GAME_KEYS.CLUELESS)
-    for (const i of enabled) {
-      if (attempts[i] === 1) stars++
-    }
-  }
-  return { played, stars }
-}
-
 /**
  * @param {string} gameKey One of `GAME_KEYS` for suite games.
  * @returns {{ played: number, streak: number, stars: number, avgMoves?: string }}
  */
 export function computeSimpleGameStats(gameKey) {
-  if (gameKey === GAME_KEYS.CLUELESS) {
-    const { played, stars } = aggregateCluelessFromStorage()
-    return { played, streak: getStreak(gameKey), stars }
-  }
-  if (
-    gameKey === GAME_KEYS.SCURRY ||
-    gameKey === GAME_KEYS.FOLDS ||
-    gameKey === GAME_KEYS.HONEYCOMBS
-  ) {
-    const { played, stars } = aggregateMultiGameFromStorage(gameKey)
-    return { played, streak: getStreak(gameKey), stars }
-  }
   if (gameKey === GAME_KEYS.SUMTILES || gameKey === GAME_KEYS.PRODUCTILES) {
     const { played, stars } = aggregateMultiGameFromStorage(gameKey)
     const { avgMoves } = aggregateTileMovesFromStorage(gameKey)
     return { played, streak: getStreak(gameKey), stars, avgMoves }
+  }
+  if (gameKey === GAME_KEYS.SWIPE) {
+    const { played, stars } = aggregateMultiGameFromStorage(gameKey)
+    return { played, streak: getStreak(gameKey), stars }
   }
   return { played: 0, streak: 0, stars: 0 }
 }

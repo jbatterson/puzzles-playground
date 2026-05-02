@@ -5,7 +5,6 @@
  * Run from repo root:
  *   node --import ./tools/registerSharedContractsResolve.mjs tools/dedupePuzzles.mjs
  *
- * Scurry is skipped — it has its own geometry-aware dedup script (dedupe:scurry).
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -60,22 +59,7 @@ function jsVal(v) {
   return `{ ${entries.map(([k, val]) => `${/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) ? k : `'${k}'`}: ${jsVal(val)}`).join(', ')} }`
 }
 
-/** Folds: multi-line block per puzzle */
-function formatFoldsPuzzle(p) {
-  const fmtMap = (obj) =>
-    Object.entries(obj)
-      .map(([k, v]) => `'${k}': '${v}'`)
-      .join(', ')
-  return `    {\n      start: { ${fmtMap(p.start)} },\n      target: { ${fmtMap(p.target)} },\n      folds: ${p.folds},\n    },`
-}
-
-/** Honeycombs: { size: '…', clues: [[r, c, v], …] } */
-function formatHoneycombsPuzzle(p) {
-  const clues = p.clues.map((c) => `[${c.join(', ')}]`).join(', ')
-  return `    { size: '${p.size}', clues: [${clues}] },`
-}
-
-/** Generic single-line (clueless, productiles, sumtiles) */
+/** Generic single-line (productiles, sumtiles) */
 function formatGenericPuzzle(p) {
   return `    ${jsVal(p)},`
 }
@@ -83,34 +67,6 @@ function formatGenericPuzzle(p) {
 function buildTierBlock(tier, list, fmtPuzzle) {
   const lines = list.map(fmtPuzzle)
   return `  ${tier}: [\n${lines.join('\n')}\n  ],`
-}
-
-// ---------------------------------------------------------------------------
-// Writers — rebuild the full file text
-// ---------------------------------------------------------------------------
-
-function writeFolds(filePath, data) {
-  const tiers = TIER_ORDER.filter((t) => Array.isArray(data[t]))
-  const blocks = tiers.map((t) => buildTierBlock(t, data[t], formatFoldsPuzzle))
-  // Folds uses blank lines between puzzles within a tier
-  const foldsBlocks = tiers.map((t) => {
-    const lines = data[t].map(formatFoldsPuzzle)
-    return `  ${t}: [\n${lines.join('\n\n')}\n  ],`
-  })
-  const out = `export default {\n${foldsBlocks.join('\n\n')}\n}\n`
-  fs.writeFileSync(filePath, out, 'utf8')
-}
-
-const HONEYCOMBS_FILE_HEADER = `// Honeycombs puzzle definitions — batched like other suite games (easy / medium / hard).
-// Format per puzzle: { size: 'small'|'medium'|'large', clues: [[row, col, value], ...] }
-
-`
-
-function writeHoneycombs(filePath, data) {
-  const tiers = TIER_ORDER.filter((t) => Array.isArray(data[t]))
-  const blocks = tiers.map((t) => buildTierBlock(t, data[t], formatHoneycombsPuzzle))
-  const out = `${HONEYCOMBS_FILE_HEADER}export default {\n${blocks.join('\n\n')}\n}\n`
-  fs.writeFileSync(filePath, out, 'utf8')
 }
 
 function writeGeneric(filePath, data) {
@@ -124,12 +80,8 @@ function writeGeneric(filePath, data) {
 // Games config
 // ---------------------------------------------------------------------------
 const GAMES = [
-  { name: 'folds', file: 'puzzlegames/folds/puzzles.js', writer: writeFolds },
-  { name: 'honeycombs', file: 'puzzlegames/honeycombs/puzzles.js', writer: writeHoneycombs },
-  { name: 'clueless', file: 'puzzlegames/clueless/puzzles.js', writer: writeGeneric },
   { name: 'productiles', file: 'puzzlegames/productiles/puzzles.js', writer: writeGeneric },
   { name: 'sumtiles', file: 'puzzlegames/sumtiles/puzzles.js', writer: writeGeneric },
-  // scurry: handled by dedupe:scurry (geometry-aware)
 ]
 
 // ---------------------------------------------------------------------------

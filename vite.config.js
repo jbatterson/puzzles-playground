@@ -63,13 +63,9 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: 'index.html',
-          scurry: 'puzzlegames/scurry/index.html',
-          folds: 'puzzlegames/folds/index.html',
           sumtiles: 'puzzlegames/sumtiles/index.html',
           productiles: 'puzzlegames/productiles/index.html',
-          clueless: 'puzzlegames/clueless/index.html',
-          honeycombs: 'puzzlegames/honeycombs/index.html',
-          allten: 'puzzlegames/allten/index.html',
+          // swipe: add `puzzlegames/swipe/index.html` when integrating Swipe on puzzles-playground
         },
       },
     },

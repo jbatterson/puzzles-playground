@@ -5,10 +5,10 @@ import { ALLTEN_LINK_TARGETS, CHROME_ASSET_URLS } from '@shared-contracts/chrome
 import { isNowSchoolTime } from '@shared-contracts/schoolTime.js'
 
 /**
- * Beast Academy promotional modal (TopBar cube on hub; logo + title on puzzle pages). Same markup intent as former All Ten Links.tsx.
+ * Beast Academy links modal (TopBar cube on hub; logo + title on puzzle pages).
  * @param {{ show: boolean, onClose: () => void, compact?: boolean }} props
  */
-export default function AllTenLinksModal({ show, onClose, compact = false }) {
+export default function PlaygroundLinksModal({ show, onClose, compact = false }) {
   const schoolTime = isNowSchoolTime()
   const primaryHref = schoolTime ? ALLTEN_LINK_TARGETS.SCHOOL : ALLTEN_LINK_TARGETS.HOME
   const primaryCardId = schoolTime ? 'allten-educators-card' : 'allten-online-card'

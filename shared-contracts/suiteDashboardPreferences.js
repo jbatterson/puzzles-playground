@@ -25,19 +25,16 @@ function dispatchSuitePrefsUpdated() {
   }
 }
 
-/** Games with three daily slots (hub dice). All Ten is excluded. */
+/** Games with three daily slots (hub dice). Swipe is included for prefs before the game ships. */
 export const THREE_TIER_GAME_KEYS = Object.freeze([
-  GAME_KEYS.SCURRY,
-  GAME_KEYS.CLUELESS,
-  GAME_KEYS.FOLDS,
-  GAME_KEYS.HONEYCOMBS,
   GAME_KEYS.SUMTILES,
   GAME_KEYS.PRODUCTILES,
+  GAME_KEYS.SWIPE,
 ])
 
 const THREE_TIER_SET = new Set(THREE_TIER_GAME_KEYS)
 
-const ALL_HUB_GAME_KEYS = Object.freeze([GAME_KEYS.ALLTEN, ...THREE_TIER_GAME_KEYS])
+const ALL_HUB_GAME_KEYS = Object.freeze([...THREE_TIER_GAME_KEYS])
 
 function defaultTierOn() {
   return [true, true, true]
@@ -244,32 +241,6 @@ function loadMultiCompletions(gameKey, dateKey) {
   return [0, 1, 2].map((i) => ['1', '2'].includes(storageGet(`${gameKey}:${dateKey}:${i}`)))
 }
 
-const CLUELESS_DIFFS = ['easy', 'medium', 'hard']
-
-function loadSingleBestAttemptsClueless(dateKey) {
-  const raw = storageGet(`clueless:${dateKey}:bestAttempts`)
-  if (raw == null) return null
-  const n = parseInt(raw, 10)
-  return n >= 1 && n <= 99 ? n : null
-}
-
-function loadCluelessAttempt(dateKey, diff) {
-  const v = storageGet(`clueless:${dateKey}:${diff}:bestAttempts`)
-  if (v != null) {
-    const n = parseInt(v, 10)
-    if (n >= 1 && n <= 99) return n
-  }
-  if (diff === 'medium') {
-    const legacy = loadSingleBestAttemptsClueless(dateKey)
-    if (legacy != null) return legacy
-  }
-  return null
-}
-
-function loadCluelessAttempts(dateKey) {
-  return CLUELESS_DIFFS.map((diff) => loadCluelessAttempt(dateKey, diff))
-}
-
 /**
  * Every enabled tier has a completion for this game/date (matches timer + completion modal).
  */
@@ -278,10 +249,6 @@ export function isSuiteCompleteForPrefs(gameKey, dateKey, prefs = readSuiteDashb
   if (!isThreeTierGameKey(gameKey)) return false
   const enabled = getEnabledTierIndices(gameKey, prefs)
   if (enabled.length === 0) return true
-  if (gameKey === GAME_KEYS.CLUELESS) {
-    const attempts = loadCluelessAttempts(dateKey)
-    return enabled.every((i) => attempts[i] != null)
-  }
   const completions = loadMultiCompletions(gameKey, dateKey)
   return enabled.every((i) => completions[i])
 }
@@ -297,14 +264,6 @@ export function nextIncompleteEnabledTierExcluding(
   prefs = readSuiteDashboardPreferences()
 ) {
   const enabled = new Set(getEnabledTierIndices(gameKey, prefs))
-  if (gameKey === GAME_KEYS.CLUELESS) {
-    const attempts = loadCluelessAttempts(dateKey)
-    for (let i = 0; i < 3; i++) {
-      if (!enabled.has(i) || i === fromIdx) continue
-      if (attempts[i] == null) return i
-    }
-    return null
-  }
   const completions = loadMultiCompletions(gameKey, dateKey)
   for (let i = 0; i < 3; i++) {
     if (!enabled.has(i) || i === fromIdx) continue
@@ -323,11 +282,6 @@ export function firstUnfinishedEnabledTierIndex(
 ) {
   const enabled = getEnabledTierIndices(gameKey, prefs)
   if (enabled.length === 0) return 0
-  if (gameKey === GAME_KEYS.CLUELESS) {
-    const attempts = loadCluelessAttempts(dateKey)
-    const first = enabled.find((i) => attempts[i] == null)
-    return first !== undefined ? first : enabled[0]
-  }
   const completions = loadMultiCompletions(gameKey, dateKey)
   const first = enabled.find((i) => !completions[i])
   return first !== undefined ? first : enabled[0]
@@ -343,28 +297,12 @@ export function hubHrefFirstUnfinishedThreeWithPrefs(
   prefs = readSuiteDashboardPreferences()
 ) {
   const gameKey = hrefToGameKey(href)
-  if (!gameKey || !isThreeTierGameKey(gameKey) || gameKey === GAME_KEYS.CLUELESS) {
+  if (!gameKey || !isThreeTierGameKey(gameKey)) {
     return href
   }
   const enabled = getEnabledTierIndices(gameKey, prefs)
   if (!Array.isArray(doneThree) || doneThree.length < 3) return href
   const first = enabled.find((i) => !doneThree[i])
-  const idx = first !== undefined ? first : (enabled[0] ?? 0)
-  return `${href}${href.includes('?') ? '&' : '?'}p=${idx + 1}`
-}
-
-/**
- * @param {string} href
- * @param {(number|null|undefined)[]} attempts length 3
- */
-export function hubHrefFirstUnfinishedCluelessWithPrefs(
-  href,
-  attempts,
-  prefs = readSuiteDashboardPreferences()
-) {
-  const enabled = getEnabledTierIndices(GAME_KEYS.CLUELESS, prefs)
-  if (!Array.isArray(attempts) || attempts.length < 3) return href
-  const first = enabled.find((i) => attempts[i] == null)
   const idx = first !== undefined ? first : (enabled[0] ?? 0)
   return `${href}${href.includes('?') ? '&' : '?'}p=${idx + 1}`
 }

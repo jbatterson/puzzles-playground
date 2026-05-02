@@ -1,7 +1,7 @@
 import React from 'react'
 import DiceFace from './DiceFace.jsx'
 import { HubDiceStar, HubDiceCheck } from './HubDiceStar.jsx'
-import { GAME_KEYS, isTileGameKey } from '@shared-contracts/gameChrome.js'
+import { isTileGameKey } from '@shared-contracts/gameChrome.js'
 import { PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
 import {
   getEnabledTierIndices,
@@ -10,17 +10,15 @@ import {
 
 /**
  * Hub-style dice for the completion modal (matches home card row; respects suite tier prefs).
- * @param {{ gameKey: string, completions: boolean[], perfects: boolean[], moveCounts?: (number|null)[], cluelessAttempts?: (number|null)[] | null }} props
+ * @param {{ gameKey: string, completions: boolean[], perfects: boolean[], moveCounts?: (number|null)[] }} props
  */
 export default function SuiteCompletionHubDice({
   gameKey,
   completions,
   perfects,
   moveCounts,
-  cluelessAttempts,
 }) {
   const isTileGame = isTileGameKey(gameKey)
-  const isClueless = gameKey === GAME_KEYS.CLUELESS && Array.isArray(cluelessAttempts)
   const prefs = readSuiteDashboardPreferences()
   const slots = getEnabledTierIndices(gameKey, prefs)
 
@@ -34,37 +32,23 @@ export default function SuiteCompletionHubDice({
       }}
     >
       {slots.map((i) => {
-        let done = false
-        let content = null
-        if (isClueless) {
-          const a = cluelessAttempts[i] ?? null
-          done = a != null
-          content = !done ? (
-            <DiceFace count={i + 1} size={20} />
-          ) : a === 1 ? (
+        const done = !!completions[i]
+        const moves = moveCounts != null ? moveCounts[i] : null
+        const content = !done ? (
+          <DiceFace count={i + 1} size={20} />
+        ) : isTileGame ? (
+          perfects[i] ? (
             <HubDiceStar />
-          ) : (
-            String(Math.min(a, 99))
-          )
-        } else {
-          done = !!completions[i]
-          const moves = moveCounts != null ? moveCounts[i] : null
-          content = !done ? (
-            <DiceFace count={i + 1} size={20} />
-          ) : isTileGame ? (
-            perfects[i] ? (
-              <HubDiceStar />
-            ) : moves != null ? (
-              String(Math.min(moves, 99))
-            ) : (
-              <HubDiceCheck />
-            )
-          ) : perfects[i] ? (
-            <HubDiceStar />
+          ) : moves != null ? (
+            String(Math.min(moves, 99))
           ) : (
             <HubDiceCheck />
           )
-        }
+        ) : perfects[i] ? (
+          <HubDiceStar />
+        ) : (
+          <HubDiceCheck />
+        )
         return (
           <div
             key={i}

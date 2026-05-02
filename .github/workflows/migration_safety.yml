@@ -7,6 +7,7 @@ on:
       - master
       - develop
       - 'feature/**'
+      - puzzles-playground
   pull_request:
 
 jobs:
@@ -21,15 +22,10 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            src/allten/runtime/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install root dependencies
         run: npm ci
-
-      - name: Install All Ten dependencies
-        run: npm ci --prefix src/allten/runtime --ignore-scripts
 
       - name: Run migration safety gate
         run: npm run check:migration

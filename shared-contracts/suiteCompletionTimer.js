@@ -4,8 +4,7 @@
  * suiteElapsedMs. Recording runs regardless of the hub “timer on” display preference.
  */
 
-import { GAME_KEYS } from './gameChrome.js'
-import { lsGet, CLUELESS_DIFFS, loadCluelessAttempt } from './hubProgress.js'
+import { lsGet } from './hubProgress.js'
 
 function lsSet(key, val) {
   try {
@@ -105,13 +104,6 @@ function readLegacyWallElapsedMs(gameKey, dateKey) {
 
 /** @returns {number} bits 1|2|4 for slots 0,1,2 — matches hub / game storage. */
 function readDailySlotCompletionMask(gameKey, dateKey) {
-  if (gameKey === GAME_KEYS.CLUELESS) {
-    let mask = 0
-    for (let i = 0; i < 3; i++) {
-      if (loadCluelessAttempt(dateKey, CLUELESS_DIFFS[i]) != null) mask |= 1 << i
-    }
-    return mask
-  }
   let mask = 0
   for (let i = 0; i < 3; i++) {
     const v = lsGet(`${gameKey}:${dateKey}:${i}`)

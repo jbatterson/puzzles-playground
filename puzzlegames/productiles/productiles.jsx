@@ -7,7 +7,7 @@ import SharedModalShell from '../../src/shared/SharedModalShell.jsx'
 import SimpleGameStatsModal from '../../src/shared/SimpleGameStatsModal.jsx'
 import SuiteGameCompletionModal from '../../src/shared/SuiteGameCompletionModal.jsx'
 import useSuiteCompletionTimer from '../../src/shared/useSuiteCompletionTimer.js'
-import AllTenLinksModal from '../../src/shared/AllTenLinksModal.jsx'
+import PlaygroundLinksModal from '../../src/shared/PlaygroundLinksModal.jsx'
 import useInstructionsGate from '../../src/shared/useInstructionsGate.js'
 import { MODAL_INTENTS } from '@shared-contracts/modalIntents.js'
 import { GAME_KEYS, getGameChrome } from '@shared-contracts/gameChrome.js'
@@ -1269,7 +1269,7 @@ export default function Productiles() {
         </div>
       </SharedModalShell>
 
-      <AllTenLinksModal show={showLinks} onClose={() => setShowLinks(false)} />
+      <PlaygroundLinksModal show={showLinks} onClose={() => setShowLinks(false)} />
       <SimpleGameStatsModal
         show={showStats}
         onClose={() => setShowStats(false)}

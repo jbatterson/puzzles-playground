@@ -14,30 +14,6 @@ const repoRoot = path.resolve(import.meta.dirname, '..')
 /** @type {GameSpec[]} */
 const GAMES = [
   {
-    id: 'scurry',
-    rel: 'puzzlegames/scurry/puzzles.js',
-    tiers: ['tutorial', 'easy', 'medium', 'hard'],
-    keys: ['targets', 'maxBugs', 'prePlaced'],
-  },
-  {
-    id: 'clueless',
-    rel: 'puzzlegames/clueless/puzzles.js',
-    tiers: ['easy', 'medium', 'hard'],
-    keys: ['h1', 'h2', 'h3', 'v1', 'v2', 'v3'],
-  },
-  {
-    id: 'folds',
-    rel: 'puzzlegames/folds/puzzles.js',
-    tiers: ['tutorial', 'easy', 'medium', 'hard'],
-    keys: ['start', 'target', 'folds'],
-  },
-  {
-    id: 'honeycombs',
-    rel: 'puzzlegames/honeycombs/puzzles.js',
-    tiers: ['tutorial', 'easy', 'medium', 'hard'],
-    keys: ['size', 'clues'],
-  },
-  {
     id: 'sumtiles',
     rel: 'puzzlegames/sumtiles/puzzles.js',
     tiers: ['tutorial', 'easy', 'medium', 'hard'],
@@ -50,8 +26,6 @@ const GAMES = [
     keys: ['s', 't', 'b'],
   },
 ]
-
-const HONEYCOMB_SIZES = new Set(['small', 'medium', 'large'])
 
 let cacheNonce = 0
 
@@ -95,29 +69,6 @@ function validateGame(game, data, errors) {
           `${game.id}: tier "${tier}" puzzle[${i}] missing key "${key}"`,
           errors
         )
-      }
-      if (game.id === 'honeycombs') {
-        const p = /** @type {Record<string, unknown>} */ (puzzle)
-        assert(
-          typeof p.size === 'string' && HONEYCOMB_SIZES.has(p.size),
-          `${game.id}: tier "${tier}" puzzle[${i}].size must be small|medium|large`,
-          errors
-        )
-        assert(
-          Array.isArray(p.clues),
-          `${game.id}: tier "${tier}" puzzle[${i}].clues must be an array`,
-          errors
-        )
-      }
-      if (game.id === 'clueless') {
-        const p = /** @type {Record<string, unknown>} */ (puzzle)
-        for (const key of game.keys) {
-          assert(
-            typeof p[key] === 'string',
-            `${game.id}: tier "${tier}" puzzle[${i}].${key} must be a string`,
-            errors
-          )
-        }
       }
     })
   }

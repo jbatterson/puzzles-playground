@@ -1,17 +1,12 @@
 /**
- * Hub and in-game share plaintext formatters for suite games (not All Ten — use allTenSharePlaintext).
+ * Hub and in-game share plaintext formatters for suite games.
  * Progress is read via hubProgress.js, which is the single source of truth for localStorage access.
  */
 
 import { readSuiteGameElapsedMs } from './suiteCompletionTimer.js'
 import { formatAllTenElapsedMsForShare } from './allTenSharePlaintext.js'
 import { isTileGameKey } from './gameChrome.js'
-import {
-  loadCompletions,
-  loadPerfects,
-  loadMoveCounts,
-  loadCluelessAttempts,
-} from './hubProgress.js'
+import { loadCompletions, loadPerfects, loadMoveCounts } from './hubProgress.js'
 import {
   getEnabledTierIndices,
   isSuiteTimerEnabled,
@@ -28,12 +23,9 @@ function elapsedLineForShare(gameKey, dateKey) {
 const DIFF_LABELS = ['Easy', 'Med', 'Hard']
 
 const GAME_TITLES = Object.freeze({
-  scurry: 'Scurry',
-  clueless: 'Clueless',
-  folds: 'Folds',
   sumtiles: 'Sum Tiles',
   productiles: 'Productiles',
-  honeycombs: 'Honeycombs',
+  swipe: 'Swipe',
 })
 
 function buildShareText(key, title, href, completions, perfects, moveCounts, dateKey, prefs) {
@@ -61,28 +53,8 @@ function buildShareText(key, title, href, completions, perfects, moveCounts, dat
   return out
 }
 
-function buildCluelessShareText(dateKey, title, href, attempts, prefs) {
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const playUrl = new URL(href, origin || 'http://localhost').href
-  const tiers = getEnabledTierIndices('clueless', prefs)
-  let out = title.toUpperCase() + '\n'
-  for (const i of tiers) {
-    const a = attempts?.[i] ?? null
-    if (a != null) {
-      const suffix = a === 1 ? ' (⭐ First try!)' : ` ${String(Math.min(a, 99))}`
-      out += `${DIFF_LABELS[i]}   🟩${suffix}\n`
-    } else {
-      out += `${DIFF_LABELS[i]}   ⬜\n`
-    }
-  }
-  out += elapsedLineForShare('clueless', dateKey)
-  out += playUrl
-  return out
-}
-
 /**
- * Whether the hub would show an enabled share for this game/date (any completion / Clueless attempt).
- * Align with `src/home.jsx` hasAnyCompletion for non–All Ten games.
+ * Whether the hub would show an enabled share for this game/date (any completion).
  * @param {string} gameKey
  * @param {string} dateKey
  * @returns {boolean}
@@ -90,17 +62,13 @@ function buildCluelessShareText(dateKey, title, href, attempts, prefs) {
 export function hasShareableHubProgress(gameKey, dateKey) {
   const prefs = readSuiteDashboardPreferences()
   if (!GAME_TITLES[gameKey]) return false
-  if (gameKey === 'clueless') {
-    const attempts = loadCluelessAttempts(dateKey)
-    return getEnabledTierIndices('clueless', prefs).some((i) => attempts[i] != null)
-  }
   const completions = loadCompletions(gameKey, dateKey)
   return getEnabledTierIndices(gameKey, prefs).some((i) => completions[i])
 }
 
 /**
- * Plaintext copied by hub share and suite completion modals (not All Ten — use allTenSharePlaintext).
- * @param {string} gameKey — e.g. scurry, folds, clueless
+ * Plaintext copied by hub share and suite completion modals.
+ * @param {string} gameKey
  * @param {string} dateKey — PST calendar YYYY-MM-DD
  * @param {string} [baseHref] — `import.meta.env.BASE_URL` (e.g. /Puzzles/)
  * @returns {string}
@@ -111,10 +79,6 @@ export function buildHubSharePlaintext(gameKey, dateKey, baseHref = '/') {
   const prefs = readSuiteDashboardPreferences()
   const b = baseHref.endsWith('/') ? baseHref : `${baseHref}/`
   const href = `${b}puzzlegames/${gameKey}/`
-
-  if (gameKey === 'clueless') {
-    return buildCluelessShareText(dateKey, title, href, loadCluelessAttempts(dateKey), prefs)
-  }
   return buildShareText(
     gameKey,
     title,

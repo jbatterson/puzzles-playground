@@ -614,17 +614,29 @@
 
           <div class="ctrl-group">
             <span class="section-label">Max stationary tiles</span>
-            <input type="number" id="maxStationary" value="99" min="0" max="99" style="width: 80px" />
+            <input
+              type="number"
+              id="maxStationary"
+              value="99"
+              min="0"
+              max="99"
+              style="width: 80px"
+            />
             <p class="hint" style="margin: 4px 0 0; font-size: 12px; color: #888">
-              Reject if more than this many tiles never shift in the min-move solution (cascades count). Use
-              99 to effectively disable.
+              Reject if more than this many tiles never shift in the min-move solution (cascades
+              count). Use 99 to effectively disable.
             </p>
           </div>
 
           <div class="ctrl-group">
-            <label class="section-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+            <label
+              class="section-label"
+              style="display: flex; align-items: center; gap: 8px; cursor: pointer"
+            >
               <input type="checkbox" id="uniqArr" checked />
-              <span>Require unique numbered solution (reject if multiple distinct layouts solve)</span>
+              <span
+                >Require unique numbered solution (reject if multiple distinct layouts solve)</span
+              >
             </label>
           </div>
 
@@ -1374,8 +1386,14 @@
         const empty = $('emptyState')
         if (empty) empty.remove()
 
-        const { puz, minMoves, stationaryCount, solvedArrangementCount, arrAnalysisComplete, uniqueFilterEnabled } =
-          puzEntry
+        const {
+          puz,
+          minMoves,
+          stationaryCount,
+          solvedArrangementCount,
+          arrAnalysisComplete,
+          uniqueFilterEnabled,
+        } = puzEntry
         const diff = diffLabel(minMoves)
         const idleLine = Number.isFinite(stationaryCount) ? ` · idle: ${stationaryCount}` : ''
 
@@ -1487,7 +1505,8 @@
         const bfsCapIdx = +$('bfsCap').value - 1
         const bfsCap = BFS_CAPS[bfsCapIdx]
         const maxStationaryRaw = +$('maxStationary').value
-        const maxStationary = Number.isFinite(maxStationaryRaw) && maxStationaryRaw >= 0 ? maxStationaryRaw : 99
+        const maxStationary =
+          Number.isFinite(maxStationaryRaw) && maxStationaryRaw >= 0 ? maxStationaryRaw : 99
         const maxEmptyAllowed = maxEmptyCellsForBoardSize(size)
 
         // UI state

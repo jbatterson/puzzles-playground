@@ -1338,7 +1338,8 @@
           $('foundCount').textContent = `${found} / ${targetCount}`
           const emPart = tooManyEmpty ? ` · ${tooManyEmpty} too many empty` : ''
           $('statusText').textContent =
-            `Attempt ${attempts} · ${unsolvable} skipped (BFS cap) · ${outOfRange} out of range` + emPart
+            `Attempt ${attempts} · ${unsolvable} skipped (BFS cap) · ${outOfRange} out of range` +
+            emPart
           $('headerStatus').textContent = $('statusText').textContent
         }
 

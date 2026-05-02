@@ -9,7 +9,11 @@ function read(relPath) {
 
 const checks = []
 
-const suiteFiles = ['puzzlegames/sumtiles/sumtiles.jsx', 'puzzlegames/productiles/productiles.jsx']
+const suiteFiles = [
+  'puzzlegames/sumtiles/sumtiles.jsx',
+  'puzzlegames/productiles/productiles.jsx',
+  'puzzlegames/swipe/swipe.jsx',
+]
 
 for (const relPath of suiteFiles) {
   const content = read(relPath)

@@ -25,6 +25,12 @@ const GAMES = [
     tiers: ['tutorial', 'easy', 'medium', 'hard'],
     keys: ['s', 't', 'b'],
   },
+  {
+    id: 'swipe',
+    rel: 'puzzlegames/swipe/puzzles.js',
+    tiers: ['tutorial', 'easy', 'medium', 'hard'],
+    keys: ['balls', 'targets', 'blocks', 'minMoves'],
+  },
 ]
 
 let cacheNonce = 0

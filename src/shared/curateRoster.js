@@ -50,6 +50,22 @@ function formatTilePuzzleForPuzzlesJs(puzzle) {
   return line
 }
 
+/** Swipe — matches puzzlegames/swipe/puzzles.js object shape */
+function formatSwipePuzzleForPuzzlesJs(puzzle) {
+  if (!puzzle || typeof puzzle !== 'object') return null
+  if (
+    !Array.isArray(puzzle.balls) ||
+    !Array.isArray(puzzle.targets) ||
+    !Array.isArray(puzzle.blocks)
+  )
+    return null
+  const fmtPairs = (arr) => arr.map((p) => (Array.isArray(p) ? `[${p.join(', ')}]` : '')).join(', ')
+  let line = `{ balls: [${fmtPairs(puzzle.balls)}], targets: [${fmtPairs(puzzle.targets)}], blocks: [${fmtPairs(puzzle.blocks)}]`
+  if (Number.isFinite(puzzle.minMoves)) line += `, minMoves: ${puzzle.minMoves}`
+  line += ' }'
+  return line
+}
+
 /**
  * Line 2 matches how puzzles appear in each game's puzzles.js (spacing, quotes).
  * Falls back to truncated JSON.stringify for unknown shapes / games.
@@ -73,6 +89,9 @@ export function formatCurateClipboard(
     case 'sumtiles':
     case 'productiles':
       line2 = formatTilePuzzleForPuzzlesJs(puzzle)
+      break
+    case 'swipe':
+      line2 = formatSwipePuzzleForPuzzlesJs(puzzle)
       break
     default:
       break

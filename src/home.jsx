@@ -5,6 +5,7 @@ import SuiteSettingsModal from './shared/SuiteSettingsModal.jsx'
 import './shared/style.css'
 import ProductilesIcon from './shared/icons/ProductilesIcon.jsx'
 import SumTilesIcon from './shared/icons/SumTilesIcon.jsx'
+import SwipeIcon from './shared/icons/SwipeIcon.jsx'
 import DiceFace from './shared/DiceFace.jsx'
 import { HubDiceStar, HubDiceCheck } from './shared/HubDiceStar.jsx'
 import { PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
@@ -99,6 +100,13 @@ const GAMES = [
     title: 'Productiles',
     desc: 'Slide tiles so every row and column hits its product.',
   },
+  {
+    key: 'swipe',
+    href: `${base}puzzlegames/swipe/`,
+    Icon: SwipeIcon,
+    title: 'Swipe',
+    desc: 'Slide every ball onto its target in as few moves as you can.',
+  },
 ]
 
 export default function Home() {
@@ -110,8 +118,7 @@ export default function Home() {
   const refreshSuitePrefs = useCallback(() => setSuitePrefs(readSuiteDashboardPreferences()), [])
 
   const completions = useMemo(
-    () =>
-      Object.fromEntries(GAMES.map((g) => [g.key, loadCompletions(g.key, dateKey)])),
+    () => Object.fromEntries(GAMES.map((g) => [g.key, loadCompletions(g.key, dateKey)])),
     [dateKey]
   )
   const perfects = useMemo(

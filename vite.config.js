@@ -65,7 +65,7 @@ export default defineConfig(({ mode }) => {
           main: 'index.html',
           sumtiles: 'puzzlegames/sumtiles/index.html',
           productiles: 'puzzlegames/productiles/index.html',
-          // swipe: add `puzzlegames/swipe/index.html` when integrating Swipe on puzzles-playground
+          swipe: 'puzzlegames/swipe/index.html',
         },
       },
     },

@@ -25,7 +25,7 @@ function dispatchSuitePrefsUpdated() {
   }
 }
 
-/** Games with three daily slots (hub dice). Swipe is included for prefs before the game ships. */
+/** Games with three daily slots (hub dice). */
 export const THREE_TIER_GAME_KEYS = Object.freeze([
   GAME_KEYS.SUMTILES,
   GAME_KEYS.PRODUCTILES,

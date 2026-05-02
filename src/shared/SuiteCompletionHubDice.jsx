@@ -12,12 +12,7 @@ import {
  * Hub-style dice for the completion modal (matches home card row; respects suite tier prefs).
  * @param {{ gameKey: string, completions: boolean[], perfects: boolean[], moveCounts?: (number|null)[] }} props
  */
-export default function SuiteCompletionHubDice({
-  gameKey,
-  completions,
-  perfects,
-  moveCounts,
-}) {
+export default function SuiteCompletionHubDice({ gameKey, completions, perfects, moveCounts }) {
   const isTileGame = isTileGameKey(gameKey)
   const prefs = readSuiteDashboardPreferences()
   const slots = getEnabledTierIndices(gameKey, prefs)

@@ -260,7 +260,8 @@ function rankRisks(results) {
   return [...results]
     .filter((r) => r.hasNonMinSolved)
     .sort((a, b) => {
-      if (b.nonMinSolvedCount !== a.nonMinSolvedCount) return b.nonMinSolvedCount - a.nonMinSolvedCount
+      if (b.nonMinSolvedCount !== a.nonMinSolvedCount)
+        return b.nonMinSolvedCount - a.nonMinSolvedCount
       const da = a.nearestNonMinDelta ?? Number.POSITIVE_INFINITY
       const db = b.nearestNonMinDelta ?? Number.POSITIVE_INFINITY
       if (da !== db) return da - db
@@ -320,7 +321,9 @@ async function main() {
   console.log(`Analyzed ${summary.analyzedCount} ${args.deck} puzzles`)
   console.log(`Completed with solvedArrangementCount > 1: ${summary.multiArrangementCount}`)
   if (summary.multiArrangementIndices.length)
-    console.log(`  indices (1-based in ${args.deck}): ${summary.multiArrangementIndices.join(', ')}`)
+    console.log(
+      `  indices (1-based in ${args.deck}): ${summary.multiArrangementIndices.join(', ')}`
+    )
   console.log(`Has reachable non-min solved states: ${summary.hasNonMinSolvedCount}`)
   console.log(`Unresolved (cap hit): ${summary.unresolvedCount}`)
   console.log(`Report written: ${outAbs}`)

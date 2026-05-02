@@ -29,7 +29,7 @@ const GAMES = [
     id: 'swipe',
     rel: 'puzzlegames/swipe/puzzles.js',
     tiers: ['tutorial', 'easy', 'medium', 'hard'],
-    keys: ['balls', 'targets', 'blocks', 'minMoves'],
+    keys: ['balls', 'targets', 'blocks'],
   },
 ]
 
@@ -75,6 +75,38 @@ function validateGame(game, data, errors) {
           `${game.id}: tier "${tier}" puzzle[${i}] missing key "${key}"`,
           errors
         )
+      }
+      if (game.id === 'swipe') {
+        assert(
+          Number.isFinite(puzzle.minMoves) || Number.isFinite(puzzle.par),
+          `${game.id}: tier "${tier}" puzzle[${i}] needs minMoves or par`,
+          errors
+        )
+        const sz = puzzle.size != null ? Number(puzzle.size) : 7
+        assert(
+          Number.isFinite(sz) && sz >= 3 && sz <= 16,
+          `${game.id}: tier "${tier}" puzzle[${i}] has invalid size (expected 3–16 or omit for 7)`,
+          errors
+        )
+        const inRange = (coord) =>
+          Array.isArray(coord) &&
+          coord.length >= 2 &&
+          Number.isFinite(coord[0]) &&
+          Number.isFinite(coord[1]) &&
+          coord[0] >= 0 &&
+          coord[0] < sz &&
+          coord[1] >= 0 &&
+          coord[1] < sz
+        for (const arr of [puzzle.balls, puzzle.targets, puzzle.blocks]) {
+          if (!Array.isArray(arr)) continue
+          arr.forEach((coord, j) => {
+            assert(
+              inRange(coord),
+              `${game.id}: tier "${tier}" puzzle[${i}] coordinate out of bounds for size ${sz} (${JSON.stringify(coord)})`,
+              errors
+            )
+          })
+        }
       }
     })
   }

@@ -39,9 +39,10 @@ Output goes to `dist/`. The build runs the boundary check automatically before b
 
 The base path is resolved in this order:
 
-1. `VITE_BASE_PATH` environment variable (e.g. `VITE_BASE_PATH=/puzzles/`)
-2. The repo slug from `GITHUB_REPOSITORY` (set automatically in GitHub Actions)
-3. Falls back to `/puzzles/`
+1. **`VITE_BASE_PATH` in `.env.production`** (checked in for this repo: `/puzzles-playground/`) so a local `npm run build` matches `https://<user>.github.io/puzzles-playground/`
+2. `VITE_BASE_PATH` as a shell environment variable (overrides the file)
+3. The repo slug from `GITHUB_REPOSITORY` (set automatically in GitHub Actions)
+4. Falls back to `/puzzles/` (wrong for this repo if you deploy manually without 1–3 — the site will look **blank** because JS/CSS load from the wrong path)
 
 To deploy manually:
 

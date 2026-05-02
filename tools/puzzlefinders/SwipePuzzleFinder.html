@@ -176,8 +176,6 @@
 
       .grid-overlay {
         display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        grid-template-rows: repeat(7, 1fr);
         width: 100%;
         height: 100%;
         position: absolute;
@@ -310,12 +308,12 @@
     <script type="text/babel">
       const { useState, useEffect, useRef, useCallback } = React;
 
-      const GRID = 7;
       const DIRS = ['up','down','left','right'];
+      const MAX_CELL_PX = 80;
 
       // ─── Pure game logic (no DOM) ──────────────────────────────────────────────
 
-      function slideState(ballsIn, targets, blocks, dir) {
+      function slideState(ballsIn, targets, blocks, dir, gridSize) {
           // Returns { balls, moved } — pure, no mutation
           const balls = ballsIn.map(b => ({ ...b }));
 
@@ -338,7 +336,7 @@
                   if (dir === 'right') nc++;
                   if (dir === 'up')    nr--;
                   if (dir === 'down')  nr++;
-                  if (nr < 0 || nr >= GRID || nc < 0 || nc >= GRID) break;
+                  if (nr < 0 || nr >= gridSize || nc < 0 || nc >= gridSize) break;
                   if (isBlock(nr, nc)) break;
                   if (balls.some(o => o.id !== ball.id && o.row === nr && o.col === nc)) break;
                   r = nr; c = nc;
@@ -364,7 +362,7 @@
       }
 
       // BFS — returns { solvable, par, solution } where solution is array of dir strings
-      function bfsSolve(initBalls, targets, blocks, maxMoves = 30) {
+      function bfsSolve(initBalls, targets, blocks, gridSize, maxMoves = 30) {
           const initKey = stateKey(initBalls);
           if (isSolved(initBalls, targets)) return { solvable: true, par: 0, solution: [] };
 
@@ -376,7 +374,7 @@
               if (path.length >= maxMoves) continue;
 
               for (const dir of DIRS) {
-                  const { balls: next, moved } = slideState(balls, targets, blocks, dir);
+                  const { balls: next, moved } = slideState(balls, targets, blocks, dir, gridSize);
                   if (!moved) continue;
                   const key = stateKey(next);
                   if (visited.has(key)) continue;
@@ -391,23 +389,23 @@
 
       // ─── Random layout ─────────────────────────────────────────────────────────
 
-      function pickRandom(n, exclude) {
-          const used = new Set(exclude.map(([r, c]) => r * GRID + c));
+      function pickRandom(n, exclude, gridSize) {
+          const used = new Set(exclude.map(([r, c]) => r * gridSize + c));
           const chosen = [];
           let safety = 0;
           while (chosen.length < n && safety++ < 10000) {
-              const r = Math.floor(Math.random() * GRID);
-              const c = Math.floor(Math.random() * GRID);
-              const key = r * GRID + c;
+              const r = Math.floor(Math.random() * gridSize);
+              const c = Math.floor(Math.random() * gridSize);
+              const key = r * gridSize + c;
               if (!used.has(key)) { used.add(key); chosen.push([r, c]); }
           }
           return chosen;
       }
 
-      function generateLayout(numBalls, numBlocks) {
-          const ballPos   = pickRandom(numBalls, []);
-          const targetPos = pickRandom(numBalls, ballPos);
-          const blockPos  = pickRandom(numBlocks, [...ballPos, ...targetPos]);
+      function generateLayout(numBalls, numBlocks, gridSize) {
+          const ballPos   = pickRandom(numBalls, [], gridSize);
+          const targetPos = pickRandom(numBalls, ballPos, gridSize);
+          const blockPos  = pickRandom(numBlocks, [...ballPos, ...targetPos], gridSize);
           const balls   = ballPos.map(([r, c], i) => ({ id: i, row: r, col: c, locked: false }));
           const targets = targetPos.map(([r, c])   => ({ row: r, col: c }));
           const blocks  = blockPos.map(([r, c])    => ({ row: r, col: c }));
@@ -416,7 +414,7 @@
 
       // ─── Board component ────────────────────────────────────────────────────────
 
-      function Board({ puzzle, showHint, boardPx }) {
+      function Board({ puzzle, showHint, boardPx, gridSize }) {
           const { targets, blocks } = puzzle;
           const [balls, setBalls]       = useState(null);
           const [moves, setMoves]       = useState(0);
@@ -431,18 +429,19 @@
               setIsAnimating(false);
           }, [puzzle]);
 
-          const cs = boardPx / GRID;
+          const gs = puzzle.gridSize ?? gridSize;
+          const cs = boardPx / gs;
 
           const doSlide = useCallback((dir) => {
               if (isAnimating || !balls) return;
-              const { balls: next, moved } = slideState(balls, targets, blocks, dir);
+              const { balls: next, moved } = slideState(balls, targets, blocks, dir, gs);
               if (!moved) return;
               setHistory(h => [...h, { balls: balls.map(b => ({ ...b })), moves }]);
               setMoves(m => m + 1);
               setIsAnimating(true);
               setBalls(next);
               setTimeout(() => setIsAnimating(false), 260);
-          }, [balls, targets, blocks, isAnimating, moves]);
+          }, [balls, targets, blocks, isAnimating, moves, gs]);
 
           const doUndo = () => {
               if (!history.length || isAnimating) return;
@@ -498,9 +497,12 @@
                   {/* Board */}
                   <div className="board-wrap" style={{ width: boardPx, height: boardPx }}>
                       {/* Grid */}
-                      <div className="grid-overlay">
-                          {Array.from({ length: GRID * GRID }, (_, i) => {
-                              const r = Math.floor(i / GRID), c = i % GRID;
+                      <div className="grid-overlay" style={{
+                          gridTemplateColumns: `repeat(${gs}, 1fr)`,
+                          gridTemplateRows: `repeat(${gs}, 1fr)`,
+                      }}>
+                          {Array.from({ length: gs * gs }, (_, i) => {
+                              const r = Math.floor(i / gs), c = i % gs;
                               const isTarget = targets.some(t => t.row === r && t.col === c);
                               const isBlk    = blocks.some(b => b.row === r && b.col === c);
                               const isHint   = hintDir && !isBlk && !isTarget && !balls.some(b => b.row === r && b.col === c && b.locked);
@@ -535,6 +537,7 @@
       // ─── Main app ───────────────────────────────────────────────────────────────
 
       function App() {
+          const [gridSize,  setGridSize]  = useState(7);
           const [numBalls,  setNumBalls]  = useState(3);
           const [numBlocks, setNumBlocks] = useState(3);
           const [minMoves,  setMinMoves]  = useState(4);
@@ -545,7 +548,7 @@
           const [showHint,  setShowHint]  = useState(false);
           const [ledger,    setLedger]    = useState('');
 
-          const BOARD_PX = 420;
+          const boardPx = Math.min(420, gridSize * MAX_CELL_PX);
           const BATCH_SIZE = 10;
           const MAX_ATTEMPTS = 5000;
           const BFS_MAX = 20; // cap BFS depth to keep it snappy
@@ -563,10 +566,10 @@
 
                   while (found.length < BATCH_SIZE && attempts < MAX_ATTEMPTS) {
                       attempts++;
-                      const { balls, targets, blocks } = generateLayout(numBalls, numBlocks);
-                      const { solvable, par, solution } = bfsSolve(balls, targets, blocks, BFS_MAX);
+                      const { balls, targets, blocks } = generateLayout(numBalls, numBlocks, gridSize);
+                      const { solvable, par, solution } = bfsSolve(balls, targets, blocks, gridSize, BFS_MAX);
                       if (solvable && par >= minMoves) {
-                          found.push({ balls, targets, blocks, par, solution });
+                          found.push({ balls, targets, blocks, par, solution, gridSize });
                       }
                   }
 
@@ -587,7 +590,9 @@
               const blockArr  = p.blocks.map(b  => [b.row, b.col]);
               const dirMap    = { up:'U', down:'D', left:'L', right:'R' };
               const solution  = p.solution.map(d => dirMap[d]).join('');
-              const line = `{ balls: ${fmt(ballArr)}, targets: ${fmt(targetArr)}, blocks: ${fmt(blockArr)}, par: ${p.par}, solution: "${solution}" },\n`;
+              const sz = p.gridSize ?? gridSize;
+              const sizePrefix = sz !== 7 ? `size: ${sz}, ` : '';
+              const line = `{ ${sizePrefix}balls: ${fmt(ballArr)}, targets: ${fmt(targetArr)}, blocks: ${fmt(blockArr)}, par: ${p.par}, solution: "${solution}" },\n`;
               setLedger(prev => prev + line);
           };
 
@@ -602,6 +607,11 @@
 
                       {/* Sliders */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                          <div>
+                              <span className="label">Grid size: {gridSize} × {gridSize}</span>
+                              <input type="range" min="5" max="7" step="1" value={gridSize}
+                                  onChange={e => setGridSize(Number(e.target.value))} />
+                          </div>
                           <div>
                               <span className="label">Balls / Targets: {numBalls}</span>
                               <input type="range" min="1" max="5" value={numBalls}
@@ -651,7 +661,7 @@
                               {showHint && currentPuzzle && (
                                   <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 4, padding: '10px 12px' }}>
                                       <span className="label" style={{ marginBottom: 6 }}>Solution path ({currentPuzzle.par} moves)</span>
-                                      <div style={{ fontSize: 18, font-weight: 900, letterSpacing: '0.15em' }}>
+                                      <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '0.15em' }}>
                                           {currentPuzzle.solution.map(d =>
                                               ({ up:'↑', down:'↓', left:'←', right:'→' }[d])
                                           ).join(' ')}
@@ -677,7 +687,7 @@
                   {/* ── Game view ── */}
                   <div id="game-view">
                       {currentPuzzle
-                          ? <Board key={batchIdx} puzzle={currentPuzzle} showHint={showHint} boardPx={BOARD_PX} />
+                          ? <Board key={batchIdx} puzzle={currentPuzzle} showHint={showHint} boardPx={boardPx} gridSize={gridSize} />
                           : <div style={{ color: '#94a3b8', fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                               Generate a batch to begin
                             </div>

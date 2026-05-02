@@ -60,8 +60,11 @@ function formatSwipePuzzleForPuzzlesJs(puzzle) {
   )
     return null
   const fmtPairs = (arr) => arr.map((p) => (Array.isArray(p) ? `[${p.join(', ')}]` : '')).join(', ')
-  let line = `{ balls: [${fmtPairs(puzzle.balls)}], targets: [${fmtPairs(puzzle.targets)}], blocks: [${fmtPairs(puzzle.blocks)}]`
+  let line = '{ '
+  if (Number.isFinite(puzzle.size) && puzzle.size !== 7) line += `size: ${puzzle.size}, `
+  line += `balls: [${fmtPairs(puzzle.balls)}], targets: [${fmtPairs(puzzle.targets)}], blocks: [${fmtPairs(puzzle.blocks)}]`
   if (Number.isFinite(puzzle.minMoves)) line += `, minMoves: ${puzzle.minMoves}`
+  else if (Number.isFinite(puzzle.par)) line += `, par: ${puzzle.par}`
   line += ' }'
   return line
 }

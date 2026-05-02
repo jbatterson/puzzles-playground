@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
 import puzzleData from './puzzles.js'
 import TopBar from '../../src/shared/TopBar.jsx'
 import DiceFace from '../../src/shared/DiceFace.jsx'
@@ -34,7 +34,9 @@ import { CurateCopyToast, CurateLevelNav } from '../../src/shared/CurateModeChro
 import SmartRightButton from '../../src/shared/SmartRightButton.jsx'
 import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyPuzzleDate.js'
 
-const GRID = 7
+const DEFAULT_SWIPE_GRID = 7
+/** Match productiles/sumtiles board cell cap so small grids do not overscale. */
+const SWIPE_MAX_CELL_PX = 80
 const SWIPE_ANIM_MS = 260
 const SWIPE_SUITE_MODAL_MS = 500
 const MAX_MOVE_DISPLAY = 99
@@ -106,12 +108,27 @@ function storageKeyGameState(dateKey, puzzleIndex) {
   return `swipe:${dateKey}:${puzzleIndex}:gameState`
 }
 
+function getSwipeGridSize(data) {
+  if (!data || typeof data !== 'object') return DEFAULT_SWIPE_GRID
+  const s = data.size
+  if (Number.isFinite(s) && s >= 3 && s <= 16) return Math.trunc(s)
+  return DEFAULT_SWIPE_GRID
+}
+
+function getSwipeParMoves(p) {
+  if (!p || typeof p !== 'object') return null
+  if (Number.isFinite(p.minMoves)) return p.minMoves
+  if (Number.isFinite(p.par)) return p.par
+  return null
+}
+
 function puzzleFingerprint(data) {
   if (!data) return ''
   return JSON.stringify({
     b: data.balls,
     t: data.targets,
     bl: data.blocks,
+    sz: getSwipeGridSize(data),
   })
 }
 
@@ -169,7 +186,7 @@ function checkSolved(balls, targets) {
   return targets.every((t) => balls.some((b) => b.locked && b.row === t.row && b.col === t.col))
 }
 
-function slide(dir, ballsIn, targets, blocks) {
+function slide(dir, ballsIn, targets, blocks, gridSize) {
   const next = ballsIn.map((b) => ({ ...b }))
   let sorted
   if (dir === 'left') sorted = next.slice().sort((a, b) => a.col - b.col)
@@ -189,7 +206,7 @@ function slide(dir, ballsIn, targets, blocks) {
       if (dir === 'right') nc++
       if (dir === 'up') nr--
       if (dir === 'down') nr++
-      if (nr < 0 || nr >= GRID || nc < 0 || nc >= GRID) break
+      if (nr < 0 || nr >= gridSize || nc < 0 || nc >= gridSize) break
       if (isBlockAt(blocks, nr, nc)) break
       if (next.some((o) => o.id !== ball.id && o.row === nr && o.col === nc)) break
       r = nr
@@ -316,7 +333,9 @@ export default function Swipe() {
   const [solved, setSolved] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [postSolveCtaAttention, setPostSolveCtaAttention] = useState(false)
-  const [cellSize, setCellSize] = useState(40)
+  /** Padding-box cell size — must use clientWidth/Height, not offsetWidth (excludes border). */
+  const [cellW, setCellW] = useState(40)
+  const [cellH, setCellH] = useState(40)
 
   const [showLinks, setShowLinks] = useState(false)
   const [showStats, setShowStats] = useState(false)
@@ -337,6 +356,10 @@ export default function Swipe() {
     if (mode === 'tutorial') return puzzleData.tutorial[tutorialIdx]
     return daily.puzzles[dailyIdx]
   }, [curateMode, curateIdx, roster, mode, tutorialIdx, dailyIdx, daily])
+
+  const gridSize = useMemo(() => getSwipeGridSize(currentPuzzleData), [currentPuzzleData])
+  const gridSizeRef = useRef(gridSize)
+  gridSizeRef.current = gridSize
 
   const resetFromData = useCallback((data, restore) => {
     if (!data) return
@@ -374,7 +397,10 @@ export default function Swipe() {
     if (c !== dailyIdx) setDailyIdx(c)
   }, [curateMode, mode, suitePrefsEpoch, dailyIdx])
 
-  useEffect(() => {
+  // useLayoutEffect: puzzle switch must clear `solved` before useEffect (markComplete) runs;
+  // otherwise stale solved=true from the previous tier marks the new daily slot complete.
+  useLayoutEffect(() => {
+    completionMarkedRef.current = false
     const data = currentPuzzleData
     if (!data) return
     if (curateMode) {
@@ -395,28 +421,31 @@ export default function Swipe() {
     if (mode === 'daily' && !curateMode) setMoveCounts(loadMoveCounts(daily.key))
   }, [currentPuzzleData, curateMode, curateIdx, daily.key, dailyIdx, mode, resetFromData])
 
-  useEffect(() => {
-    completionMarkedRef.current = false
-  }, [currentPuzzleData, curateMode, mode])
-
-  useEffect(() => {
-    const ro = () => {
-      const w = wrapperRef.current?.offsetWidth ?? 0
-      if (w > 0) setCellSize(w / GRID)
+  const measureCellLayout = useCallback(() => {
+    const el = wrapperRef.current
+    if (!el) return
+    const cw = el.clientWidth
+    const ch = el.clientHeight
+    const g = gridSizeRef.current
+    if (cw > 0 && ch > 0 && g > 0) {
+      setCellW(cw / g)
+      setCellH(ch / g)
     }
-    ro()
-    window.addEventListener('resize', ro)
-    return () => window.removeEventListener('resize', ro)
   }, [])
 
   useEffect(() => {
-    const ro = () => {
-      const w = wrapperRef.current?.offsetWidth ?? 0
-      if (w > 0) setCellSize(w / GRID)
-    }
-    const id = requestAnimationFrame(ro)
+    const el = wrapperRef.current
+    if (!el) return undefined
+    measureCellLayout()
+    const ro = new ResizeObserver(measureCellLayout)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [measureCellLayout])
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => measureCellLayout())
     return () => cancelAnimationFrame(id)
-  }, [currentPuzzleData])
+  }, [currentPuzzleData, measureCellLayout])
 
   const persistNow = useCallback(
     (b, h, m, sol) => {
@@ -431,7 +460,7 @@ export default function Swipe() {
   const runSlide = useCallback(
     (dir) => {
       if (isAnimating || solved || !currentPuzzleData) return
-      const { moved, balls: nb } = slide(dir, balls, targets, blocks)
+      const { moved, balls: nb } = slide(dir, balls, targets, blocks, gridSize)
       if (!moved) return
       const snap = balls.map((x) => ({ ...x }))
       const newHist = [...history, { balls: snap, moves }]
@@ -451,7 +480,7 @@ export default function Swipe() {
         persistNow(nb, newHist, newMoves, done)
       }, SWIPE_ANIM_MS)
     },
-    [balls, targets, blocks, history, moves, isAnimating, solved, currentPuzzleData, persistNow]
+    [balls, targets, blocks, history, moves, isAnimating, solved, currentPuzzleData, persistNow, gridSize]
   )
 
   useEffect(() => {
@@ -469,13 +498,18 @@ export default function Swipe() {
       completionMarkedRef.current
     )
       return
+    // Use targets from puzzle data, not React state: after "Next puzzle", one frame can still
+    // hold the previous tier's balls+targets while dailyIdx already points at the next tier —
+    // checkSolved(oldBalls, oldTargets) would still be true and wrongly mark the new slot.
+    const { targets: puzzleTargets } = initFromPuzzle(currentPuzzleData)
+    if (!checkSolved(balls, puzzleTargets)) return
     completionMarkedRef.current = true
-    markComplete(daily.key, dailyIdx, moves, currentPuzzleData.minMoves)
+    markComplete(daily.key, dailyIdx, moves, getSwipeParMoves(currentPuzzleData))
     setCompletions(loadCompletions(daily.key))
     setPerfects(loadPerfects(daily.key))
     setMoveCounts(loadMoveCounts(daily.key))
     clearGameState(daily.key, dailyIdx)
-  }, [solved, curateMode, mode, daily.key, dailyIdx, moves, currentPuzzleData])
+  }, [solved, curateMode, mode, daily.key, dailyIdx, moves, currentPuzzleData, balls])
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
@@ -555,7 +589,10 @@ export default function Swipe() {
       }
     } else {
       const next = nextIncompleteEnabledTierExcluding(GAME_KEYS.SWIPE, daily.key, dailyIdx)
-      if (next !== null) setDailyIdx(next)
+      if (next !== null) {
+        setSolved(false)
+        setDailyIdx(next)
+      }
     }
   }
 
@@ -624,14 +661,14 @@ export default function Swipe() {
 
   const gridCells = useMemo(() => {
     const cells = []
-    for (let r = 0; r < GRID; r++)
-      for (let c = 0; c < GRID; c++) {
+    for (let r = 0; r < gridSize; r++)
+      for (let c = 0; c < gridSize; c++) {
         const isT = targets.some((t) => t.row === r && t.col === c)
         const isB = blocks.some((b) => b.row === r && b.col === c)
         cells.push({ r, c, isT, isB })
       }
     return cells
-  }, [targets, blocks])
+  }, [targets, blocks, gridSize])
 
   return (
     <div className="game-container swipe-game">
@@ -657,12 +694,11 @@ export default function Swipe() {
         }
         .swipe-game #swipe-canvas-wrap {
           width: 100%;
-          max-width: min(460px, calc(100dvh - 300px));
           aspect-ratio: 1 / 1;
           position: relative;
           margin: 0 auto;
           background: #fff;
-          border: 2px solid var(--swipe-black);
+          border: 2px solid #0a0a0a;
           min-width: 280px;
           touch-action: none;
         }
@@ -670,8 +706,6 @@ export default function Swipe() {
           position: absolute;
           inset: 0;
           display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          grid-template-rows: repeat(7, 1fr);
           width: 100%;
           height: 100%;
         }
@@ -711,8 +745,6 @@ export default function Swipe() {
         .swipe-game .ball.locked { opacity: 0.5; }
         .swipe-game .stats-num.at-par { color: var(--swipe-green); }
         .swipe-game .stats-num.over-par { color: var(--swipe-red); }
-        .swipe-game .solved-banner.good { color: var(--swipe-green); }
-        .swipe-game .solved-banner.ok { color: rgba(0,0,0,0.55); }
       `}</style>
 
       <TopBar
@@ -747,7 +779,7 @@ export default function Swipe() {
             <>
               <span className="stats-label">Moves</span>
               <span className="stats-num">{Math.min(moves, MAX_MOVE_DISPLAY)}</span>
-              <span className="stats-label">{`min=${currentPuzzleData?.minMoves ?? '?'}`}</span>
+              <span className="stats-label">{`min=${getSwipeParMoves(currentPuzzleData) ?? '?'}`}</span>
             </>
           }
         />
@@ -756,7 +788,7 @@ export default function Swipe() {
           <div className="stats-group stats-group--left">
             <span className="stats-label">Moves</span>
             <span className="stats-num">{Math.min(moves, MAX_MOVE_DISPLAY)}</span>
-            <span className="stats-label">{`min=${currentPuzzleData?.minMoves ?? '?'}`}</span>
+            <span className="stats-label">{`min=${getSwipeParMoves(currentPuzzleData) ?? '?'}`}</span>
           </div>
           <div className="selector-group">
             <button
@@ -800,11 +832,11 @@ export default function Swipe() {
           <div className="stats-group stats-group--left">
             <span className="stats-label">Moves</span>
             <span
-              className={`stats-num ${solved ? (moves <= (currentPuzzleData?.minMoves ?? 999) ? 'at-par' : 'over-par') : ''}`}
+              className={`stats-num ${solved ? (moves <= (getSwipeParMoves(currentPuzzleData) ?? 999) ? 'at-par' : 'over-par') : ''}`}
             >
               {Math.min(moves, MAX_MOVE_DISPLAY)}
             </span>
-            <span className="stats-label">{`min=${currentPuzzleData?.minMoves ?? '?'}`}</span>
+            <span className="stats-label">{`min=${getSwipeParMoves(currentPuzzleData) ?? '?'}`}</span>
           </div>
           <div className="selector-group" style={{ flexDirection: 'column', gap: '4px' }}>
             <div className="level-label" style={{ textAlign: 'center' }}>
@@ -838,13 +870,23 @@ export default function Swipe() {
         <div
           id="swipe-canvas-wrap"
           ref={wrapperRef}
+          style={{
+            maxWidth: `min(460px, calc(100dvh - 300px), ${gridSize * SWIPE_MAX_CELL_PX}px)`,
+          }}
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
           onPointerCancel={() => {
             swipePtr.current = null
           }}
         >
-          <div className="grid-overlay" aria-hidden>
+          <div
+            className="grid-overlay"
+            aria-hidden
+            style={{
+              gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+              gridTemplateRows: `repeat(${gridSize}, 1fr)`,
+            }}
+          >
             {gridCells.map(({ r, c, isT, isB }) => (
               <div
                 key={`${r}-${c}`}
@@ -858,10 +900,10 @@ export default function Swipe() {
                 key={b.id}
                 className="ball-layer"
                 style={{
-                  width: cellSize,
-                  height: cellSize,
-                  left: b.col * cellSize,
-                  top: b.row * cellSize,
+                  width: cellW,
+                  height: cellH,
+                  left: b.col * cellW,
+                  top: b.row * cellH,
                 }}
               >
                 <div className={`ball${b.locked ? ' locked' : ''}`} />
@@ -889,39 +931,6 @@ export default function Swipe() {
           onReset={handleReset}
         />
       </div>
-
-      {!solved ? (
-        <div
-          className="goal-text"
-          style={{
-            textAlign: 'center',
-            fontWeight: 900,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            padding: '14px 0',
-            color: 'rgba(0,0,0,0.4)',
-            fontSize: '0.78rem',
-          }}
-        >
-          {`Par: ${currentPuzzleData?.minMoves ?? '—'}  |  Slide all balls onto their targets`}
-        </div>
-      ) : (
-        <div
-          className={`solved-banner visible ${moves <= (currentPuzzleData?.minMoves ?? 999) ? 'good' : 'ok'}`}
-          style={{
-            textAlign: 'center',
-            fontWeight: 900,
-            textTransform: 'uppercase',
-            letterSpacing: '0.08em',
-            padding: '14px 0',
-            fontSize: '0.95rem',
-          }}
-        >
-          {moves <= (currentPuzzleData?.minMoves ?? 999)
-            ? `Solved in ${moves} — at par!`
-            : `Solved in ${moves}  (par ${currentPuzzleData?.minMoves})`}
-        </div>
-      )}
 
       <SharedModalShell
         show={showInstructions}

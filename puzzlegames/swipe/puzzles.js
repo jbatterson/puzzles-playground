@@ -1,5 +1,5 @@
 /**
- * Swipe daily tiers + tutorial. Generated from Swipe.html PUZZLES (par → minMoves).
+ * Swipe daily tiers + tutorial. Generated from Swipe.html PUZZLES (par to minMoves).
  */
 export default {
   tutorial: [

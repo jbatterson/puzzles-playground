@@ -16,6 +16,9 @@ dist-ssr
 puzzlegames/allten/bundle_allten.js
 puzzlegames/allten/bundle_allten.js.map
 
+# Temp puzzle dumps (e.g. accidental UTF-16 from shell redirect — confuses TypeScript as “binary”)
+**/puzzles.new.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

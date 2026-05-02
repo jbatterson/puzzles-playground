@@ -3,15 +3,16 @@
  */
 export default {
   tutorial: [
-    { balls: [[6, 5], [3, 1], [0, 5]], targets: [[2, 4], [5, 2], [5, 1]], blocks: [[1, 0], [3, 4], [5, 4]], minMoves: 7 },
-    { balls: [[2, 3], [1, 0], [1, 5]], targets: [[5, 1], [5, 3], [4, 2]], blocks: [[1, 6], [2, 1], [0, 5]], minMoves: 8 },
-  ],
-  easy: [
+
     { size: 5, balls: [[4,2],[4,0]], targets: [[1,2],[3,1]], blocks: [[4,1],[1,3]], par: 8, solution: "RURDRDLU" },
     { size: 5, balls: [[1,4],[1,0]], targets: [[4,2],[4,0]], blocks: [[2,0],[2,3]], par: 5, solution: "DRDLD" },
     { size: 5, balls: [[3,2],[4,1]], targets: [[1,1],[4,3]], blocks: [[1,2],[2,1]], par: 5, solution: "LURDL" },
     { size: 5, balls: [[3,4],[4,3]], targets: [[0,0],[3,0]], blocks: [[0,2],[1,1]], par: 5, solution: "DLULU" },
     { size: 5, balls: [[2,3],[4,4]], targets: [[1,2],[3,0]], blocks: [[3,2],[1,0]], par: 7, solution: "RULRDLU" },
+
+  ],
+  easy: [
+
     { size: 5, balls: [[0,3],[0,0]], targets: [[3,1],[3,3]], blocks: [[2,2],[2,4]], par: 5, solution: "LDRUL" },
     { size: 5, balls: [[0,4],[4,0]], targets: [[1,3],[3,2]], blocks: [[0,0],[3,1]], par: 5, solution: "RDLUR" },
     { size: 5, balls: [[2,2],[3,0]], targets: [[1,3],[1,1]], blocks: [[2,4],[3,4]], par: 5, solution: "LURDL" },
@@ -86,6 +87,8 @@ export default {
     
   ],
   hard: [
+    { size: 7, balls: [[6, 5], [3, 1], [0, 5]], targets: [[2, 4], [5, 2], [5, 1]], blocks: [[1, 0], [3, 4], [5, 4]], minMoves: 7 },
+    { size: 7, balls: [[2, 3], [1, 0], [1, 5]], targets: [[5, 1], [5, 3], [4, 2]], blocks: [[1, 6], [2, 1], [0, 5]], minMoves: 8 },
     { size: 7, balls: [[6,5],[3,1],[0,5]], targets: [[2,4],[5,2],[5,1]], blocks: [[1,0],[3,4],[5,4]], par: 7, solution: "RDLDLUR" },
     { size: 7, balls: [[5,0],[3,1],[3,3]], targets: [[2,4],[1,2],[2,1]], blocks: [[5,4],[1,1],[6,2]], par: 12, solution: "RURDLURULDRU"},
     { size: 7, balls: [[6,5],[4,0],[5,4]], targets: [[2,2],[3,5],[1,6]], blocks: [[2,3],[6,4],[1,5]], par: 9, solution: "ULDRURURD" },

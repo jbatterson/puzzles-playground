@@ -1,0 +1,5 @@
+# Normalize line endings on checkout; let Git decide text vs binary.
+* text=auto
+
+# Suite source: force LF in the repo so diffs stay stable across OSes.
+*.{js,cjs,mjs,jsx,ts,tsx,json,html,css,md,yml,yaml} text eol=lf

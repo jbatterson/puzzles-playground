@@ -1,0 +1,22 @@
+# All Ten runtime keeps its own Prettier (tabs, different rules)
+src/allten/runtime/
+
+node_modules/
+dist/
+coverage/
+
+package-lock.json
+LICENSE
+
+# Generated / vendored
+puzzlegames/allten/bundle_allten.js
+puzzlegames/allten/bundle_allten.js.map
+
+# Clueless pipeline output
+tools/reports/
+
+# Puzzle data: keep one-line-per-puzzle layout (use tools/compactPuzzleData.mjs to re-compact)
+puzzlegames/folds/puzzles.js
+puzzlegames/sumtiles/puzzles.js
+puzzlegames/productiles/puzzles.js
+puzzlegames/honeycombs/puzzles.js

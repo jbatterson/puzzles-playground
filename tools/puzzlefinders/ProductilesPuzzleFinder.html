@@ -612,6 +612,22 @@
             </div>
           </div>
 
+          <div class="ctrl-group">
+            <span class="section-label">Max stationary tiles</span>
+            <input type="number" id="maxStationary" value="99" min="0" max="99" style="width: 80px" />
+            <p class="hint" style="margin: 4px 0 0; font-size: 12px; color: #888">
+              Reject if more than this many tiles never shift in the min-move solution (cascades count). Use
+              99 to effectively disable.
+            </p>
+          </div>
+
+          <div class="ctrl-group">
+            <label class="section-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer">
+              <input type="checkbox" id="uniqArr" checked />
+              <span>Require unique numbered solution (reject if multiple distinct layouts solve)</span>
+            </label>
+          </div>
+
           <!-- Target count -->
           <div class="ctrl-group">
             <span class="section-label">Puzzles to Find</span>
@@ -896,6 +912,21 @@
         return moved >= Math.min(2, tiles.length) && dist >= 3
       }
 
+      /** Empty grid cells in the solved placement (size² − Σ tile area). */
+      function emptyCellCountForPuzzle(puz) {
+        const area = puz.tiles.reduce((s, t) => s + t.w * t.h, 0)
+        return puz.size * puz.size - area
+      }
+
+      /** Max empty cells (size² − tile area) by board edge: 3×3 → 3, 4×4 → 6, 5×5+ → 8. */
+      function maxEmptyCellsForBoardSize(size) {
+        const s = Number(size)
+        if (!Number.isFinite(s) || s < 1) return 8
+        if (s <= 3) return 3
+        if (s === 4) return 6
+        return 8
+      }
+
       function buildPuzzle(size, nums, cfg) {
         const pattern = getTwoPerLinePattern(size)
         if (!pattern) return null
@@ -1104,15 +1135,19 @@
             if (ax.v) axes.push('v')
             for (const axis of axes) {
               for (const dir of [-1, 1]) {
-                // Enumerate all slide distances: keep stepping until blocked.
-                // Each distinct distance costs 1 move regardless of how far.
+                // One game move = one completed drag: any stop along this slide from `cur` (matches productiles.jsx).
                 let pos = cur
+                let steps = 0
                 for (;;) {
                   const nxt = applyMoveGrid(fixed, pos, i, axis, dir)
                   if (!nxt) break
+                  steps++
                   const k = stateKey(nxt)
                   if (!parent.has(k)) {
-                    parent.set(k, { prev: curKey, move: { tileIndex: i, axis, dir } })
+                    parent.set(k, {
+                      prev: curKey,
+                      move: { tileIndex: i, axis, dir, steps },
+                    })
                     if (parent.size > maxNodes)
                       return { minMoves: null, path: null, explored, reason: 'node cap' }
                     if (isSolvedState(fixed, nxt)) {
@@ -1135,6 +1170,129 @@
           }
         }
         return { minMoves: null, path: null, explored, reason: 'exhausted' }
+      }
+
+      /** Count tiles that never change cell in a replayed optimal path (including chain pushes). */
+      function stationaryCountFromPath(fixed, start, path) {
+        const n = fixed.tiles.length
+        if (!path || !path.length) return n
+        let pos = start.map((p) => ({ r: p.r, c: p.c }))
+        const everShifted = new Set()
+        for (const m of path) {
+          const reps = Number.isFinite(m.steps) && m.steps > 0 ? m.steps : 1
+          for (let s = 0; s < reps; s++) {
+            const nxt = applyMoveGrid(fixed, pos, m.tileIndex, m.axis, m.dir)
+            if (!nxt) return null
+            for (let i = 0; i < n; i++) {
+              if (pos[i].r !== nxt[i].r || pos[i].c !== nxt[i].c) everShifted.add(i)
+            }
+            pos = nxt
+          }
+        }
+        return n - everShifted.size
+      }
+
+      /** Collapse a state to a numbered-grid signature (0/blank ignored). Two states with the same nonzero digit positions+values count as the same arrangement. */
+      function numberArrangementSignature(fixed, pos) {
+        const grid = Array.from({ length: fixed.size }, () => new Array(fixed.size).fill(0))
+        for (let i = 0; i < fixed.tiles.length; i++) {
+          const t = fixed.tiles[i]
+          const base = pos[i]
+          for (let rr = 0; rr < t.h; rr++) {
+            for (let cc = 0; cc < t.w; cc++) {
+              const v = t.vals[rr * t.w + cc] || 0
+              if (v) grid[base.r + rr][base.c + cc] = v
+            }
+          }
+        }
+        return grid.map((row) => row.join(',')).join('|')
+      }
+
+      /**
+       * Full state-space BFS (same coarse move model as bfsSolve: one drag = any distance along a slide),
+       * recording every solved state's depth
+       * and deduping solved states by numberArrangementSignature to get solvedArrangementCount.
+       */
+      function analyzeSolvedArrangements(puz, maxNodes) {
+        const fixed = puzzleToFixed(puz)
+        const start = fixed.tiles.map((t) => ({ r: t.r0, c: t.c0 }))
+        const startKey = stateKey(start)
+        const queue = [start]
+        const depthByKey = new Map([[startKey, 0]])
+        const solvedDepths = []
+        const solvedArrangementMinDepth = new Map()
+        let head = 0
+        let explored = 0
+        let reason = 'complete'
+
+        if (isSolvedState(fixed, start)) {
+          solvedDepths.push(0)
+          solvedArrangementMinDepth.set(numberArrangementSignature(fixed, start), 0)
+        }
+
+        while (head < queue.length) {
+          const cur = queue[head++]
+          const curKey = stateKey(cur)
+          const curDepth = depthByKey.get(curKey) ?? 0
+          explored++
+          if (explored > maxNodes) {
+            reason = 'node cap'
+            break
+          }
+
+          for (let i = 0; i < fixed.tiles.length; i++) {
+            const tile = fixed.tiles[i]
+            const ax = allowedAxes(tile)
+            const axes = []
+            if (ax.h) axes.push('h')
+            if (ax.v) axes.push('v')
+            for (const axis of axes) {
+              for (const dir of [-1, 1]) {
+                let pos = cur
+                for (;;) {
+                  const nxt = applyMoveGrid(fixed, pos, i, axis, dir)
+                  if (!nxt) break
+                  const k = stateKey(nxt)
+                  const nd = curDepth + 1
+                  if (!depthByKey.has(k)) {
+                    depthByKey.set(k, nd)
+                    if (isSolvedState(fixed, nxt)) {
+                      solvedDepths.push(nd)
+                      const sig = numberArrangementSignature(fixed, nxt)
+                      const prev = solvedArrangementMinDepth.get(sig)
+                      if (prev == null || nd < prev) solvedArrangementMinDepth.set(sig, nd)
+                    }
+                    queue.push(nxt)
+                    if (depthByKey.size > maxNodes) {
+                      reason = 'node cap'
+                      head = queue.length
+                      break
+                    }
+                  }
+                  pos = nxt
+                }
+                if (reason !== 'complete') break
+              }
+              if (reason !== 'complete') break
+            }
+            if (reason !== 'complete') break
+          }
+        }
+
+        const minSolved = solvedDepths.length ? Math.min(...solvedDepths) : null
+        const arrangementDepths = [...solvedArrangementMinDepth.values()]
+        const nonMinDepths = minSolved == null ? [] : arrangementDepths.filter((d) => d > minSolved)
+        return {
+          minMoves: minSolved,
+          solvedStateCountRaw: solvedDepths.length,
+          solvedArrangementCount: solvedArrangementMinDepth.size,
+          hasNonMinSolved: nonMinDepths.length > 0,
+          maxSolvedDepth: solvedDepths.length ? Math.max(...solvedDepths) : null,
+          uniqueStates: depthByKey.size,
+          explored,
+          completed: reason === 'complete',
+          stopReason: reason,
+        }
       }
 
       // ═══════════════════════════════════════════════════════════
@@ -1216,8 +1374,10 @@
         const empty = $('emptyState')
         if (empty) empty.remove()
 
-        const { puz, minMoves } = puzEntry
+        const { puz, minMoves, stationaryCount, solvedArrangementCount, arrAnalysisComplete, uniqueFilterEnabled } =
+          puzEntry
         const diff = diffLabel(minMoves)
+        const idleLine = Number.isFinite(stationaryCount) ? ` · idle: ${stationaryCount}` : ''
 
         const card = document.createElement('div')
         card.className = 'puzzle-card'
@@ -1235,12 +1395,18 @@
 
         const meta = document.createElement('div')
         meta.className = 'card-meta'
+        const arrLine =
+          uniqueFilterEnabled && Number.isFinite(solvedArrangementCount) && arrAnalysisComplete
+            ? ` · layouts: ${solvedArrangementCount}`
+            : uniqueFilterEnabled && Number.isFinite(solvedArrangementCount)
+              ? ` · layouts: ${solvedArrangementCount}?`
+              : ''
         meta.innerHTML = `
     <div class="card-difficulty">
       <span>${minMoves} moves</span>
       <span class="diff-badge ${diff.cls}">${diff.label}</span>
     </div>
-    <div class="card-size">${puz.size}×${puz.size} · ${puz.tiles.length} tiles</div>
+    <div class="card-size">${puz.size}×${puz.size} · ${puz.tiles.length} tiles${idleLine}${arrLine}</div>
   `
 
         const removeBtn = document.createElement('button')
@@ -1320,6 +1486,9 @@
         const maxM = +$('maxMoves').value
         const bfsCapIdx = +$('bfsCap').value - 1
         const bfsCap = BFS_CAPS[bfsCapIdx]
+        const maxStationaryRaw = +$('maxStationary').value
+        const maxStationary = Number.isFinite(maxStationaryRaw) && maxStationaryRaw >= 0 ? maxStationaryRaw : 99
+        const maxEmptyAllowed = maxEmptyCellsForBoardSize(size)
 
         // UI state
         stopFlag = false
@@ -1330,15 +1499,31 @@
         let found = 0,
           attempts = 0,
           unsolvable = 0,
-          outOfRange = 0
+          pathReplayFail = 0,
+          outOfRange = 0,
+          tooManyEmpty = 0,
+          tooManyStationary = 0,
+          multiLayout = 0,
+          uniqCap = 0
         const MAX_ATTEMPTS = targetCount * 500
+        const requireUnique = $('uniqArr').checked
 
         const updateProgress = () => {
           const pct = Math.min(100, (found / targetCount) * 100)
           $('progressBar').style.width = pct + '%'
           $('foundCount').textContent = `${found} / ${targetCount}`
+          const uniqPart = requireUnique
+            ? ` · ${multiLayout} multi-layout${uniqCap ? ' · ' + uniqCap + ' uniq cap' : ''}`
+            : ''
+          const stPart = tooManyStationary ? ` · ${tooManyStationary} too many idle` : ''
+          const prPart = pathReplayFail ? ` · ${pathReplayFail} path replay` : ''
+          const emPart = tooManyEmpty ? ` · ${tooManyEmpty} too many empty` : ''
           $('statusText').textContent =
-            `Attempt ${attempts} · ${unsolvable} skipped (BFS cap) · ${outOfRange} out of range`
+            `Attempt ${attempts} · ${unsolvable} skipped (BFS cap) · ${outOfRange} out of range` +
+            prPart +
+            emPart +
+            stPart +
+            uniqPart
           $('headerStatus').textContent = $('statusText').textContent
         }
 
@@ -1354,6 +1539,17 @@
           const nums = [...rawNums] // copy so shuffleArray doesn't mutate original
           const puz = buildPuzzle(size, nums, cfg)
           if (!puz) continue
+
+          const emptyCells = emptyCellCountForPuzzle(puz)
+          if (emptyCells > maxEmptyAllowed) {
+            tooManyEmpty++
+            if (yieldCounter >= YIELD_EVERY) {
+              yieldCounter = 0
+              updateProgress()
+              await yieldFrame()
+            }
+            continue
+          }
 
           // Check at least one move possible in solved state
           if (!hasAtLeastOneMove(puz)) continue
@@ -1389,8 +1585,63 @@
             continue
           }
 
+          const fixedForPath = puzzleToFixed(puz)
+          const startPos = fixedForPath.tiles.map((t) => ({ r: t.r0, c: t.c0 }))
+          const stationaryCount = stationaryCountFromPath(fixedForPath, startPos, res.path)
+          if (stationaryCount == null) {
+            pathReplayFail++
+            if (yieldCounter >= YIELD_EVERY) {
+              yieldCounter = 0
+              updateProgress()
+              await yieldFrame()
+            }
+            continue
+          }
+          if (stationaryCount > maxStationary) {
+            tooManyStationary++
+            if (yieldCounter >= YIELD_EVERY) {
+              yieldCounter = 0
+              updateProgress()
+              await yieldFrame()
+            }
+            continue
+          }
+
+          let solvedArrangementCount = null
+          let arrComplete = false
+          if (requireUnique) {
+            const ar = analyzeSolvedArrangements(puz, bfsCap)
+            solvedArrangementCount = ar.solvedArrangementCount
+            arrComplete = ar.completed
+            if (!ar.completed) {
+              uniqCap++
+              if (yieldCounter >= YIELD_EVERY) {
+                yieldCounter = 0
+                updateProgress()
+                await yieldFrame()
+              }
+              continue
+            }
+            if (ar.solvedArrangementCount > 1) {
+              multiLayout++
+              if (yieldCounter >= YIELD_EVERY) {
+                yieldCounter = 0
+                updateProgress()
+                await yieldFrame()
+              }
+              continue
+            }
+          }
+
           // Winner!
-          const entry = { puz: JSON.parse(JSON.stringify(puz)), minMoves: res.minMoves }
+          const entry = {
+            puz: JSON.parse(JSON.stringify(puz)),
+            minMoves: res.minMoves,
+            stationaryCount,
+            solvedArrangementCount,
+            arrAnalysisComplete: arrComplete,
+            uniqueFilterEnabled: requireUnique,
+          }
           puzzles.push(entry)
           addPuzzleCard(entry, puzzles.length - 1)
           found++

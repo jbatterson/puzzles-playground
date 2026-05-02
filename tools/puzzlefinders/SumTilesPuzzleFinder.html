@@ -873,6 +873,21 @@
         return moved >= Math.min(2, tiles.length) && dist >= 3
       }
 
+      /** Empty grid cells in the solved placement (size² − Σ tile area). */
+      function emptyCellCountForPuzzle(puz) {
+        const area = puz.tiles.reduce((s, t) => s + t.w * t.h, 0)
+        return puz.size * puz.size - area
+      }
+
+      /** Max empty cells (size² − tile area) by board edge: 3×3 → 3, 4×4 → 6, 5×5+ → 8. */
+      function maxEmptyCellsForBoardSize(size) {
+        const s = Number(size)
+        if (!Number.isFinite(s) || s < 1) return 8
+        if (s <= 3) return 3
+        if (s === 4) return 6
+        return 8
+      }
+
       function buildPuzzle(size, nums, cfg) {
         // Scatter numbers freely across random cells — no per-line constraint.
         if (nums.length === 0 || nums.length > size * size) return null
@@ -1082,15 +1097,19 @@
             if (ax.v) axes.push('v')
             for (const axis of axes) {
               for (const dir of [-1, 1]) {
-                // Enumerate all slide distances: keep stepping until blocked.
-                // Each distinct distance costs 1 move regardless of how far.
+                // One game move = one completed drag: any stop along this slide from `cur` (matches sumtiles.jsx).
                 let pos = cur
+                let steps = 0
                 for (;;) {
                   const nxt = applyMoveGrid(fixed, pos, i, axis, dir)
                   if (!nxt) break
+                  steps++
                   const k = stateKey(nxt)
                   if (!parent.has(k)) {
-                    parent.set(k, { prev: curKey, move: { tileIndex: i, axis, dir } })
+                    parent.set(k, {
+                      prev: curKey,
+                      move: { tileIndex: i, axis, dir, steps },
+                    })
                     if (parent.size > maxNodes)
                       return { minMoves: null, path: null, explored, reason: 'node cap' }
                     if (isSolvedState(fixed, nxt)) {
@@ -1298,6 +1317,7 @@
         const maxM = +$('maxMoves').value
         const bfsCapIdx = +$('bfsCap').value - 1
         const bfsCap = BFS_CAPS[bfsCapIdx]
+        const maxEmptyAllowed = maxEmptyCellsForBoardSize(size)
 
         // UI state
         stopFlag = false
@@ -1308,15 +1328,17 @@
         let found = 0,
           attempts = 0,
           unsolvable = 0,
-          outOfRange = 0
+          outOfRange = 0,
+          tooManyEmpty = 0
         const MAX_ATTEMPTS = targetCount * 500
 
         const updateProgress = () => {
           const pct = Math.min(100, (found / targetCount) * 100)
           $('progressBar').style.width = pct + '%'
           $('foundCount').textContent = `${found} / ${targetCount}`
+          const emPart = tooManyEmpty ? ` · ${tooManyEmpty} too many empty` : ''
           $('statusText').textContent =
-            `Attempt ${attempts} · ${unsolvable} skipped (BFS cap) · ${outOfRange} out of range`
+            `Attempt ${attempts} · ${unsolvable} skipped (BFS cap) · ${outOfRange} out of range` + emPart
           $('headerStatus').textContent = $('statusText').textContent
         }
 
@@ -1332,6 +1354,17 @@
           const nums = [...rawNums] // copy so shuffleArray doesn't mutate original
           const puz = buildPuzzle(size, nums, cfg)
           if (!puz) continue
+
+          const emptyCells = emptyCellCountForPuzzle(puz)
+          if (emptyCells > maxEmptyAllowed) {
+            tooManyEmpty++
+            if (yieldCounter >= YIELD_EVERY) {
+              yieldCounter = 0
+              updateProgress()
+              await yieldFrame()
+            }
+            continue
+          }
 
           // Check at least one move possible in solved state
           if (!hasAtLeastOneMove(puz)) continue

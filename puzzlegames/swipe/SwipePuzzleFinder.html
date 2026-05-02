@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Swipe: Puzzle Finder</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; font-family: 'Outfit', sans-serif; margin: 0; padding: 0; }
+        body { background: #fff; display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+
+        #sidebar {
+            width: 320px; min-width: 320px;
+            background: #f8fafc;
+            border-right: 1.5px solid #e2e8f0;
+            padding: 24px;
+            display: flex; flex-direction: column; gap: 18px;
+            overflow-y: auto; z-index: 10;
+        }
+
+        #game-view {
+            flex-grow: 1;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            background: #fff;
+            gap: 24px;
+        }
+
+        h1 { font-size: 1.1rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1.5px solid #e2e8f0; padding-bottom: 12px; }
+
+        .label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 4px; }
+
+        input[type="range"] { accent-color: #000; width: 100%; cursor: pointer; }
+
+        .btn {
+            width: 100%; padding: 12px;
+            border-radius: 4px; border: none;
+            font-weight: 900; font-size: 11px;
+            text-transform: uppercase; letter-spacing: 0.06em;
+            cursor: pointer;
+        }
+        .btn-black  { background: #000; color: #fff; }
+        .btn-black:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-white  { background: #fff; color: #000; border: 2px solid #000; }
+        .btn-white:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-green  { background: #16a34a; color: #fff; }
+        .btn-blue   { background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe; }
+
+        .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .log { font-size: 11px; color: #94a3b8; text-align: center; font-style: italic; min-height: 16px; }
+
+        .nav-row { display: flex; align-items: center; justify-content: space-between; }
+        .nav-arrow { font-size: 26px; cursor: pointer; color: #94a3b8; padding: 0 10px; user-select: none; line-height: 1; }
+        .nav-arrow:hover:not(.disabled) { color: #000; }
+        .nav-arrow.disabled { opacity: 0.2; cursor: default; }
+        .puzzle-label { font-size: 12px; font-weight: 700; }
+
+        .ledger-code {
+            font-family: monospace; font-size: 10px;
+            background: #0f172a; color: #38bdf8;
+            padding: 12px; border-radius: 6px;
+            white-space: pre-wrap; height: 140px;
+            overflow-y: auto; border: 1px solid #334155;
+            margin-top: 4px;
+        }
+
+        /* ── Board ── */
+        .board-wrap {
+            position: relative;
+            border: 2px solid #000;
+            background: #fff;
+            /* size set inline via style */
+        }
+
+        .grid-overlay {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            width: 100%; height: 100%;
+            position: absolute; inset: 0;
+        }
+
+        .cell {
+            border: 1px solid rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .cell.target::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40%; height: 40%;
+            border-radius: 50%;
+            background: #FF3B30;
+            opacity: 0.25;
+        }
+
+        .cell.block { background: #000; }
+
+        .cell.hint-up::before    { content: '↑'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: rgba(37,99,235,0.7); pointer-events: none; display: flex; }
+        .cell.hint-down::before  { content: '↓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: rgba(37,99,235,0.7); }
+        .cell.hint-left::before  { content: '←'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: rgba(37,99,235,0.7); }
+        .cell.hint-right::before { content: '→'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: rgba(37,99,235,0.7); }
+
+        .ball-layer {
+            position: absolute;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none;
+            transition: left 0.22s cubic-bezier(0.25,0.46,0.45,0.94),
+                        top  0.22s cubic-bezier(0.25,0.46,0.45,0.94);
+            will-change: left, top;
+        }
+
+        .ball {
+            width: 78%; height: 78%;
+            border-radius: 50%;
+            background: #FF3B30;
+        }
+        .ball.locked { opacity: 0.5; }
+
+        .meta-row {
+            display: flex; gap: 32px; align-items: flex-end;
+        }
+        .meta-stat { display: flex; flex-direction: column; align-items: center; }
+        .meta-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: #94a3b8; }
+        .meta-num   { font-size: 2.5rem; font-weight: 900; line-height: 1; }
+        .meta-num.good { color: #16a34a; }
+        .meta-num.over { color: #dc2626; }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const GRID = 7;
+const DIRS = ['up','down','left','right'];
+
+// ─── Pure game logic (no DOM) ──────────────────────────────────────────────
+
+function slideState(ballsIn, targets, blocks, dir) {
+    // Returns { balls, moved } — pure, no mutation
+    const balls = ballsIn.map(b => ({ ...b }));
+
+    const isBlock = (r, c) => blocks.some(b => b.row === r && b.col === c);
+
+    let sorted;
+    if (dir === 'left')  sorted = balls.slice().sort((a, b) => a.col - b.col);
+    if (dir === 'right') sorted = balls.slice().sort((a, b) => b.col - a.col);
+    if (dir === 'up')    sorted = balls.slice().sort((a, b) => a.row - b.row);
+    if (dir === 'down')  sorted = balls.slice().sort((a, b) => b.row - a.row);
+
+    let moved = false;
+
+    sorted.forEach(ball => {
+        if (ball.locked) return;
+        let r = ball.row, c = ball.col;
+        while (true) {
+            let nr = r, nc = c;
+            if (dir === 'left')  nc--;
+            if (dir === 'right') nc++;
+            if (dir === 'up')    nr--;
+            if (dir === 'down')  nr++;
+            if (nr < 0 || nr >= GRID || nc < 0 || nc >= GRID) break;
+            if (isBlock(nr, nc)) break;
+            if (balls.some(o => o.id !== ball.id && o.row === nr && o.col === nc)) break;
+            r = nr; c = nc;
+            if (targets.some(t => t.row === r && t.col === c)) {
+                ball.locked = true;
+                break;
+            }
+        }
+        if (r !== ball.row || c !== ball.col) moved = true;
+        ball.row = r;
+        ball.col = c;
+    });
+
+    return { balls, moved };
+}
+
+function isSolved(balls, targets) {
+    return targets.every(t => balls.some(b => b.row === t.row && b.col === t.col && b.locked));
+}
+
+function stateKey(balls) {
+    return balls.map(b => `${b.row},${b.col},${b.locked ? 1 : 0}`).sort().join('|');
+}
+
+// BFS — returns { solvable, par, solution } where solution is array of dir strings
+function bfsSolve(initBalls, targets, blocks, maxMoves = 30) {
+    const initKey = stateKey(initBalls);
+    if (isSolved(initBalls, targets)) return { solvable: true, par: 0, solution: [] };
+
+    const queue = [{ balls: initBalls, path: [] }];
+    const visited = new Set([initKey]);
+
+    while (queue.length) {
+        const { balls, path } = queue.shift();
+        if (path.length >= maxMoves) continue;
+
+        for (const dir of DIRS) {
+            const { balls: next, moved } = slideState(balls, targets, blocks, dir);
+            if (!moved) continue;
+            const key = stateKey(next);
+            if (visited.has(key)) continue;
+            visited.add(key);
+            const newPath = [...path, dir];
+            if (isSolved(next, targets)) return { solvable: true, par: newPath.length, solution: newPath };
+            queue.push({ balls: next, path: newPath });
+        }
+    }
+    return { solvable: false, par: null, solution: [] };
+}
+
+// ─── Random layout ─────────────────────────────────────────────────────────
+
+function pickRandom(n, exclude) {
+    const used = new Set(exclude.map(([r, c]) => r * GRID + c));
+    const chosen = [];
+    let safety = 0;
+    while (chosen.length < n && safety++ < 10000) {
+        const r = Math.floor(Math.random() * GRID);
+        const c = Math.floor(Math.random() * GRID);
+        const key = r * GRID + c;
+        if (!used.has(key)) { used.add(key); chosen.push([r, c]); }
+    }
+    return chosen;
+}
+
+function generateLayout(numBalls, numBlocks) {
+    const ballPos   = pickRandom(numBalls, []);
+    const targetPos = pickRandom(numBalls, ballPos);
+    const blockPos  = pickRandom(numBlocks, [...ballPos, ...targetPos]);
+    const balls   = ballPos.map(([r, c], i) => ({ id: i, row: r, col: c, locked: false }));
+    const targets = targetPos.map(([r, c])   => ({ row: r, col: c }));
+    const blocks  = blockPos.map(([r, c])    => ({ row: r, col: c }));
+    return { balls, targets, blocks };
+}
+
+// ─── Board component ────────────────────────────────────────────────────────
+
+function Board({ puzzle, showHint, boardPx }) {
+    const { targets, blocks } = puzzle;
+    const [balls, setBalls]       = useState(null);
+    const [moves, setMoves]       = useState(0);
+    const [isAnimating, setIsAnimating] = useState(false);
+    const [history, setHistory]   = useState([]);
+
+    // Reset whenever puzzle changes
+    useEffect(() => {
+        setBalls(puzzle.balls.map(b => ({ ...b })));
+        setMoves(0);
+        setHistory([]);
+        setIsAnimating(false);
+    }, [puzzle]);
+
+    const cs = boardPx / GRID;
+
+    const doSlide = useCallback((dir) => {
+        if (isAnimating || !balls) return;
+        const { balls: next, moved } = slideState(balls, targets, blocks, dir);
+        if (!moved) return;
+        setHistory(h => [...h, { balls: balls.map(b => ({ ...b })), moves }]);
+        setMoves(m => m + 1);
+        setIsAnimating(true);
+        setBalls(next);
+        setTimeout(() => setIsAnimating(false), 260);
+    }, [balls, targets, blocks, isAnimating, moves]);
+
+    const doUndo = () => {
+        if (!history.length || isAnimating) return;
+        const prev = history[history.length - 1];
+        setHistory(h => h.slice(0, -1));
+        setBalls(prev.balls);
+        setMoves(prev.moves);
+    };
+
+    const doReset = () => {
+        setBalls(puzzle.balls.map(b => ({ ...b })));
+        setMoves(0);
+        setHistory([]);
+        setIsAnimating(false);
+    };
+
+    useEffect(() => {
+        const handler = (e) => {
+            const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' };
+            if (map[e.key]) { e.preventDefault(); doSlide(map[e.key]); }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [doSlide]);
+
+    if (!balls) return null;
+
+    const solved = isSolved(balls, targets);
+    const par    = puzzle.par;
+    const moveClass = solved ? (moves <= par ? 'good' : 'over') : '';
+
+    // Build hint cell set: for each step in solution, mark the "action" cell
+    // We highlight the first move of the solution on the current state by
+    // showing the direction arrow on every non-locked ball
+    const hintDir = showHint && puzzle.solution && puzzle.solution.length > 0
+        ? puzzle.solution[0] : null;
+
+    return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+
+            {/* Meta row */}
+            <div className="meta-row">
+                <div className="meta-stat">
+                    <span className="meta-label">Moves</span>
+                    <span className={`meta-num ${moveClass}`}>{moves}</span>
+                </div>
+                <div className="meta-stat">
+                    <span className="meta-label">Par</span>
+                    <span className="meta-num">{par}</span>
+                </div>
+            </div>
+
+            {/* Board */}
+            <div className="board-wrap" style={{ width: boardPx, height: boardPx }}>
+                {/* Grid */}
+                <div className="grid-overlay">
+                    {Array.from({ length: GRID * GRID }, (_, i) => {
+                        const r = Math.floor(i / GRID), c = i % GRID;
+                        const isTarget = targets.some(t => t.row === r && t.col === c);
+                        const isBlk    = blocks.some(b => b.row === r && b.col === c);
+                        const isHint   = hintDir && !isBlk && !isTarget && !balls.some(b => b.row === r && b.col === c && b.locked);
+                        // Show hint arrow only in cells that contain unlocked balls
+                        const hasBall  = balls.some(b => b.row === r && b.col === c && !b.locked);
+                        let cls = 'cell';
+                        if (isTarget) cls += ' target';
+                        if (isBlk)    cls += ' block';
+                        if (hintDir && hasBall) cls += ` hint-${hintDir}`;
+                        return <div key={i} className={cls} />;
+                    })}
+                </div>
+
+                {/* Balls */}
+                {balls.map(ball => (
+                    <div key={ball.id} className="ball-layer"
+                        style={{ width: cs, height: cs, left: ball.col * cs, top: ball.row * cs }}>
+                        <div className={`ball${ball.locked ? ' locked' : ''}`} />
+                    </div>
+                ))}
+            </div>
+
+            {/* Controls */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: boardPx }}>
+                <button className="btn btn-white" onClick={doUndo} disabled={!history.length || isAnimating}>Undo</button>
+                <button className="btn btn-white" onClick={doReset}>Reset</button>
+            </div>
+        </div>
+    );
+}
+
+// ─── Main app ───────────────────────────────────────────────────────────────
+
+function App() {
+    const [numBalls,  setNumBalls]  = useState(3);
+    const [numBlocks, setNumBlocks] = useState(3);
+    const [minMoves,  setMinMoves]  = useState(4);
+    const [batch,     setBatch]     = useState([]);
+    const [batchIdx,  setBatchIdx]  = useState(-1);
+    const [log,       setLog]       = useState('Ready');
+    const [isSearching, setIsSearching] = useState(false);
+    const [showHint,  setShowHint]  = useState(false);
+    const [ledger,    setLedger]    = useState('');
+
+    const BOARD_PX = 420;
+    const BATCH_SIZE = 10;
+    const MAX_ATTEMPTS = 5000;
+    const BFS_MAX = 20; // cap BFS depth to keep it snappy
+
+    const generateBatch = () => {
+        setIsSearching(true);
+        setLog('Scanning...');
+        setShowHint(false);
+        setBatch([]);
+        setBatchIdx(-1);
+
+        setTimeout(() => {
+            const found = [];
+            let attempts = 0;
+
+            while (found.length < BATCH_SIZE && attempts < MAX_ATTEMPTS) {
+                attempts++;
+                const { balls, targets, blocks } = generateLayout(numBalls, numBlocks);
+                const { solvable, par, solution } = bfsSolve(balls, targets, blocks, BFS_MAX);
+                if (solvable && par >= minMoves) {
+                    found.push({ balls, targets, blocks, par, solution });
+                }
+            }
+
+            setBatch(found);
+            setBatchIdx(found.length > 0 ? 0 : -1);
+            setLog(found.length > 0
+                ? `Found ${found.length} puzzle${found.length > 1 ? 's' : ''} in ${attempts} attempts`
+                : 'No puzzles found — try fewer balls or lower Min Moves');
+            setIsSearching(false);
+        }, 50);
+    };
+
+    const copyToLedger = () => {
+        const p = batch[batchIdx];
+        const fmt = arr => `[${arr.map(([r,c]) => `[${r},${c}]`).join(',')}]`;
+        const ballArr   = p.balls.map(b   => [b.row, b.col]);
+        const targetArr = p.targets.map(t => [t.row, t.col]);
+        const blockArr  = p.blocks.map(b  => [b.row, b.col]);
+        const dirMap    = { up:'U', down:'D', left:'L', right:'R' };
+        const solution  = p.solution.map(d => dirMap[d]).join('');
+        const line = `{ balls: ${fmt(ballArr)}, targets: ${fmt(targetArr)}, blocks: ${fmt(blockArr)}, par: ${p.par}, solution: "${solution}" },\n`;
+        setLedger(prev => prev + line);
+    };
+
+    const currentPuzzle = batchIdx >= 0 ? batch[batchIdx] : null;
+
+    return (
+        <div style={{ display: 'flex', width: '100vw', height: '100vh' }}>
+
+            {/* ── Sidebar ── */}
+            <div id="sidebar">
+                <h1>Swipe Architect</h1>
+
+                {/* Sliders */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div>
+                        <span className="label">Balls / Targets: {numBalls}</span>
+                        <input type="range" min="1" max="5" value={numBalls}
+                            onChange={e => setNumBalls(Number(e.target.value))} />
+                    </div>
+                    <div>
+                        <span className="label">Blocks: {numBlocks}</span>
+                        <input type="range" min="0" max="5" value={numBlocks}
+                            onChange={e => setNumBlocks(Number(e.target.value))} />
+                    </div>
+                    <div>
+                        <span className="label">Minimum Moves: {minMoves}</span>
+                        <input type="range" min="3" max="20" value={minMoves}
+                            onChange={e => setMinMoves(Number(e.target.value))} />
+                    </div>
+                </div>
+
+                <button className="btn btn-black" onClick={generateBatch} disabled={isSearching}>
+                    {isSearching ? 'Searching…' : 'Generate Batch'}
+                </button>
+
+                <p className="log">{log}</p>
+
+                {/* Batch nav */}
+                {batchIdx >= 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 12, borderTop: '1.5px solid #e2e8f0' }}>
+                        <div className="nav-row">
+                            <span className="puzzle-label">Puzzle {batchIdx + 1} / {batch.length}</span>
+                            <div style={{ display: 'flex' }}>
+                                <div className={`nav-arrow ${batchIdx === 0 ? 'disabled' : ''}`}
+                                    onClick={() => { setShowHint(false); setBatchIdx(i => Math.max(0, i - 1)); }}>←</div>
+                                <div className={`nav-arrow ${batchIdx === batch.length - 1 ? 'disabled' : ''}`}
+                                    onClick={() => { setShowHint(false); setBatchIdx(i => Math.min(batch.length - 1, i + 1)); }}>→</div>
+                            </div>
+                        </div>
+
+                        <button className="btn btn-blue"
+                            onClick={() => setShowHint(h => !h)}>
+                            {showHint ? 'Hide Hint' : 'Show Next Move'}
+                        </button>
+
+                        <div className="btn-row">
+                            <button className="btn btn-green" onClick={copyToLedger}>Add to Ledger</button>
+                        </div>
+
+                        {/* Solution path */}
+                        {showHint && currentPuzzle && (
+                            <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 4, padding: '10px 12px' }}>
+                                <span className="label" style={{ marginBottom: 6 }}>Solution path ({currentPuzzle.par} moves)</span>
+                                <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '0.15em' }}>
+                                    {currentPuzzle.solution.map(d =>
+                                        ({ up:'↑', down:'↓', left:'←', right:'→' }[d])
+                                    ).join(' ')}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Ledger */}
+                <div style={{ marginTop: 'auto' }}>
+                    <span className="label">Ledger</span>
+                    <div className="ledger-code">{ledger || '// Approved puzzles...'}</div>
+                    {ledger && (
+                        <button className="btn btn-white" style={{ marginTop: 8 }}
+                            onClick={() => navigator.clipboard.writeText(ledger)}>
+                            Copy Ledger
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Game view ── */}
+            <div id="game-view">
+                {currentPuzzle
+                    ? <Board key={batchIdx} puzzle={currentPuzzle} showHint={showHint} boardPx={BOARD_PX} />
+                    : <div style={{ color: '#94a3b8', fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                        Generate a batch to begin
+                      </div>
+                }
+            </div>
+
+        </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

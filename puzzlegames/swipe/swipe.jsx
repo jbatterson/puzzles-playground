@@ -701,12 +701,16 @@ export default function Swipe() {
           border: 2px solid #0a0a0a;
           min-width: 280px;
           touch-action: none;
+          cursor: default;
           -webkit-tap-highlight-color: transparent;
           -webkit-touch-callout: none;
+          user-select: none;
         }
-        .swipe-game #swipe-canvas-wrap * {
-          -webkit-tap-highlight-color: transparent;
-          -webkit-touch-callout: none;
+        /* iOS paints tap highlight on the hit target; grid cells were the target. Pass touches
+           through to #swipe-canvas-wrap (pointer handlers stay on the wrap). */
+        .swipe-game .grid-overlay,
+        .swipe-game .grid-line {
+          pointer-events: none;
         }
         .swipe-game .grid-overlay {
           position: absolute;
@@ -719,9 +723,6 @@ export default function Swipe() {
           border: 1px solid rgba(0,0,0,0.1);
           box-sizing: border-box;
           position: relative;
-          -webkit-tap-highlight-color: transparent;
-          -webkit-touch-callout: none;
-          user-select: none;
         }
         .swipe-game .grid-line.target::after {
           content: '';

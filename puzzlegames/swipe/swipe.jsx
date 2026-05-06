@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
+import { SVG_UNROLLED, SVG_ROLLED } from './swipeBugSvgs.js'
 import puzzleData from './puzzles.js'
 import TopBar from '../../src/shared/TopBar.jsx'
 import DiceFace from '../../src/shared/DiceFace.jsx'
@@ -37,12 +38,12 @@ import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyP
 const DEFAULT_SWIPE_GRID = 7
 /** Match productiles/sumtiles board cell cap so small grids do not overscale. */
 const SWIPE_MAX_CELL_PX = 80
-const SWIPE_ANIM_MS = 260
+const SWIPE_ANIM_MS = 520
 const SWIPE_SUITE_MODAL_MS = 500
 const MAX_MOVE_DISPLAY = 99
 
 const SWIPE_TUTORIAL_HINT =
-  'Swipe or use arrow keys to slide every ball onto a red target. Balls lock when they land on a target.'
+  'Swipe or use arrow keys to slide every bug onto a yellow target. Bugs lock when they land on a target.'
 
 function getDailyPuzzles() {
   const key = getDailyKey()
@@ -332,6 +333,8 @@ export default function Swipe() {
   const [moves, setMoves] = useState(0)
   const [solved, setSolved] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [rollingDir, setRollingDir] = useState(null)
+  const [pendingLockIds, setPendingLockIds] = useState(() => new Set())
   const [postSolveCtaAttention, setPostSolveCtaAttention] = useState(false)
   /** Padding-box cell size — must use clientWidth/Height, not offsetWidth (excludes border). */
   const [cellW, setCellW] = useState(40)
@@ -462,16 +465,23 @@ export default function Swipe() {
       if (isAnimating || solved || !currentPuzzleData) return
       const { moved, balls: nb } = slide(dir, balls, targets, blocks, gridSize)
       if (!moved) return
+      const newlyLocked = new Set(
+        nb.filter((b) => b.locked && !balls.find((ob) => ob.id === b.id).locked).map((b) => b.id)
+      )
       const snap = balls.map((x) => ({ ...x }))
       const newHist = [...history, { balls: snap, moves }]
       const newMoves = moves + 1
       setHistory(newHist)
       setMoves(newMoves)
       setIsAnimating(true)
+      setRollingDir(dir)
+      setPendingLockIds(newlyLocked)
       setBalls(nb)
       if (animTimerRef.current) clearTimeout(animTimerRef.current)
       animTimerRef.current = window.setTimeout(() => {
         setIsAnimating(false)
+        setRollingDir(null)
+        setPendingLockIds(new Set())
         const done = checkSolved(nb, targets)
         if (done) {
           setSolved(true)
@@ -558,6 +568,8 @@ export default function Swipe() {
     setMoves(prev.moves)
     setHistory(newHist)
     setSolved(false)
+    setRollingDir(null)
+    setPendingLockIds(new Set())
     const data = currentPuzzleData
     if (data) {
       if (curateMode)
@@ -569,6 +581,8 @@ export default function Swipe() {
 
   const handleReset = useCallback(() => {
     if (!currentPuzzleData) return
+    setRollingDir(null)
+    setPendingLockIds(new Set())
     resetFromData(currentPuzzleData, null)
     if (curateMode) clearGameState('curate', curateIdx)
     else if (mode === 'daily') clearGameState(daily.key, dailyIdx)
@@ -724,18 +738,7 @@ export default function Swipe() {
           box-sizing: border-box;
           position: relative;
         }
-        .swipe-game .grid-line.target::after {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 40%;
-          height: 40%;
-          border-radius: 50%;
-          background: var(--swipe-red);
-          opacity: 0.25;
-        }
+        .swipe-game .grid-line.target { background: #ffea80; }
         .swipe-game .grid-line.block { background: var(--swipe-black); }
         .swipe-game .ball-layer {
           position: absolute;
@@ -743,16 +746,25 @@ export default function Swipe() {
           align-items: center;
           justify-content: center;
           pointer-events: none;
-          transition: left 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-            top 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          will-change: left, top;
+          transition: left 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+            top 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
-        .swipe-game .ball {
-          width: 78%;
-          height: 78%;
-          border-radius: 50%;
-          background: var(--swipe-red);
+        .swipe-game .bug-svg {
+          width: 92%;
+          height: 92%;
+          display: block;
         }
-        .swipe-game .ball.locked { opacity: 0.5; }
+        @keyframes swipe-rollFlip {
+          0%, 49%   { transform: scaleY(1); }
+          50%, 100% { transform: scaleY(-1); }
+        }
+        @keyframes swipe-rollFlipLR {
+          0%, 49%   { transform: rotate(90deg) scaleY(1); }
+          50%, 100% { transform: rotate(90deg) scaleY(-1); }
+        }
+        .swipe-game .bug-svg.rolling-ud { animation: swipe-rollFlip   0.18s steps(1) infinite; }
+        .swipe-game .bug-svg.rolling-lr { animation: swipe-rollFlipLR 0.18s steps(1) infinite; }
         .swipe-game .stats-num.at-par { color: var(--swipe-green); }
         .swipe-game .stats-num.over-par { color: var(--swipe-red); }
       `}</style>
@@ -905,20 +917,29 @@ export default function Swipe() {
             ))}
           </div>
           <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-            {balls.map((b) => (
-              <div
-                key={b.id}
-                className="ball-layer"
-                style={{
-                  width: cellW,
-                  height: cellH,
-                  left: b.col * cellW,
-                  top: b.row * cellH,
-                }}
-              >
-                <div className={`ball${b.locked ? ' locked' : ''}`} />
-              </div>
-            ))}
+            {balls.map((b) => {
+              const isRolling = rollingDir !== null && (!b.locked || pendingLockIds.has(b.id))
+              const useRolled = isRolling
+              const isLR = rollingDir === 'left' || rollingDir === 'right'
+              const rollingClass = isRolling ? (isLR ? ' rolling-lr' : ' rolling-ud') : ''
+              return (
+                <div
+                  key={b.id}
+                  className="ball-layer"
+                  style={{
+                    width: cellW,
+                    height: cellH,
+                    left: b.col * cellW,
+                    top: b.row * cellH,
+                  }}
+                >
+                  <div
+                    className={`bug-svg${rollingClass}`}
+                    dangerouslySetInnerHTML={{ __html: useRolled ? SVG_ROLLED : SVG_UNROLLED }}
+                  />
+                </div>
+              )
+            })}
           </div>
         </div>
       </div>
@@ -955,12 +976,9 @@ export default function Swipe() {
             <SwipeIcon size={80} />
           </div>
           <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
-            Use the <b>arrow keys</b> or <b>swipe on the board</b> to slide all balls in a
-            direction. Balls stop at the edge, a black block, or another ball. A ball on a target
-            locks in place.
-          </p>
-          <p style={{ marginTop: '1rem', fontSize: '0.95rem', color: '#555' }}>
-            {SWIPE_TUTORIAL_HINT}
+            Use the <b>arrow keys</b> or <b>swipe on the board</b> to slide all bugs in a
+            direction. Bugs stop at the edge, a black block, or another bug. A bug on a{' '}
+            <b>yellow target</b> locks in place.
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

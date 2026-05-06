@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Swipe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --yellow: #FFD600;
+            --red: #FF3B30;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+            --max-stage-size: calc(100dvh - 300px);
+        }
+        @supports not (height: 100dvh) {
+            :root { --max-stage-size: calc(100vh - 300px); }
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Outfit', sans-serif;
+        }
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; min-height: 100vh;
+            background-color: var(--white);
+            display: flex; justify-content: center; align-items: flex-start;
+        }
+        #root { width: 100%; max-width: 500px; }
+        .game-container {
+            display: flex; flex-direction: column;
+            width: 100%; padding: 20px;
+            overscroll-behavior-y: contain;
+            height: 100vh;
+            height: -webkit-fill-available;
+        }
+        .header-row {
+            display: grid;
+            grid-template-columns: 100px 1fr 100px;
+            align-items: center; width: 100%;
+            margin-bottom: 1.5rem;
+        }
+        .title {
+            grid-column: 2; text-align: center; margin: 0;
+            letter-spacing: 0.15em; text-transform: uppercase;
+            font-weight: 900; font-size: 1.8rem;
+        }
+        .help-btn {
+            grid-column: 3; justify-self: end;
+            width: 32px; height: 32px; border-radius: 50%;
+            border: 2px solid var(--black);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-weight: 900;
+        }
+        .left-spacer { grid-column: 1; }
+        .level-nav {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            margin-bottom: 1.5rem; width: 100%;
+        }
+        .selector-group {
+            display: flex; align-items: center; justify-content: flex-start; gap: 2px;
+        }
+        .nav-arrow {
+            background: none; border: none;
+            font-size: 1.8rem; cursor: pointer; color: var(--black);
+            line-height: 1; padding: 0 4px;
+        }
+        .nav-arrow.disabled { opacity: 0.1; cursor: default; pointer-events: none; }
+        .level-label { text-align: center; }
+        .level-label .sub { display: block; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        .level-label .num { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+        .stats-group {
+            text-align: right;
+            display: flex; flex-direction: column; align-items: flex-end;
+        }
+        .stats-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        .stats-num   { font-size: 1.8rem; font-weight: 900; line-height: 1; }
+        .stats-num.at-par   { color: #16a34a; }
+        .stats-num.over-par { color: var(--red); }
+        .game-stage {
+            width: 100%;
+            display: flex; justify-content: center; align-items: center;
+            padding: 10px 0;
+            flex-grow: 1; flex-shrink: 1; min-height: 0;
+            touch-action: none;
+        }
+        #canvas-wrapper {
+            width: 100%;
+            max-width: min(460px, var(--max-stage-size));
+            aspect-ratio: 1 / 1;
+            position: relative; margin: 0 auto;
+            background-color: var(--white);
+            border: 2px solid var(--black);
+            min-width: 280px;
+        }
+        .grid-overlay {
+            position: absolute; inset: 0;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(7, 1fr);
+            width: 100%; height: 100%;
+        }
+        .grid-line {
+            border: 1px solid rgba(0,0,0,0.1);
+            box-sizing: border-box; position: relative;
+        }
+        .grid-line.target {
+            background: #ffea80;
+        }
+
+        .grid-line.block { background: var(--black); }
+
+        /* BUGS */
+        .ball-layer {
+            position: absolute;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none; will-change: left, top;
+            transition: left 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                        top  0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .bug-svg {
+            width: 92%; height: 92%;
+            display: block;
+        }
+        @keyframes rollFlip {
+            0%, 49%   { transform: scaleY(1); }
+            50%, 100% { transform: scaleY(-1); }
+        }
+        @keyframes rollFlipLR {
+            0%, 49%   { transform: rotate(90deg) scaleY(1); }
+            50%, 100% { transform: rotate(90deg) scaleY(-1); }
+        }
+        .bug-svg.rolling-ud { animation: rollFlip   0.18s steps(1) infinite; }
+        .bug-svg.rolling-lr { animation: rollFlipLR 0.18s steps(1) infinite; }
+
+        .button-tray {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 12px; margin-bottom: 12px;
+        }
+        .btn-primary, .btn-secondary {
+            width: 100%; min-height: 60px; border-radius: 4px;
+            font-weight: 900; text-transform: uppercase;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 1rem; letter-spacing: 0.05em;
+        }
+        .btn-primary  { background: var(--black); color: var(--white); border: none; }
+        .btn-secondary { background: var(--white); color: var(--black); border: 2px solid var(--black); }
+        .btn-primary:active, .btn-secondary:active {
+            transform: scale(0.96); filter: brightness(0.9); transition: transform 0.05s;
+        }
+        .btn-secondary:disabled {
+            opacity: 0.35; cursor: not-allowed;
+            border-color: rgba(0,0,0,0.35); color: rgba(0,0,0,0.45); transform: none;
+        }
+        .goal-text {
+            text-align: center; font-weight: 900; text-transform: uppercase;
+            letter-spacing: 0.06em; padding: 14px 0;
+            color: rgba(0,0,0,0.4); font-size: 0.78rem;
+        }
+        .solved-banner {
+            display: none; text-align: center; font-weight: 900;
+            text-transform: uppercase; letter-spacing: 0.08em;
+            padding: 14px 0; font-size: 0.95rem;
+        }
+        .solved-banner.visible { display: block; }
+        .solved-banner.good { color: #16a34a; }
+        .solved-banner.ok   { color: rgba(0,0,0,0.55); }
+        #instructions-overlay {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--white);
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 100; padding: 40px 20px; overflow-y: auto;
+        }
+        .modal-content {
+            width: 100%; max-width: 500px; padding: 40px 20px;
+            display: flex; flex-direction: column; gap: 20px; position: relative;
+        }
+        .modal-close {
+            position: absolute; top: 16px; right: 0;
+            background: none; border: none;
+            font-size: 22px; font-weight: 900; cursor: pointer; padding: 4px;
+        }
+        .modal-content p { font-size: 1rem; line-height: 1.65; text-align: center; }
+        .key-hint { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+        .key {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px;
+            background: var(--white); border: 2px solid var(--black);
+            border-radius: 4px; font-size: 1.1rem; font-weight: 900;
+        }
+        @media (hover: hover) {
+            .btn-primary, .btn-secondary { transition: transform 0.08s ease, filter 0.12s ease; }
+            .btn-primary:not(:disabled):hover  { filter: brightness(1.08); transform: translateY(-1px); }
+            .btn-secondary:not(:disabled):hover { background-color: rgba(0,0,0,0.06); transform: translateY(-1px); }
+            .help-btn:hover { transform: scale(1.08); background-color: rgba(0,0,0,0.06); }
+            .nav-arrow:not(.disabled):hover { opacity: 0.55; }
+        }
+    </style>
+</head>
+<body>
+<div id="root">
+<div class="game-container">
+    <div class="header-row">
+        <div class="left-spacer"></div>
+        <h1 class="title">Swipe</h1>
+        <div class="help-btn" id="help-btn">?</div>
+    </div>
+    <div class="level-nav">
+        <div class="selector-group">
+            <button class="nav-arrow disabled" id="prev-btn">&#8592;</button>
+            <button class="nav-arrow" id="next-btn">&#8594;</button>
+        </div>
+        <div class="level-label">
+            <span class="sub">Puzzle</span>
+            <span class="num" id="puzzle-num">1</span>
+        </div>
+        <div class="stats-group">
+            <span class="stats-label">Moves</span>
+            <span class="stats-num" id="move-counter">0</span>
+        </div>
+    </div>
+    <div class="game-stage">
+        <div id="canvas-wrapper">
+            <div class="grid-overlay" id="grid-overlay"></div>
+            <div id="ball-container"></div>
+        </div>
+    </div>
+    <div class="button-tray">
+        <button class="btn-secondary" id="undo-btn" disabled>Undo</button>
+        <button class="btn-secondary" id="reset-btn">Reset</button>
+    </div>
+    <div class="goal-text" id="goal-text">Par: — &nbsp;|&nbsp; Slide all bugs onto their targets</div>
+    <div class="solved-banner" id="solved-banner"></div>
+    <div id="instructions-overlay">
+        <div class="modal-content">
+            <button class="modal-close" id="modal-close">✕</button>
+            <h1 class="title" style="text-align:center; margin-bottom:0.5rem;">Swipe</h1>
+            <p>
+                Use the <strong>arrow keys</strong> to slide all bugs in a direction.<br><br>
+                Bugs slide until they hit the <strong>edge</strong>, a <strong>black block</strong>, or another <strong>bug</strong>.<br><br>
+                A bug that rolls onto a <strong>target</strong> locks in place and acts as a blocker.
+            </p>
+            <div class="key-hint">
+                <span class="key">←</span>
+                <span class="key">↑</span>
+                <span class="key">↓</span>
+                <span class="key">→</span>
+            </div>
+            <button class="btn-primary" id="play-btn">Play</button>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+    const PUZZLES = [
+        { balls: [[6,5],[3,1],[0,5]], targets: [[2,4],[5,2],[5,1]], blocks: [[1,0],[3,4],[5,4]], par: 7 },
+        { balls: [[5,0],[3,1],[3,3]], targets: [[2,4],[1,2],[2,1]], blocks: [[5,4],[1,1],[6,2]], par: 12 },
+        { balls: [[6,5],[4,0],[5,4]], targets: [[2,2],[3,5],[1,6]], blocks: [[2,3],[6,4],[1,5]], par: 9 },
+        { balls: [[2,0],[0,2],[5,3]], targets: [[5,1],[4,2],[1,3]], blocks: [[3,2],[0,3],[2,6]], par: 11 },
+        { balls: [[2,3],[1,0],[1,5]], targets: [[5,1],[5,3],[4,2]], blocks: [[1,6],[2,1],[0,5]], par: 8 },
+        { balls: [[6,2],[6,3],[4,3]], targets: [[1,3],[0,4],[4,4]], blocks: [[0,0],[2,1],[1,2]], par: 7 },
+    ];
+
+    const GRID = 7;
+    let puzzleIdx=0, balls=[], targets=[], blocks=[], history=[], moves=0, isAnimating=false, solved=false;
+
+    const wrapper      = document.getElementById('canvas-wrapper');
+    const ballContainer= document.getElementById('ball-container');
+    const undoBtn      = document.getElementById('undo-btn');
+    const resetBtn     = document.getElementById('reset-btn');
+    const moveCounter  = document.getElementById('move-counter');
+    const gridOverlay  = document.getElementById('grid-overlay');
+    const puzzleNumEl  = document.getElementById('puzzle-num');
+    const prevBtn      = document.getElementById('prev-btn');
+    const nextBtn      = document.getElementById('next-btn');
+    const goalText     = document.getElementById('goal-text');
+    const solvedBanner = document.getElementById('solved-banner');
+
+    // ── SVG assets ────────────────────────────────────────────────────────────
+    const SVG_UNROLLED = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><defs><style>.c{fill:#74bee7}</style></defs><path d="M129.62,84.52c1.94,0,3.52-1.58,3.52-3.52s-1.58-3.52-3.52-3.52h-2.85c-.24-4.77-.96-9.4-2.11-13.81l2.2-.34c1.91-.3,3.24-2.1,2.94-4.02-.3-1.91-2.1-3.24-4.02-2.94l-3.29.51c-6.32-16.59-18.95-29.24-34.38-33.88l5.15-12.93c.72-1.8-.17-3.86-1.97-4.57-1.8-.72-3.86.17-4.57,1.97l-5.58,14.02c-2.01-.27-4.06-.42-6.13-.42s-4.12.15-6.13.42l-5.58-14.02c-.72-1.8-2.77-2.68-4.57-1.97-1.8.72-2.68,2.77-1.97,4.57l5.15,12.93c-15.43,4.65-28.06,17.29-34.38,33.88l-3.29-.51c-1.91-.3-3.72,1.03-4.02,2.94-.3,1.91,1.03,3.72,2.94,4.02l2.2.34c-1.15,4.41-1.87,9.03-2.11,13.81h-2.85c-1.94,0-3.52,1.58-3.52,3.52s1.58,3.52,3.52,3.52h2.85c.24,4.76.96,9.37,2.1,13.76l-2.19.34c-1.91.3-3.24,2.1-2.94,4.02.3,1.91,2.1,3.24,4.02,2.94l3.28-.51c2.06,5.42,4.79,10.42,8.08,14.85l-1.66.51c-1.85.57-2.9,2.55-2.33,4.4.57,1.85,2.55,2.9,4.4,2.33l4.54-1.4c9.16,9.43,21.24,15.17,34.47,15.17s25.31-5.74,34.47-15.17l4.54,1.4c1.85.57,3.83-.48,4.4-2.33.57-1.85-.48-3.83-2.33-4.4l-1.66-.51c3.29-4.44,6.02-9.44,8.08-14.85l3.28.51c1.91.3,3.72-1.03,4.02-2.94.3-1.91-1.03-3.72-2.94-4.02l-2.19-.34c1.14-4.4,1.86-9,2.1-13.76h2.85Z"/><path class="c" d="M29.53,77h90.95c-.27-4.15-.95-8.17-2-12H31.53c-1.05,3.83-1.73,7.85-2,12Z"/><path class="c" d="M29.53,85c.27,4.15.95,8.17,2,12h86.94c1.05-3.83,1.73-7.85,2-12H29.53Z"/><path class="c" d="M34.39,105c1.95,4.39,4.41,8.43,7.3,12h66.62c2.89-3.57,5.35-7.61,7.3-12H34.39Z"/><path class="c" d="M49.89,125c7.2,5.5,15.83,8.71,25.11,8.71s17.91-3.21,25.11-8.71h-50.23Z"/><path class="c" d="M115.61,57c-7.56-17.04-22.9-28.71-40.61-28.71s-33.05,11.67-40.61,28.71h81.22Z"/><circle cx="48.21" cy="32.55" r="9.79"/><circle cx="101.95" cy="32.55" r="9.79"/></svg>`;
+
+    const SVG_ROLLED = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150"><circle cx="75" cy="75.14" r="54.06"/><path fill="#74bee7" d="M28.13,67.14h93.73c-.59-3.49-1.56-6.85-2.87-10.04H31c-1.31,3.19-2.28,6.55-2.87,10.04Z"/><path fill="#5fb9ff" d="M27.45,75.14c0,3.45.38,6.8,1.07,10.04h92.95c.7-3.24,1.07-6.59,1.07-10.04H27.45Z"/><path fill="#5fb9ff" d="M31,93.18c1.47,3.59,3.37,6.96,5.63,10.04h76.73c2.26-3.09,4.16-6.45,5.63-10.04H31Z"/><path fill="#5fb9ff" d="M114.78,49.1c-2.42-3.68-5.33-7-8.64-9.88h-62.27c-3.31,2.88-6.23,6.2-8.64,9.88h79.55Z"/><path fill="#5fb9ff" d="M44.05,111.22c8.32,7.14,19.13,11.47,30.95,11.47s22.63-4.33,30.95-11.47h-61.9Z"/><path fill="#5fb9ff" d="M93.24,31.22c-5.62-2.33-11.77-3.63-18.24-3.63s-12.62,1.29-18.24,3.63h36.47Z"/></svg>`;
+
+    // ── Grid ──────────────────────────────────────────────────────────────────
+    const cellEls = [];
+    for (let i = 0; i < GRID*GRID; i++) {
+        const c = document.createElement('div');
+        c.className = 'grid-line';
+        gridOverlay.appendChild(c);
+        cellEls.push(c);
+    }
+    function cellEl(r,c) { return cellEls[r*GRID+c]; }
+    function applyGridClasses() {
+        cellEls.forEach(el => { el.className = 'grid-line'; });
+        targets.forEach(t => cellEl(t.row,t.col).classList.add('target'));
+        blocks.forEach(b  => cellEl(b.row,b.col).classList.add('block'));
+    }
+
+    // ── Geometry ──────────────────────────────────────────────────────────────
+    function cellSize()    { return wrapper.offsetWidth / GRID; }
+    function ballLeft(col) { return col * cellSize(); }
+    function ballTop(row)  { return row * cellSize(); }
+
+    // ── Load puzzle ───────────────────────────────────────────────────────────
+    function loadPuzzle(idx) {
+        puzzleIdx = idx;
+        const p = PUZZLES[idx];
+        balls   = p.balls.map(([r,c],i) => ({ id:i, row:r, col:c, locked:false }));
+        targets = p.targets.map(([r,c])  => ({ row:r, col:c }));
+        blocks  = p.blocks.map(([r,c])   => ({ row:r, col:c }));
+        history=[]; moves=0; solved=false;
+        moveCounter.textContent='0';
+        moveCounter.className='stats-num';
+        puzzleNumEl.textContent=idx+1;
+        goalText.textContent=`Par: ${p.par}  |  Slide all bugs onto their targets`;
+        goalText.style.display='block';
+        solvedBanner.className='solved-banner';
+        prevBtn.classList.toggle('disabled', idx===0);
+        nextBtn.classList.toggle('disabled', idx===PUZZLES.length-1);
+        ballContainer.innerHTML='';
+        applyGridClasses();
+        renderBalls(false, false, null, new Set());
+        updateButtons();
+    }
+
+    // ── Bug rendering ─────────────────────────────────────────────────────────
+    function bugClass(ball, rolling, dir, pendingLock) {
+        let cls = 'bug-svg';
+        const isRolling = rolling && (!ball.locked || pendingLock.has(ball.id));
+        if (isRolling) {
+            cls += (dir==='left'||dir==='right') ? ' rolling-lr' : ' rolling-ud';
+        }
+        return cls;
+    }
+
+    function createBallEl(ball, rolling, dir, pendingLock) {
+        const div = document.createElement('div');
+        div.className = 'ball-layer';
+        div.id = `ball-${ball.id}`;
+        const cs = cellSize();
+        div.style.cssText = `width:${cs}px;height:${cs}px;left:${ballLeft(ball.col)}px;top:${ballTop(ball.row)}px;transition:none`;
+        const svg = document.createElement('div');
+        svg.className = bugClass(ball, rolling, dir, pendingLock);
+        const useRolled = (rolling && (!ball.locked || pendingLock.has(ball.id))) || (ball.locked && !pendingLock.has(ball.id));
+        svg.innerHTML = useRolled ? SVG_ROLLED : SVG_UNROLLED;
+        svg.dataset.rolled = String(useRolled);
+        div.appendChild(svg);
+        return div;
+    }
+
+    function renderBalls(animate=true, rolling=false, dir=null, pendingLock=new Set()) {
+        const cs = cellSize();
+        balls.forEach(ball => {
+            let el = document.getElementById(`ball-${ball.id}`);
+            const isRolling = rolling && (!ball.locked || pendingLock.has(ball.id));
+            const useRolled = isRolling;
+            if (!el) {
+                el = createBallEl(ball, rolling, dir, pendingLock);
+                ballContainer.appendChild(el);
+                requestAnimationFrame(() => { el.style.transition=''; });
+            } else {
+                if (!animate) el.style.transition='none';
+                el.style.width  = cs+'px';
+                el.style.height = cs+'px';
+                el.style.left   = ballLeft(ball.col)+'px';
+                el.style.top    = ballTop(ball.row)+'px';
+                const inner = el.firstChild;
+                const newClass = bugClass(ball, rolling, dir, pendingLock);
+                if (inner.className !== newClass || inner.dataset.rolled !== String(useRolled)) {
+                    inner.className = newClass;
+                    inner.innerHTML = useRolled ? SVG_ROLLED : SVG_UNROLLED;
+                    inner.dataset.rolled = String(useRolled);
+                }
+                if (!animate) requestAnimationFrame(() => { el.style.transition=''; });
+            }
+        });
+    }
+
+    // ── Solve check ───────────────────────────────────────────────────────────
+    function checkSolved() {
+        const allDone = targets.every(t => balls.some(b => b.locked && b.row===t.row && b.col===t.col));
+        if (!allDone || solved) return;
+        solved = true;
+        const par = PUZZLES[puzzleIdx].par;
+        const good = moves <= par;
+        moveCounter.className = 'stats-num '+(good?'at-par':'over-par');
+        goalText.style.display = 'none';
+        solvedBanner.textContent = good
+            ? `Solved in ${moves} — at par! 🎉`
+            : `Solved in ${moves}  (par ${par})`;
+        solvedBanner.className = 'solved-banner visible '+(good?'good':'ok');
+    }
+
+    // ── Undo ──────────────────────────────────────────────────────────────────
+    function updateButtons() { undoBtn.disabled = history.length===0; }
+
+    function undo() {
+        if (history.length===0||isAnimating) return;
+        const prev = history.pop();
+        balls=prev.balls; moves=prev.moves; solved=false;
+        moveCounter.textContent=moves;
+        moveCounter.className='stats-num';
+        goalText.style.display='block';
+        solvedBanner.className='solved-banner';
+        renderBalls(false, false, null, new Set());
+        updateButtons();
+    }
+
+    // ── Slide ─────────────────────────────────────────────────────────────────
+    function isBlockAt(r,c) { return blocks.some(b => b.row===r && b.col===c); }
+
+    function slide(dir) {
+        if (isAnimating||solved) return;
+        const next = balls.map(b => ({ ...b }));
+        let sorted;
+        if (dir==='left')  sorted=next.slice().sort((a,b)=>a.col-b.col);
+        if (dir==='right') sorted=next.slice().sort((a,b)=>b.col-a.col);
+        if (dir==='up')    sorted=next.slice().sort((a,b)=>a.row-b.row);
+        if (dir==='down')  sorted=next.slice().sort((a,b)=>b.row-a.row);
+
+        let moved=false;
+        sorted.forEach(ball => {
+            if (ball.locked) return;
+            let r=ball.row, c=ball.col;
+            while (true) {
+                let nr=r, nc=c;
+                if (dir==='left')  nc--;
+                if (dir==='right') nc++;
+                if (dir==='up')    nr--;
+                if (dir==='down')  nr++;
+                if (nr<0||nr>=GRID||nc<0||nc>=GRID) break;
+                if (isBlockAt(nr,nc)) break;
+                if (next.some(o=>o.id!==ball.id&&o.row===nr&&o.col===nc)) break;
+                r=nr; c=nc;
+                if (targets.some(t=>t.row===r&&t.col===c)) { ball.locked=true; break; }
+            }
+            if (r!==ball.row||c!==ball.col) moved=true;
+            ball.row=r; ball.col=c;
+        });
+
+        if (!moved) return;
+
+        const pendingLock = new Set(
+            sorted.filter(b => b.locked && !balls.find(ob=>ob.id===b.id).locked).map(b=>b.id)
+        );
+
+        history.push({ balls: balls.map(b=>({...b})), moves });
+        moves++;
+        moveCounter.textContent=moves;
+
+        sorted.forEach(u => {
+            const o = balls.find(b=>b.id===u.id);
+            o.row=u.row; o.col=u.col; o.locked=u.locked;
+        });
+
+        isAnimating=true;
+        renderBalls(true, true, dir, pendingLock);
+        setTimeout(() => {
+            isAnimating=false;
+            renderBalls(false, false, dir, new Set());
+            checkSolved();
+        }, 520);
+        updateButtons();
+    }
+
+    // ── Input ─────────────────────────────────────────────────────────────────
+    document.addEventListener('keydown', e => {
+        const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};
+        if (map[e.key]) { e.preventDefault(); slide(map[e.key]); }
+    });
+
+    undoBtn.addEventListener('click', undo);
+    resetBtn.addEventListener('click', () => loadPuzzle(puzzleIdx));
+    prevBtn.addEventListener('click', () => { if(puzzleIdx>0) loadPuzzle(puzzleIdx-1); });
+    nextBtn.addEventListener('click', () => { if(puzzleIdx<PUZZLES.length-1) loadPuzzle(puzzleIdx+1); });
+    document.getElementById('modal-close').addEventListener('click', () => {
+        document.getElementById('instructions-overlay').style.display='none';
+    });
+    document.getElementById('play-btn').addEventListener('click', () => {
+        document.getElementById('instructions-overlay').style.display='none';
+    });
+    document.getElementById('help-btn').addEventListener('click', () => {
+        document.getElementById('instructions-overlay').style.display='flex';
+    });
+    window.addEventListener('resize', () => renderBalls(false,false,null,new Set()));
+
+    loadPuzzle(0);
+</script>
+</body>
+</html>

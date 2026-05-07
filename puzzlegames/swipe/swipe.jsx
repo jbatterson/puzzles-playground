@@ -495,7 +495,18 @@ export default function Swipe() {
         persistNow(nb, newHist, newMoves, done)
       }, SWIPE_ANIM_MS)
     },
-    [balls, targets, blocks, history, moves, isAnimating, solved, currentPuzzleData, persistNow, gridSize]
+    [
+      balls,
+      targets,
+      blocks,
+      history,
+      moves,
+      isAnimating,
+      solved,
+      currentPuzzleData,
+      persistNow,
+      gridSize,
+    ]
   )
 
   useEffect(() => {
@@ -979,9 +990,9 @@ export default function Swipe() {
             <SwipeIcon size={80} />
           </div>
           <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
-            Use the <b>arrow keys</b> or <b>swipe on the board</b> to slide all bugs in a
-            direction. Bugs stop at the edge, a black block, or another bug. A bug on a{' '}
-            <b>yellow target</b> locks in place.
+            Use the <b>arrow keys</b> or <b>swipe on the board</b> to slide all bugs in a direction.
+            Bugs stop at the edge, a black block, or another bug. A bug on a <b>yellow target</b>{' '}
+            locks in place.
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

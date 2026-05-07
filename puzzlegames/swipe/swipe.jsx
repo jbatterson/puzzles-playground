@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
-import { SVG_UNROLLED, SVG_ROLLED } from './swipeBugSvgs.js'
+import { SVG_UNROLLED } from '../../src/shared/icons/swipeBugUnrolledSvg.js'
+import { SVG_ROLLED } from '../../src/shared/icons/swipeBugRolledSvg.js'
 import puzzleData from './puzzles.js'
 import TopBar from '../../src/shared/TopBar.jsx'
 import DiceFace from '../../src/shared/DiceFace.jsx'
@@ -10,7 +11,7 @@ import useSuiteCompletionTimer from '../../src/shared/useSuiteCompletionTimer.js
 import PlaygroundLinksModal from '../../src/shared/PlaygroundLinksModal.jsx'
 import useInstructionsGate from '../../src/shared/useInstructionsGate.js'
 import { MODAL_INTENTS } from '@shared-contracts/modalIntents.js'
-import { GAME_KEYS } from '@shared-contracts/gameChrome.js'
+import { GAME_KEYS, getGameChrome } from '@shared-contracts/gameChrome.js'
 import { PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
 import { CTA_LABELS } from '@shared-contracts/ctaLabels.js'
 import { persistHubDailySlot } from '@shared-contracts/hubEntry.js'
@@ -280,6 +281,7 @@ function PuzzleBoxes({
 }
 
 export default function Swipe() {
+  const chrome = getGameChrome(GAME_KEYS.SWIPE)
   const daily = useMemo(() => getDailyPuzzles(), [])
   const dateLabel = useMemo(() => getDateLabel(daily.key), [daily.key])
   const roster = useMemo(() => buildTierRoster(puzzleData), [])
@@ -771,7 +773,7 @@ export default function Swipe() {
       `}</style>
 
       <TopBar
-        title="Roly Poly"
+        title={chrome.title}
         onHome={() => {
           window.location.href = base
         }}

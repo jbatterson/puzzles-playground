@@ -77,7 +77,7 @@ function writeGeneric(filePath, data) {
 }
 
 const SWIPE_FILE_HEADER = `/**
- * Swipe daily tiers + tutorial. Grid size: easy 5×5, medium 6×6, hard 7×7 (omit \`size\` for 7×7).
+ * Roly Poly daily tiers + tutorial. Grid size: easy 5×5, medium 6×6, hard 7×7 (omit \`size\` for 7×7).
  */
 `
 

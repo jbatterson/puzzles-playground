@@ -50,7 +50,7 @@ function formatTilePuzzleForPuzzlesJs(puzzle) {
   return line
 }
 
-/** Swipe — matches puzzlegames/swipe/puzzles.js object shape */
+/** Roly Poly — matches puzzlegames/swipe/puzzles.js object shape */
 function formatSwipePuzzleForPuzzlesJs(puzzle) {
   if (!puzzle || typeof puzzle !== 'object') return null
   if (

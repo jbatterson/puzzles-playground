@@ -7,7 +7,7 @@ export const GAME_KEYS = Object.freeze({
 const GAME_CHROME = Object.freeze({
   [GAME_KEYS.SUMTILES]: { title: 'Sum Tiles', showStats: true },
   [GAME_KEYS.PRODUCTILES]: { title: 'Productiles', showStats: true },
-  [GAME_KEYS.SWIPE]: { title: 'Swipe', showStats: true },
+  [GAME_KEYS.SWIPE]: { title: 'Roly Poly', showStats: true },
 })
 
 export function getGameChrome(gameKey) {

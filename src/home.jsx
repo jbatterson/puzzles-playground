@@ -104,8 +104,8 @@ const GAMES = [
     key: 'swipe',
     href: `${base}puzzlegames/swipe/`,
     Icon: SwipeIcon,
-    title: 'Swipe',
-    desc: 'Slide every ball onto its target in as few moves as you can.',
+    title: 'Roly Poly',
+    desc: 'Swipe to roll every bug onto a yellow target.',
   },
 ]
 

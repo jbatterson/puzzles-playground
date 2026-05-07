@@ -1,14 +1,14 @@
 /**
- * Swipe daily tiers + tutorial. Grid size: easy 5×5, medium 6×6, hard 7×7 (omit `size` for 7×7).
+ * Roly Poly daily tiers + tutorial. Grid size: easy 5×5, medium 6×6, hard 7×7 (omit `size` for 7×7).
  */
 export default {
   tutorial: [
 
-    { size: 5, balls: [[4,2],[4,0]], targets: [[1,2],[3,1]], blocks: [[4,1],[1,3]], par: 8, solution: "RURDRDLU" },
-    { size: 5, balls: [[1,4],[1,0]], targets: [[4,2],[4,0]], blocks: [[2,0],[2,3]], par: 5, solution: "DRDLD" },
     { size: 5, balls: [[3,2],[4,1]], targets: [[1,1],[4,3]], blocks: [[1,2],[2,1]], par: 5, solution: "LURDL" },
     { size: 5, balls: [[3,4],[4,3]], targets: [[0,0],[3,0]], blocks: [[0,2],[1,1]], par: 5, solution: "DLULU" },
     { size: 5, balls: [[2,3],[4,4]], targets: [[1,2],[3,0]], blocks: [[3,2],[1,0]], par: 7, solution: "RULRDLU" },
+    { size: 5, balls: [[1,4],[1,0]], targets: [[4,2],[4,0]], blocks: [[2,0],[2,3]], par: 5, solution: "DRDLD" },
+    { size: 5, balls: [[4,2],[4,0]], targets: [[1,2],[3,1]], blocks: [[4,1],[1,3]], par: 8, solution: "RURDRDLU" },
 
   ],
   easy: [

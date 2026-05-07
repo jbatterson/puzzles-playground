@@ -10,7 +10,7 @@ import useSuiteCompletionTimer from '../../src/shared/useSuiteCompletionTimer.js
 import PlaygroundLinksModal from '../../src/shared/PlaygroundLinksModal.jsx'
 import useInstructionsGate from '../../src/shared/useInstructionsGate.js'
 import { MODAL_INTENTS } from '@shared-contracts/modalIntents.js'
-import { GAME_KEYS, getGameChrome } from '@shared-contracts/gameChrome.js'
+import { GAME_KEYS } from '@shared-contracts/gameChrome.js'
 import { PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
 import { CTA_LABELS } from '@shared-contracts/ctaLabels.js'
 import { persistHubDailySlot } from '@shared-contracts/hubEntry.js'
@@ -43,7 +43,7 @@ const SWIPE_SUITE_MODAL_MS = 500
 const MAX_MOVE_DISPLAY = 99
 
 const SWIPE_TUTORIAL_HINT =
-  'Swipe or use arrow keys to slide every bug onto a yellow target. Bugs lock when they land on a target.'
+  'Use arrow keys or swipes to slide every bug onto a yellow target. Bugs lock when they land on a target.'
 
 function getDailyPuzzles() {
   const key = getDailyKey()
@@ -280,7 +280,6 @@ function PuzzleBoxes({
 }
 
 export default function Swipe() {
-  const chrome = getGameChrome(GAME_KEYS.SWIPE)
   const daily = useMemo(() => getDailyPuzzles(), [])
   const dateLabel = useMemo(() => getDateLabel(daily.key), [daily.key])
   const roster = useMemo(() => buildTierRoster(puzzleData), [])
@@ -772,7 +771,7 @@ export default function Swipe() {
       `}</style>
 
       <TopBar
-        title={chrome.title}
+        title="Roly Poly"
         onHome={() => {
           window.location.href = base
         }}
@@ -971,7 +970,7 @@ export default function Swipe() {
         intent={MODAL_INTENTS.INSTRUCTIONS}
       >
         <h1 className="title" style={{ marginBottom: '2rem', textAlign: 'center' }}>
-          Swipe
+          Roly Poly
         </h1>
         <div style={{ flex: 1, textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>

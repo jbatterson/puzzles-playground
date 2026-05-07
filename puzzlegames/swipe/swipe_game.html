@@ -11,7 +11,6 @@
             --black: #000000;
             --white: #ffffff;
             --yellow: #FFD600;
-            --red: #FF3B30;
             -webkit-tap-highlight-color: transparent;
             -webkit-user-select: none;
             user-select: none;
@@ -84,7 +83,6 @@
         .stats-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
         .stats-num   { font-size: 1.8rem; font-weight: 900; line-height: 1; }
         .stats-num.at-par   { color: #16a34a; }
-        .stats-num.over-par { color: var(--red); }
         .game-stage {
             width: 100%;
             display: flex; justify-content: center; align-items: center;
@@ -393,7 +391,7 @@
         solved = true;
         const par = PUZZLES[puzzleIdx].par;
         const good = moves <= par;
-        moveCounter.className = 'stats-num '+(good?'at-par':'over-par');
+        moveCounter.className = 'stats-num'+(good?' at-par':'');
         goalText.style.display = 'none';
         solvedBanner.textContent = good
             ? `Solved in ${moves} — at par! 🎉`

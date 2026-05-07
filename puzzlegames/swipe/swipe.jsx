@@ -347,6 +347,10 @@ export default function Swipe() {
   const allDailyDoneCompletionRef = useRef(null)
   const completionMarkedRef = useRef(false)
 
+  useEffect(() => {
+    if (!solved) completionMarkedRef.current = false
+  }, [solved])
+
   const { hasSeenInstructions, showInstructions, setShowInstructions, closeInstructions } =
     useInstructionsGate('swipe:hasSeenInstructions', {
       openOnMount: !curateMode,
@@ -689,7 +693,6 @@ export default function Swipe() {
       <style>{`
         .swipe-game {
           --swipe-black: #000000;
-          --swipe-red: #ff3b30;
           --swipe-green: #16a34a;
           font-family: Outfit, system-ui, sans-serif;
           -webkit-tap-highlight-color: transparent;
@@ -766,7 +769,6 @@ export default function Swipe() {
         .swipe-game .bug-svg.rolling-ud { animation: swipe-rollFlip   0.18s steps(1) infinite; }
         .swipe-game .bug-svg.rolling-lr { animation: swipe-rollFlipLR 0.18s steps(1) infinite; }
         .swipe-game .stats-num.at-par { color: var(--swipe-green); }
-        .swipe-game .stats-num.over-par { color: var(--swipe-red); }
       `}</style>
 
       <TopBar
@@ -854,7 +856,7 @@ export default function Swipe() {
           <div className="stats-group stats-group--left">
             <span className="stats-label">Moves</span>
             <span
-              className={`stats-num ${solved ? (moves <= (getSwipeParMoves(currentPuzzleData) ?? 999) ? 'at-par' : 'over-par') : ''}`}
+              className={`stats-num${solved && moves <= (getSwipeParMoves(currentPuzzleData) ?? 999) ? ' at-par' : ''}`}
             >
               {Math.min(moves, MAX_MOVE_DISPLAY)}
             </span>

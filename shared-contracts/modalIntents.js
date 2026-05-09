@@ -4,6 +4,7 @@ export const MODAL_INTENTS = Object.freeze({
   STATS: 'stats',
   RESULTS: 'results',
   SETTINGS: 'settings',
+  ADD_TO_HOME_SCREEN: 'addToHomeScreen',
 })
 
 export const MODAL_CLOSE_ARIA_LABELS = Object.freeze({
@@ -12,6 +13,7 @@ export const MODAL_CLOSE_ARIA_LABELS = Object.freeze({
   [MODAL_INTENTS.STATS]: 'Close stats',
   [MODAL_INTENTS.RESULTS]: 'Close results',
   [MODAL_INTENTS.SETTINGS]: 'Close settings',
+  [MODAL_INTENTS.ADD_TO_HOME_SCREEN]: 'Close add to home instructions',
   default: 'Close modal',
 })
 
@@ -25,6 +27,7 @@ const MODAL_DIALOG_LABELS = Object.freeze({
   [MODAL_INTENTS.STATS]: 'Stats',
   [MODAL_INTENTS.RESULTS]: 'Results',
   [MODAL_INTENTS.SETTINGS]: 'Settings',
+  [MODAL_INTENTS.ADD_TO_HOME_SCREEN]: 'Add to Home Screen',
   default: 'Dialog',
 })
 

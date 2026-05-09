@@ -2,6 +2,7 @@ import React, { useMemo, useState, useCallback } from 'react'
 import TopBar from './shared/TopBar.jsx'
 import PlaygroundLinksModal from './shared/PlaygroundLinksModal.jsx'
 import SuiteSettingsModal from './shared/SuiteSettingsModal.jsx'
+import AddToHomeScreenModal from './shared/AddToHomeScreenModal.jsx'
 import './shared/style.css'
 import ProductilesIcon from './shared/icons/ProductilesIcon.jsx'
 import SumTilesIcon from './shared/icons/SumTilesIcon.jsx'
@@ -115,6 +116,7 @@ export default function Home() {
 
   const [suitePrefs, setSuitePrefs] = useState(() => readSuiteDashboardPreferences())
   const [showSettings, setShowSettings] = useState(false)
+  const [showAddToHomeGuide, setShowAddToHomeGuide] = useState(false)
   const refreshSuitePrefs = useCallback(() => setSuitePrefs(readSuiteDashboardPreferences()), [])
 
   const completions = useMemo(
@@ -465,6 +467,14 @@ export default function Home() {
         onClose={() => setShowSettings(false)}
         games={settingsGamesList}
         onSaved={refreshSuitePrefs}
+        onOpenAddToHomeGuide={() => {
+          setShowSettings(false)
+          setShowAddToHomeGuide(true)
+        }}
+      />
+      <AddToHomeScreenModal
+        show={showAddToHomeGuide}
+        onClose={() => setShowAddToHomeGuide(false)}
       />
       <PlaygroundLinksModal show={showLinks} onClose={() => setShowLinks(false)} />
     </>

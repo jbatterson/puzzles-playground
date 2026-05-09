@@ -15,6 +15,7 @@ import {
   trySetTierEnabled,
   writeSuiteDashboardPreferences,
 } from '@shared-contracts/suiteDashboardPreferences.js'
+import { shouldShowSafariAddToHomeInstructions } from '@shared-contracts/iosSafariAddToHome.js'
 
 const rowStyle = {
   display: 'flex',
@@ -86,10 +87,17 @@ function diceBtnStyle(puzzleOn, tierOn) {
 }
 
 /**
- * @param {{ show: boolean, onClose: () => void, games: { key: string, title: string, Icon: React.ComponentType<{ size?: number }> }[], onSaved?: () => void }} props
+ * @param {{ show: boolean, onClose: () => void, games: { key: string, title: string, Icon: React.ComponentType<{ size?: number }> }[], onSaved?: () => void, onOpenAddToHomeGuide?: () => void }} props
  */
-export default function SuiteSettingsModal({ show, onClose, games, onSaved }) {
+export default function SuiteSettingsModal({
+  show,
+  onClose,
+  games,
+  onSaved,
+  onOpenAddToHomeGuide,
+}) {
   const [prefs, setPrefs] = useState(() => readSuiteDashboardPreferences())
+  const [safariAddToHomeEligible, setSafariAddToHomeEligible] = useState(false)
 
   const bump = useCallback(() => {
     const next = readSuiteDashboardPreferences()
@@ -100,6 +108,10 @@ export default function SuiteSettingsModal({ show, onClose, games, onSaved }) {
   React.useEffect(() => {
     if (show) setPrefs(readSuiteDashboardPreferences())
   }, [show])
+
+  React.useEffect(() => {
+    setSafariAddToHomeEligible(shouldShowSafariAddToHomeInstructions())
+  }, [])
 
   const setPuzzleOn = (gameKey, on) => {
     writeSuiteDashboardPreferences({ puzzleOn: { [gameKey]: !!on } })
@@ -290,6 +302,47 @@ export default function SuiteSettingsModal({ show, onClose, games, onSaved }) {
           {timerOn ? 'TIMER ON' : 'TIMER OFF'}
         </span>
       </div>
+      {safariAddToHomeEligible && typeof onOpenAddToHomeGuide === 'function' ? (
+        <div
+          style={{
+            marginTop: '18px',
+            paddingTop: '18px',
+            borderTop: '1px solid rgba(26, 61, 91, 0.12)',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '0.78rem',
+              fontWeight: 900,
+              letterSpacing: '0.14em',
+              color: PUZZLE_SUITE_INK,
+              marginBottom: '10px',
+            }}
+          >
+            HOME SCREEN
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenAddToHomeGuide()}
+            style={{
+              width: '100%',
+              boxSizing: 'border-box',
+              padding: '14px 16px',
+              borderRadius: '10px',
+              border: `2px solid ${PUZZLE_SUITE_INK}`,
+              background: '#fff',
+              color: PUZZLE_SUITE_INK,
+              fontWeight: 900,
+              fontSize: '0.88rem',
+              letterSpacing: '0.08em',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+            }}
+          >
+            ADD TO HOME SCREEN
+          </button>
+        </div>
+      ) : null}
     </FloatingModalShell>
   )
 }

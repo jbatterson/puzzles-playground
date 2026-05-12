@@ -83,6 +83,26 @@ export default {
     { size: 6, balls: [[3,3],[5,0],[3,4]], targets: [[4,2],[1,4],[3,0]], blocks: [[4,4],[4,0],[2,4]], par: 11, solution: "DRDLDLURULD" },
     { size: 6, balls: [[4,3],[0,0],[2,2]], targets: [[1,4],[3,5],[5,5]], blocks: [[0,2],[5,4],[1,1]], par: 10, solution: "DLULDRDURD" },
     { size: 6, balls: [[3,3],[5,3],[4,3]], targets: [[2,5],[3,2],[0,1]], blocks: [[0,0],[0,3],[3,0]], par: 12, solution: "URDLDRDLURUL" },
+    { size: 6, balls: [[0,2],[1,1],[2,4]], targets: [[4,1],[3,3],[0,4]], blocks: [[2,0],[4,2],[4,0],[0,5],[2,1]], par: 12, solution: "DRDLDLURULUR" },
+    
+    { size: 6, balls: [[1,1],[2,0],[2,2]], targets: [[1,2],[4,2],[5,1]], blocks: [[5,2],[0,5],[4,1],[3,2],[1,0]], par: 13, solution: "DRDLDRURDLRUL" },
+    { size: 6, balls: [[4,2],[4,4],[2,5]], targets: [[4,5],[5,4],[2,1]], blocks: [[3,5],[4,1],[1,4],[0,5],[2,3]], par: 12, solution: "DLDLULDRURDR" },
+    { size: 6, balls: [[3,5],[1,0],[1,2]], targets: [[0,4],[4,3],[4,4]], blocks: [[3,1],[1,3],[0,0],[4,5],[4,2]], par: 14, solution: "DLDULDLURDRDUL" },
+    { size: 6, balls: [[0,3],[3,4],[3,5]], targets: [[0,1],[3,2],[4,1]], blocks: [[1,1],[4,5],[1,3],[3,3],[2,3]], par: 14, solution: "RDLDLRURDLURLD" },
+    { size: 6, balls: [[5,0],[3,3],[4,5]], targets: [[1,1],[0,1],[3,2]], blocks: [[3,5],[0,3],[5,2],[3,1],[2,0]], par: 12, solution: "LRURURDLULUL" },
+    { size: 6, balls: [[3,3],[4,0],[0,0]], targets: [[2,1],[2,5],[4,1]], blocks: [[1,5],[1,1],[4,2],[0,5],[5,3]], par: 12, solution: "LURLDRLURDRU" },
+    { size: 6, balls: [[1,3],[5,4],[0,5]], targets: [[0,0],[4,2],[3,4]], blocks: [[4,4],[3,2],[0,1],[2,0],[5,2]], par: 17, solution: "ULDLRDLURDULDLULU" },
+    { size: 6, balls: [[0,1],[0,0],[1,3]], targets: [[3,3],[4,3],[3,4]], blocks: [[5,0],[3,5],[2,4],[1,1],[4,5]], par: 13, solution: "LDRLDRDRULURD" },
+    { size: 6, balls: [[3,4],[1,4],[2,0]], targets: [[2,4],[5,1],[5,4]], blocks: [[0,5],[2,2],[4,5],[4,0],[5,0]], par: 13, solution: "LURULDRDLURDR" },
+    
+    { size: 6, balls: [[4,4],[2,2],[3,1]], targets: [[3,2],[3,3],[5,1]], blocks: [[5,2],[4,3],[2,3],[5,0]], par: 14, solution: "LDLURDLDRULDRU" },
+    { size: 6, balls: [[4,1],[0,1],[3,5]], targets: [[2,2],[1,3],[4,0]], blocks: [[2,5],[3,0],[1,1],[1,5]], par: 15, solution: "DRULULURURDLUDR" },
+    { size: 6, balls: [[2,3],[0,5],[4,5]], targets: [[1,2],[0,2],[5,3]], blocks: [[5,4],[5,1],[3,3],[3,5]], par: 14, solution: "URDLULDRDRULUR" },
+    { size: 6, balls: [[5,4],[0,2],[0,0]], targets: [[2,1],[5,5],[1,1]], blocks: [[0,4],[5,0],[1,0],[4,1]], par: 15, solution: "DRURDRURDLDRULR" },
+    { size: 6, balls: [[3,4],[0,5],[2,0]], targets: [[1,1],[3,1],[2,1]], blocks: [[3,3],[2,5],[3,0],[4,0]], par: 14, solution: "URDRDLURULULDR" },
+    { size: 6, balls: [[0,0],[3,5],[3,1]], targets: [[4,1],[5,1],[3,0]], blocks: [[2,5],[1,3],[2,1],[5,3]], par: 14, solution: "RULDLURDLDRULD" },
+    { size: 6, balls: [[4,0],[3,4],[5,0]], targets: [[2,1],[1,1],[1,5]], blocks: [[1,3],[0,3],[2,0],[3,5]], par: 16, solution: "DLURDLURURDLULDR" },
+   
 
     
   ],
@@ -202,5 +222,25 @@ export default {
     { size: 7, balls: [[6,1],[0,5],[2,0]], targets: [[1,1],[3,4],[5,4]], blocks: [[2,6],[5,5],[0,6],[5,6],[5,1]], par: 16, solution: "DLDRDRULULURDRUL" },
     { size: 7, balls: [[6,4],[6,2],[3,6]], targets: [[4,3],[1,0],[0,2]], blocks: [[0,3],[2,6],[4,5],[6,6],[0,4]], par: 18, solution: "RURULDLDRLURURDLUR" },
     
+    { size: 6, balls: [[0,4],[4,0],[4,2]], targets: [[4,3],[2,3],[2,4]], blocks: [[2,2],[4,4],[1,4],[0,3]], par: 20, solution: "DRURULDLURDLDRLURDRD" },
+    { size: 6, balls: [[5,0],[3,1],[3,2]], targets: [[3,3],[2,3],[3,5]], blocks: [[2,1],[1,5]], par: 20, solution: "LULURURDULDRDLURLDRU" },
+    { size: 6, balls: [[1,1],[0,0],[5,5]], targets: [[3,4],[1,4],[5,0]], blocks: [[0,4],[4,4],[5,2]], par: 20, solution: "URDRURDRURDLRULDLULD" },
+    { size: 6, balls: [[1,1],[0,0],[5,5]], targets: [[3,4],[1,4],[5,0]], blocks: [[0,4],[4,4],[5,2]], par: 20, solution: "URDRURDRURDLRULDLULD" },
+    { size: 6, balls: [[1,4],[0,2],[2,5]], targets: [[3,3],[1,3],[2,3]], blocks: [[4,0],[0,4],[4,1],[3,5],[1,0]], par: 20, solution: "DLRURULULDLDRULULDRD" },
+    { size: 6, balls: [[4,2],[3,1],[4,4]], targets: [[0,3],[2,2],[3,2]], blocks: [[0,4],[2,1],[0,0],[5,2],[4,0]], par: 20, solution: "DLULURULDLULURDLULDR" },
+    { size: 6, balls: [[3,0],[3,4],[4,4]], targets: [[4,1],[4,3],[3,1]], blocks: [[0,2],[1,4],[5,3],[0,1],[2,4]], par: 20, solution: "URULURDLULRDLULDRURD" },
+    { size: 6, balls: [[2,2],[2,5],[5,4]], targets: [[1,0],[1,5],[3,3]], blocks: [[3,1],[0,3],[3,0],[3,4],[5,3]], par: 20, solution: "RDLDRDLULDRDLURURULU" },
+    { size: 7, balls: [[5,6],[0,6],[0,3]], targets: [[2,2],[5,0],[2,5]], blocks: [[3,5],[5,5],[1,2],[2,3],[6,2]], par: 20, solution: "DLDRDLDLULULURURDULD" },
+    { size: 7, balls: [[3,0],[2,6],[0,3]], targets: [[0,5],[3,5],[5,6]], blocks: [[4,5],[4,2],[0,1],[3,3],[2,0]], par: 20, solution: "LULDLURULDLDRUDRDLUL" },
+    { size: 7, balls: [[6,6],[6,5],[0,2]], targets: [[4,4],[2,4],[4,1]], blocks: [[6,1],[0,3],[3,5],[2,1],[0,0]], par: 20, solution: "LULDLULDLDRDLURDRULD" },
+    { size: 7, balls: [[2,0],[0,5],[3,0]], targets: [[3,2],[5,4],[5,1]], blocks: [[4,0],[5,6],[0,0],[1,4],[2,1]], par: 20, solution: "URURURDRULDRDRURDLUR" },
+    { size: 7, balls: [[1,6],[1,0],[1,2]], targets: [[0,1],[4,5],[4,4]], blocks: [[5,3],[2,6],[4,2],[3,5],[6,1]], par: 20, solution: "DLDRDRDRUDLULURULDRD" },
+    { size: 7, balls: [[5,0],[0,4],[0,5]], targets: [[1,2],[4,1],[2,2]], blocks: [[4,3],[2,6],[4,0],[0,2]], par: 20, solution: "RDLRURDLDLURULDRLURD" },
+    { size: 7, balls: [[4,6],[0,1],[0,3]], targets: [[3,2],[4,2],[4,4]], blocks: [[6,2],[1,5],[2,1],[1,6]], par: 20, solution: "RDLDLULDLDRULULDRDUR" },
+    { size: 7, balls: [[3,5],[5,0],[2,0]], targets: [[4,2],[3,2],[5,3]], blocks: [[4,5],[0,3]], par: 20, solution: "ULDLURULDLUDRULDLURD" },
+    { size: 7, balls: [[6,0],[3,6],[1,0]], targets: [[5,4],[0,4],[4,6]], blocks: [[5,2],[2,0],[6,6],[6,4]], par: 20, solution: "LDRULRDLDRDRURDRLURD" },
+    
+    
+
   ]
 }

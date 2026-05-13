@@ -30,7 +30,7 @@ describe('createDefaultSuiteDashboardPreferences', () => {
 
   it('has all three tiers on for every three-tier game', () => {
     const { tierOn } = createDefaultSuiteDashboardPreferences()
-    const threeTierKeys = [GAME_KEYS.SUMTILES, GAME_KEYS.PRODUCTILES, GAME_KEYS.SWIPE]
+    const threeTierKeys = [GAME_KEYS.SUMTILES, GAME_KEYS.PRODUCTILES, GAME_KEYS.ROLYPOLY]
     for (const key of threeTierKeys) {
       expect(tierOn[key]).toEqual([true, true, true])
     }
@@ -57,8 +57,8 @@ describe('getEnabledTierIndices', () => {
   })
 
   it('returns [0, 2] for easy+hard only', () => {
-    const prefs = makePrefs({ [GAME_KEYS.SWIPE]: [true, false, true] })
-    expect(getEnabledTierIndices(GAME_KEYS.SWIPE, prefs)).toEqual([0, 2])
+    const prefs = makePrefs({ [GAME_KEYS.ROLYPOLY]: [true, false, true] })
+    expect(getEnabledTierIndices(GAME_KEYS.ROLYPOLY, prefs)).toEqual([0, 2])
   })
 })
 

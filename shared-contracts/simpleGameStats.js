@@ -114,7 +114,7 @@ export function computeSimpleGameStats(gameKey) {
     const { avgMoves } = aggregateTileMovesFromStorage(gameKey)
     return { played, streak: getStreak(gameKey), stars, avgMoves }
   }
-  if (gameKey === GAME_KEYS.SWIPE) {
+  if (gameKey === GAME_KEYS.ROLYPOLY) {
     const { played, stars } = aggregateMultiGameFromStorage(gameKey)
     return { played, streak: getStreak(gameKey), stars }
   }

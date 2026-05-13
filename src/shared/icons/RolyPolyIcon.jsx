@@ -1,12 +1,12 @@
 import React from 'react'
-import { SVG_UNROLLED } from './swipeBugUnrolledSvg.js'
+import { SVG_UNROLLED } from './rolyPolyBugUnrolledSvg.js'
 
 const SIZED_UNROLLED = SVG_UNROLLED.replace(
   /<svg\b/,
   '<svg width="100%" height="100%" style="display:block"'
 )
 
-export default function SwipeIcon({ size = 28, className = '' }) {
+export default function RolyPolyIcon({ size = 28, className = '' }) {
   return (
     <span
       className={className}

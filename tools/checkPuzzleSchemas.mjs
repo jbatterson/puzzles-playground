@@ -26,8 +26,8 @@ const GAMES = [
     keys: ['s', 't', 'b'],
   },
   {
-    id: 'swipe',
-    rel: 'puzzlegames/swipe/puzzles.js',
+    id: 'rolypoly',
+    rel: 'puzzlegames/rolypoly/puzzles.js',
     tiers: ['tutorial', 'easy', 'medium', 'hard'],
     keys: ['balls', 'targets', 'blocks'],
   },
@@ -76,7 +76,7 @@ function validateGame(game, data, errors) {
           errors
         )
       }
-      if (game.id === 'swipe') {
+      if (game.id === 'rolypoly') {
         assert(
           Number.isFinite(puzzle.minMoves) || Number.isFinite(puzzle.par),
           `${game.id}: tier "${tier}" puzzle[${i}] needs minMoves or par`,
@@ -99,7 +99,7 @@ function validateGame(game, data, errors) {
           coord[1] < sz
         for (const arr of [puzzle.balls, puzzle.targets, puzzle.blocks]) {
           if (!Array.isArray(arr)) continue
-          arr.forEach((coord, j) => {
+          arr.forEach((coord) => {
             assert(
               inRange(coord),
               `${game.id}: tier "${tier}" puzzle[${i}] coordinate out of bounds for size ${sz} (${JSON.stringify(coord)})`,

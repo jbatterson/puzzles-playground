@@ -25,7 +25,7 @@ const DIFF_LABELS = ['Easy', 'Med', 'Hard']
 const GAME_TITLES = Object.freeze({
   sumtiles: 'Sum Tiles',
   productiles: 'Productiles',
-  swipe: 'Roly Poly',
+  rolypoly: 'Roly Poly',
 })
 
 function buildShareText(key, title, href, completions, perfects, moveCounts, dateKey, prefs) {

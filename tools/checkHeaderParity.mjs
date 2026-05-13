@@ -12,7 +12,7 @@ const checks = []
 const suiteFiles = [
   'puzzlegames/sumtiles/sumtiles.jsx',
   'puzzlegames/productiles/productiles.jsx',
-  'puzzlegames/swipe/swipe.jsx',
+  'puzzlegames/rolypoly/rolypoly.jsx',
 ]
 
 for (const relPath of suiteFiles) {

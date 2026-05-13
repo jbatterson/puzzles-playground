@@ -6,7 +6,7 @@ import AddToHomeScreenModal from './shared/AddToHomeScreenModal.jsx'
 import './shared/style.css'
 import ProductilesIcon from './shared/icons/ProductilesIcon.jsx'
 import SumTilesIcon from './shared/icons/SumTilesIcon.jsx'
-import SwipeIcon from './shared/icons/SwipeIcon.jsx'
+import RolyPolyIcon from './shared/icons/RolyPolyIcon.jsx'
 import DiceFace from './shared/DiceFace.jsx'
 import { HubDiceStar, HubDiceCheck } from './shared/HubDiceStar.jsx'
 import { PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
@@ -102,9 +102,9 @@ const GAMES = [
     desc: 'Slide tiles so every row and column hits its product.',
   },
   {
-    key: 'swipe',
-    href: `${base}puzzlegames/swipe/`,
-    Icon: SwipeIcon,
+    key: 'rolypoly',
+    href: `${base}puzzlegames/rolypoly/`,
+    Icon: RolyPolyIcon,
     title: 'Roly Poly',
     desc: 'Swipe to roll every bug onto a yellow target.',
   },

@@ -65,7 +65,7 @@ export default defineConfig(({ mode }) => {
           main: 'index.html',
           sumtiles: 'puzzlegames/sumtiles/index.html',
           productiles: 'puzzlegames/productiles/index.html',
-          swipe: 'puzzlegames/swipe/index.html',
+          rolypoly: 'puzzlegames/rolypoly/index.html',
         },
       },
     },

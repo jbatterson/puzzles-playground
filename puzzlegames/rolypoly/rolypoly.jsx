@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react'
-import { SVG_UNROLLED } from '../../src/shared/icons/swipeBugUnrolledSvg.js'
-import { SVG_ROLLED } from '../../src/shared/icons/swipeBugRolledSvg.js'
+import { SVG_UNROLLED } from '../../src/shared/icons/rolyPolyBugUnrolledSvg.js'
+import { SVG_ROLLED } from '../../src/shared/icons/rolyPolyBugRolledSvg.js'
 import puzzleData from './puzzles.js'
 import TopBar from '../../src/shared/TopBar.jsx'
 import DiceFace from '../../src/shared/DiceFace.jsx'
@@ -29,21 +29,21 @@ import {
 } from '@shared-contracts/tutorialResume.js'
 import { hasShareableHubProgress } from '@shared-contracts/hubSharePlaintext.js'
 import GameShareNavButton from '../../src/shared/GameShareNavButton.jsx'
-import SwipeIcon from '../../src/shared/icons/SwipeIcon.jsx'
+import RolyPolyIcon from '../../src/shared/icons/RolyPolyIcon.jsx'
 import { buildTierRoster, formatCurateClipboard } from '../../src/shared/curateRoster.js'
 import { useCurateModeFromRoster } from '../../src/shared/useCurateMode.js'
 import { CurateCopyToast, CurateLevelNav } from '../../src/shared/CurateModeChrome.jsx'
 import SmartRightButton from '../../src/shared/SmartRightButton.jsx'
 import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyPuzzleDate.js'
 
-const DEFAULT_SWIPE_GRID = 7
+const DEFAULT_ROLYPOLY_GRID = 7
 /** Match productiles/sumtiles board cell cap so small grids do not overscale. */
-const SWIPE_MAX_CELL_PX = 80
-const SWIPE_ANIM_MS = 520
-const SWIPE_SUITE_MODAL_MS = 500
+const ROLYPOLY_MAX_CELL_PX = 80
+const ROLYPOLY_ANIM_MS = 520
+const ROLYPOLY_SUITE_MODAL_MS = 500
 const MAX_MOVE_DISPLAY = 99
 
-const SWIPE_TUTORIAL_HINT =
+const ROLYPOLY_TUTORIAL_HINT =
   'Use arrow keys or swipes to slide every bug onto a yellow target. Bugs lock when they land on a target.'
 
 function getDailyPuzzles() {
@@ -63,15 +63,15 @@ function getDailyPuzzles() {
 }
 
 function loadCompletions(dateKey) {
-  return [0, 1, 2].map((i) => ['1', '2'].includes(localStorage.getItem(`swipe:${dateKey}:${i}`)))
+  return [0, 1, 2].map((i) => ['1', '2'].includes(localStorage.getItem(`rolypoly:${dateKey}:${i}`)))
 }
 
 function loadPerfects(dateKey) {
-  return [0, 1, 2].map((i) => localStorage.getItem(`swipe:${dateKey}:${i}`) === '2')
+  return [0, 1, 2].map((i) => localStorage.getItem(`rolypoly:${dateKey}:${i}`) === '2')
 }
 
 function getStoredMoveCount(dateKey, idx) {
-  const v = localStorage.getItem(`swipe:${dateKey}:${idx}:moves`)
+  const v = localStorage.getItem(`rolypoly:${dateKey}:${idx}:moves`)
   return v != null ? parseInt(v, 10) : null
 }
 
@@ -79,7 +79,7 @@ function markComplete(dateKey, idx, movesThisRun, puzzleMinMoves) {
   const hitMin =
     puzzleMinMoves != null && Number.isFinite(puzzleMinMoves) && movesThisRun === puzzleMinMoves
   const starWorthy = hitMin
-  const key = `swipe:${dateKey}:${idx}`
+  const key = `rolypoly:${dateKey}:${idx}`
   const existing = localStorage.getItem(key)
   const storedMoves = getStoredMoveCount(dateKey, idx)
   if (existing !== '1' && existing !== '2') {
@@ -94,12 +94,12 @@ function markComplete(dateKey, idx, movesThisRun, puzzleMinMoves) {
 }
 
 function saveMoveCount(dateKey, idx, moves) {
-  localStorage.setItem(`swipe:${dateKey}:${idx}:moves`, String(Math.min(moves, MAX_MOVE_DISPLAY)))
+  localStorage.setItem(`rolypoly:${dateKey}:${idx}:moves`, String(Math.min(moves, MAX_MOVE_DISPLAY)))
 }
 
 function loadMoveCounts(dateKey) {
   return [0, 1, 2].map((i) => {
-    const v = localStorage.getItem(`swipe:${dateKey}:${i}:moves`)
+    const v = localStorage.getItem(`rolypoly:${dateKey}:${i}:moves`)
     return v != null ? parseInt(v, 10) : null
   })
 }
@@ -107,17 +107,17 @@ function loadMoveCounts(dateKey) {
 const GAME_STATE_VERSION = 1
 
 function storageKeyGameState(dateKey, puzzleIndex) {
-  return `swipe:${dateKey}:${puzzleIndex}:gameState`
+  return `rolypoly:${dateKey}:${puzzleIndex}:gameState`
 }
 
-function getSwipeGridSize(data) {
-  if (!data || typeof data !== 'object') return DEFAULT_SWIPE_GRID
+function getRolyPolyGridSize(data) {
+  if (!data || typeof data !== 'object') return DEFAULT_ROLYPOLY_GRID
   const s = data.size
   if (Number.isFinite(s) && s >= 3 && s <= 16) return Math.trunc(s)
-  return DEFAULT_SWIPE_GRID
+  return DEFAULT_ROLYPOLY_GRID
 }
 
-function getSwipeParMoves(p) {
+function getRolyPolyParMoves(p) {
   if (!p || typeof p !== 'object') return null
   if (Number.isFinite(p.minMoves)) return p.minMoves
   if (Number.isFinite(p.par)) return p.par
@@ -130,7 +130,7 @@ function puzzleFingerprint(data) {
     b: data.balls,
     t: data.targets,
     bl: data.blocks,
-    sz: getSwipeGridSize(data),
+    sz: getRolyPolyGridSize(data),
   })
 }
 
@@ -280,8 +280,8 @@ function PuzzleBoxes({
   )
 }
 
-export default function Swipe() {
-  const chrome = getGameChrome(GAME_KEYS.SWIPE)
+export default function RolyPoly() {
+  const chrome = getGameChrome(GAME_KEYS.ROLYPOLY)
   const daily = useMemo(() => getDailyPuzzles(), [])
   const dateLabel = useMemo(() => getDateLabel(daily.key), [daily.key])
   const roster = useMemo(() => buildTierRoster(puzzleData), [])
@@ -296,14 +296,14 @@ export default function Swipe() {
   const animTimerRef = useRef(null)
 
   const [mode, setMode] = useState(
-    () => getInitialTutorialNav(GAME_KEYS.SWIPE, puzzleData.tutorial ?? []).mode
+    () => getInitialTutorialNav(GAME_KEYS.ROLYPOLY, puzzleData.tutorial ?? []).mode
   )
   const [tutorialIdx, setTutorialIdx] = useState(
-    () => getInitialTutorialNav(GAME_KEYS.SWIPE, puzzleData.tutorial ?? []).tutorialIdx
+    () => getInitialTutorialNav(GAME_KEYS.ROLYPOLY, puzzleData.tutorial ?? []).tutorialIdx
   )
   const [dailyIdx, setDailyIdx] = useState(() =>
     resolveHubDailySlotWithPrefs(
-      GAME_KEYS.SWIPE,
+      GAME_KEYS.ROLYPOLY,
       getDailyKey(),
       typeof window !== 'undefined' ? window.location.search : ''
     )
@@ -311,7 +311,7 @@ export default function Swipe() {
   const suitePrefsEpoch = useSuitePrefsEpoch()
   const tierSlots = useMemo(() => {
     void suitePrefsEpoch
-    return getEnabledTierIndices(GAME_KEYS.SWIPE)
+    return getEnabledTierIndices(GAME_KEYS.ROLYPOLY)
   }, [suitePrefsEpoch])
   dailyKeyRef.current = daily.key
   dailyIdxRef.current = dailyIdx
@@ -324,7 +324,7 @@ export default function Swipe() {
   const [moveCounts, setMoveCounts] = useState(() => loadMoveCounts(daily.key))
   const canShareHub = useMemo(() => {
     void completions
-    return hasShareableHubProgress(GAME_KEYS.SWIPE, daily.key)
+    return hasShareableHubProgress(GAME_KEYS.ROLYPOLY, daily.key)
   }, [daily.key, completions])
 
   const [balls, setBalls] = useState([])
@@ -353,9 +353,9 @@ export default function Swipe() {
   }, [solved])
 
   const { hasSeenInstructions, showInstructions, setShowInstructions, closeInstructions } =
-    useInstructionsGate('swipe:hasSeenInstructions', {
+    useInstructionsGate('rolypoly:hasSeenInstructions', {
       openOnMount: !curateMode,
-      completionStoragePrefix: 'swipe',
+      completionStoragePrefix: 'rolypoly',
       initiallyClosed: curateMode,
     })
 
@@ -365,7 +365,7 @@ export default function Swipe() {
     return daily.puzzles[dailyIdx]
   }, [curateMode, curateIdx, roster, mode, tutorialIdx, dailyIdx, daily])
 
-  const gridSize = useMemo(() => getSwipeGridSize(currentPuzzleData), [currentPuzzleData])
+  const gridSize = useMemo(() => getRolyPolyGridSize(currentPuzzleData), [currentPuzzleData])
   const gridSizeRef = useRef(gridSize)
   gridSizeRef.current = gridSize
 
@@ -391,17 +391,17 @@ export default function Swipe() {
   }, [])
 
   useEffect(() => {
-    if (!curateMode) persistTutorialResumeState(GAME_KEYS.SWIPE, mode, tutorialIdx)
+    if (!curateMode) persistTutorialResumeState(GAME_KEYS.ROLYPOLY, mode, tutorialIdx)
   }, [curateMode, mode, tutorialIdx])
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
-    persistHubDailySlot(GAME_KEYS.SWIPE, daily.key, dailyIdx)
+    persistHubDailySlot(GAME_KEYS.ROLYPOLY, daily.key, dailyIdx)
   }, [curateMode, mode, daily.key, dailyIdx])
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
-    const c = clampDailyIndexToTierPrefs(GAME_KEYS.SWIPE, dailyIdx)
+    const c = clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, dailyIdx)
     if (c !== dailyIdx) setDailyIdx(c)
   }, [curateMode, mode, suitePrefsEpoch, dailyIdx])
 
@@ -493,7 +493,7 @@ export default function Swipe() {
           setPostSolveCtaAttention(true)
         }
         persistNow(nb, newHist, newMoves, done)
-      }, SWIPE_ANIM_MS)
+      }, ROLYPOLY_ANIM_MS)
     },
     [
       balls,
@@ -530,7 +530,7 @@ export default function Swipe() {
     const { targets: puzzleTargets } = initFromPuzzle(currentPuzzleData)
     if (!checkSolved(balls, puzzleTargets)) return
     completionMarkedRef.current = true
-    markComplete(daily.key, dailyIdx, moves, getSwipeParMoves(currentPuzzleData))
+    markComplete(daily.key, dailyIdx, moves, getRolyPolyParMoves(currentPuzzleData))
     setCompletions(loadCompletions(daily.key))
     setPerfects(loadPerfects(daily.key))
     setMoveCounts(loadMoveCounts(daily.key))
@@ -539,18 +539,18 @@ export default function Swipe() {
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
-    const done = isSuiteCompleteForPrefs(GAME_KEYS.SWIPE, daily.key)
+    const done = isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, daily.key)
     if (allDailyDoneCompletionRef.current === null) {
       allDailyDoneCompletionRef.current = done
       return
     }
     if (done && !allDailyDoneCompletionRef.current) {
-      window.setTimeout(() => setShowCompletionModal(true), SWIPE_SUITE_MODAL_MS)
+      window.setTimeout(() => setShowCompletionModal(true), ROLYPOLY_SUITE_MODAL_MS)
     }
     allDailyDoneCompletionRef.current = done
   }, [curateMode, mode, completions, daily.key, suitePrefsEpoch])
 
-  const suiteDone = isSuiteCompleteForPrefs(GAME_KEYS.SWIPE, daily.key)
+  const suiteDone = isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, daily.key)
   const primaryLabel = solved
     ? curateMode
       ? curateIdx < roster.length - 1
@@ -565,9 +565,9 @@ export default function Swipe() {
           : CTA_LABELS.NEXT_PUZZLE
     : null
 
-  useSuiteCompletionTimer(GAME_KEYS.SWIPE, daily.key, {
+  useSuiteCompletionTimer(GAME_KEYS.ROLYPOLY, daily.key, {
     track: !curateMode && mode === 'daily',
-    alreadyFullyComplete: isSuiteCompleteForPrefs(GAME_KEYS.SWIPE, daily.key),
+    alreadyFullyComplete: isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, daily.key),
     pauseForHubCompleteCta:
       primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.NEXT_PUZZLE,
   })
@@ -615,10 +615,10 @@ export default function Swipe() {
       if (tutorialIdx < puzzleData.tutorial.length - 1) setTutorialIdx((i) => i + 1)
       else {
         setMode('daily')
-        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.SWIPE, 0))
+        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
       }
     } else {
-      const next = nextIncompleteEnabledTierExcluding(GAME_KEYS.SWIPE, daily.key, dailyIdx)
+      const next = nextIncompleteEnabledTierExcluding(GAME_KEYS.ROLYPOLY, daily.key, dailyIdx)
       if (next !== null) {
         setSolved(false)
         setDailyIdx(next)
@@ -631,7 +631,7 @@ export default function Swipe() {
       const entry = roster[curateIdx]
       const p = currentPuzzleData
       if (!entry || !p) return
-      const text = formatCurateClipboard('swipe', entry.tier, entry.indexInTier + 1, p, 200)
+      const text = formatCurateClipboard('rolypoly', entry.tier, entry.indexInTier + 1, p, 200)
       void navigator.clipboard.writeText(text).then(
         () => {
           setCurateCopyHint('Copied puzzle id')
@@ -659,34 +659,34 @@ export default function Swipe() {
     return () => window.removeEventListener('keydown', onKey)
   }, [runSlide])
 
-  const swipePtr = useRef(null)
-  const swipeStart = useRef({ x: 0, y: 0 })
+  const pointerIdRef = useRef(null)
+  const dragStartRef = useRef({ x: 0, y: 0 })
   const onPointerDown = (e) => {
     if (e.button !== 0) return
-    swipePtr.current = e.pointerId
-    swipeStart.current = { x: e.clientX, y: e.clientY }
+    pointerIdRef.current = e.pointerId
+    dragStartRef.current = { x: e.clientX, y: e.clientY }
     try {
       e.currentTarget.setPointerCapture(e.pointerId)
     } catch {
       // ignore
     }
   }
-  const finishSwipe = (clientX, clientY) => {
-    const dx = clientX - swipeStart.current.x
-    const dy = clientY - swipeStart.current.y
+  const finishPointerSlide = (clientX, clientY) => {
+    const dx = clientX - dragStartRef.current.x
+    const dy = clientY - dragStartRef.current.y
     if (Math.hypot(dx, dy) < 40) return
     if (Math.abs(dx) >= Math.abs(dy)) runSlide(dx > 0 ? 'right' : 'left')
     else runSlide(dy > 0 ? 'down' : 'up')
   }
   const onPointerUp = (e) => {
-    if (e.pointerId !== swipePtr.current) return
-    swipePtr.current = null
+    if (e.pointerId !== pointerIdRef.current) return
+    pointerIdRef.current = null
     try {
       e.currentTarget.releasePointerCapture(e.pointerId)
     } catch {
       // ignore
     }
-    finishSwipe(e.clientX, e.clientY)
+    finishPointerSlide(e.clientX, e.clientY)
   }
 
   const gridCells = useMemo(() => {
@@ -701,17 +701,17 @@ export default function Swipe() {
   }, [targets, blocks, gridSize])
 
   return (
-    <div className="game-container swipe-game">
+    <div className="game-container rolypoly-game">
       <style>{`
-        .swipe-game {
-          --swipe-black: #000000;
-          --swipe-green: #16a34a;
+        .rolypoly-game {
+          --rolypoly-black: #000000;
+          --rolypoly-green: #16a34a;
           font-family: Outfit, system-ui, sans-serif;
           -webkit-tap-highlight-color: transparent;
           user-select: none;
           touch-action: manipulation;
         }
-        .swipe-game .game-stage {
+        .rolypoly-game .game-stage {
           width: 100%;
           display: flex;
           justify-content: center;
@@ -721,7 +721,7 @@ export default function Swipe() {
           flex-shrink: 1;
           min-height: 0;
         }
-        .swipe-game #swipe-canvas-wrap {
+        .rolypoly-game #rolypoly-canvas-wrap {
           width: 100%;
           aspect-ratio: 1 / 1;
           position: relative;
@@ -736,26 +736,26 @@ export default function Swipe() {
           user-select: none;
         }
         /* iOS paints tap highlight on the hit target; grid cells were the target. Pass touches
-           through to #swipe-canvas-wrap (pointer handlers stay on the wrap). */
-        .swipe-game .grid-overlay,
-        .swipe-game .grid-line {
+           through to #rolypoly-canvas-wrap (pointer handlers stay on the wrap). */
+        .rolypoly-game .grid-overlay,
+        .rolypoly-game .grid-line {
           pointer-events: none;
         }
-        .swipe-game .grid-overlay {
+        .rolypoly-game .grid-overlay {
           position: absolute;
           inset: 0;
           display: grid;
           width: 100%;
           height: 100%;
         }
-        .swipe-game .grid-line {
+        .rolypoly-game .grid-line {
           border: 1px solid rgba(0,0,0,0.1);
           box-sizing: border-box;
           position: relative;
         }
-        .swipe-game .grid-line.target { background: #ffea80; }
-        .swipe-game .grid-line.block { background: var(--swipe-black); }
-        .swipe-game .ball-layer {
+        .rolypoly-game .grid-line.target { background: #ffea80; }
+        .rolypoly-game .grid-line.block { background: var(--rolypoly-black); }
+        .rolypoly-game .ball-layer {
           position: absolute;
           display: flex;
           align-items: center;
@@ -765,22 +765,22 @@ export default function Swipe() {
           transition: left 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
             top 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
-        .swipe-game .bug-svg {
+        .rolypoly-game .bug-svg {
           width: 92%;
           height: 92%;
           display: block;
         }
-        @keyframes swipe-rollFlip {
+        @keyframes rolypoly-rollFlip {
           0%, 49%   { transform: scaleY(1); }
           50%, 100% { transform: scaleY(-1); }
         }
-        @keyframes swipe-rollFlipLR {
+        @keyframes rolypoly-rollFlipLR {
           0%, 49%   { transform: rotate(90deg) scaleY(1); }
           50%, 100% { transform: rotate(90deg) scaleY(-1); }
         }
-        .swipe-game .bug-svg.rolling-ud { animation: swipe-rollFlip   0.18s steps(1) infinite; }
-        .swipe-game .bug-svg.rolling-lr { animation: swipe-rollFlipLR 0.18s steps(1) infinite; }
-        .swipe-game .stats-num.at-par { color: var(--swipe-green); }
+        .rolypoly-game .bug-svg.rolling-ud { animation: rolypoly-rollFlip   0.18s steps(1) infinite; }
+        .rolypoly-game .bug-svg.rolling-lr { animation: rolypoly-rollFlipLR 0.18s steps(1) infinite; }
+        .rolypoly-game .stats-num.at-par { color: var(--rolypoly-green); }
       `}</style>
 
       <TopBar
@@ -791,7 +791,7 @@ export default function Swipe() {
         onCube={() => setShowLinks(true)}
         linksViaTitleOnly
         puzzleChrome={{
-          gameKey: GAME_KEYS.SWIPE,
+          gameKey: GAME_KEYS.ROLYPOLY,
           onStats: handleStatsClick,
           onHelp: () => setShowInstructions(true),
           onTutorial: () => {
@@ -815,7 +815,7 @@ export default function Swipe() {
             <>
               <span className="stats-label">Moves</span>
               <span className="stats-num">{Math.min(moves, MAX_MOVE_DISPLAY)}</span>
-              <span className="stats-label">{`min=${getSwipeParMoves(currentPuzzleData) ?? '?'}`}</span>
+              <span className="stats-label">{`min=${getRolyPolyParMoves(currentPuzzleData) ?? '?'}`}</span>
             </>
           }
         />
@@ -824,7 +824,7 @@ export default function Swipe() {
           <div className="stats-group stats-group--left">
             <span className="stats-label">Moves</span>
             <span className="stats-num">{Math.min(moves, MAX_MOVE_DISPLAY)}</span>
-            <span className="stats-label">{`min=${getSwipeParMoves(currentPuzzleData) ?? '?'}`}</span>
+            <span className="stats-label">{`min=${getRolyPolyParMoves(currentPuzzleData) ?? '?'}`}</span>
           </div>
           <div className="selector-group">
             <button
@@ -856,7 +856,7 @@ export default function Swipe() {
               className="skip-link"
               onClick={() => {
                 setMode('daily')
-                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.SWIPE, 0))
+                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
               }}
             >
               Skip Tutorial
@@ -868,11 +868,11 @@ export default function Swipe() {
           <div className="stats-group stats-group--left">
             <span className="stats-label">Moves</span>
             <span
-              className={`stats-num${solved && moves <= (getSwipeParMoves(currentPuzzleData) ?? 999) ? ' at-par' : ''}`}
+              className={`stats-num${solved && moves <= (getRolyPolyParMoves(currentPuzzleData) ?? 999) ? ' at-par' : ''}`}
             >
               {Math.min(moves, MAX_MOVE_DISPLAY)}
             </span>
-            <span className="stats-label">{`min=${getSwipeParMoves(currentPuzzleData) ?? '?'}`}</span>
+            <span className="stats-label">{`min=${getRolyPolyParMoves(currentPuzzleData) ?? '?'}`}</span>
           </div>
           <div className="selector-group" style={{ flexDirection: 'column', gap: '4px' }}>
             <div className="level-label" style={{ textAlign: 'center' }}>
@@ -894,7 +894,7 @@ export default function Swipe() {
           </div>
           <div className="level-nav__right-slot">
             <GameShareNavButton
-              gameKey={GAME_KEYS.SWIPE}
+              gameKey={GAME_KEYS.ROLYPOLY}
               dateKey={daily.key}
               canShare={canShareHub}
             />
@@ -904,15 +904,15 @@ export default function Swipe() {
 
       <div className="game-stage">
         <div
-          id="swipe-canvas-wrap"
+          id="rolypoly-canvas-wrap"
           ref={wrapperRef}
           style={{
-            maxWidth: `min(460px, calc(100dvh - 300px), ${gridSize * SWIPE_MAX_CELL_PX}px)`,
+            maxWidth: `min(460px, calc(100dvh - 300px), ${gridSize * ROLYPOLY_MAX_CELL_PX}px)`,
           }}
           onPointerDown={onPointerDown}
           onPointerUp={onPointerUp}
           onPointerCancel={() => {
-            swipePtr.current = null
+            pointerIdRef.current = null
           }}
         >
           <div
@@ -987,7 +987,7 @@ export default function Swipe() {
         </h1>
         <div style={{ flex: 1, textAlign: 'center' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-            <SwipeIcon size={80} />
+            <RolyPolyIcon size={80} />
           </div>
           <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
             Use the <b>arrow keys</b> or <b>swipe on the board</b> to slide all bugs in a direction.
@@ -1015,7 +1015,7 @@ export default function Swipe() {
                 onClick={() => {
                   closeInstructions()
                   setMode('daily')
-                  setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.SWIPE, 0))
+                  setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
                 }}
               >
                 {CTA_LABELS.SKIP_TUTORIAL}
@@ -1028,7 +1028,7 @@ export default function Swipe() {
               onClick={() => {
                 closeInstructions()
                 setMode('daily')
-                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.SWIPE, 0))
+                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
               }}
             >
               {CTA_LABELS.PLAY_TODAYS_PUZZLES_UPPER}
@@ -1041,7 +1041,7 @@ export default function Swipe() {
       <SimpleGameStatsModal
         show={showStats}
         onClose={() => setShowStats(false)}
-        gameKey={GAME_KEYS.SWIPE}
+        gameKey={GAME_KEYS.ROLYPOLY}
         dailySuiteFooter={{
           dateKey: daily.key,
           completions,
@@ -1052,7 +1052,7 @@ export default function Swipe() {
       <SuiteGameCompletionModal
         show={showCompletionModal && !curateMode}
         onClose={() => setShowCompletionModal(false)}
-        gameKey={GAME_KEYS.SWIPE}
+        gameKey={GAME_KEYS.ROLYPOLY}
         dateKey={daily.key}
         hubDiceCompletions={completions}
         hubDicePerfects={perfects}

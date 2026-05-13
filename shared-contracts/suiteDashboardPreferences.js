@@ -29,7 +29,7 @@ function dispatchSuitePrefsUpdated() {
 export const THREE_TIER_GAME_KEYS = Object.freeze([
   GAME_KEYS.SUMTILES,
   GAME_KEYS.PRODUCTILES,
-  GAME_KEYS.SWIPE,
+  GAME_KEYS.ROLYPOLY,
 ])
 
 const THREE_TIER_SET = new Set(THREE_TIER_GAME_KEYS)

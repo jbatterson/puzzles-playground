@@ -1,3 +1,4 @@
+import { migrateSwipeToRolyPoly } from '@shared-contracts/migrateSwipeToRolyPoly.js'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 
@@ -83,6 +84,7 @@ function renderLoadFailure(rootEl, err) {
 }
 
 async function boot() {
+  migrateSwipeToRolyPoly()
   const rootEl = document.getElementById('root')
   if (!rootEl) {
     console.error('[Puzzles] Missing #root — hub cannot mount (check index.html).')

@@ -50,8 +50,8 @@ function formatTilePuzzleForPuzzlesJs(puzzle) {
   return line
 }
 
-/** Roly Poly — matches puzzlegames/swipe/puzzles.js object shape */
-function formatSwipePuzzleForPuzzlesJs(puzzle) {
+/** Roly Poly — matches puzzlegames/rolypoly/puzzles.js object shape */
+function formatRolyPolyPuzzleForPuzzlesJs(puzzle) {
   if (!puzzle || typeof puzzle !== 'object') return null
   if (
     !Array.isArray(puzzle.balls) ||
@@ -93,8 +93,8 @@ export function formatCurateClipboard(
     case 'productiles':
       line2 = formatTilePuzzleForPuzzlesJs(puzzle)
       break
-    case 'swipe':
-      line2 = formatSwipePuzzleForPuzzlesJs(puzzle)
+    case 'rolypoly':
+      line2 = formatRolyPolyPuzzleForPuzzlesJs(puzzle)
       break
     default:
       break

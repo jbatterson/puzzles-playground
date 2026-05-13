@@ -22,7 +22,7 @@ import SuiteCompletionBaPlug from './SuiteCompletionBaPlug.jsx'
 const COMPLETION_HEADLINE = Object.freeze({
   [GAME_KEYS.SUMTILES]: 'AWE-SUM!',
   [GAME_KEYS.PRODUCTILES]: 'PRODUCTIVE!',
-  [GAME_KEYS.SWIPE]: 'SWIPED!',
+  [GAME_KEYS.ROLYPOLY]: 'ON A ROLL!',
 })
 
 function pluralUnit(n, singular, plural) {

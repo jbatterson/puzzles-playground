@@ -1,7 +1,7 @@
 /**
  * Dedupe Roly Poly puzzles (easy+medium+hard) by layout fingerprint, drop copies of tutorial layouts,
- * then assign tiers by scaled `dif` rank: ~50 easiest → easy, next ~70 → medium, remainder → hard.
- * Tutorial order/membership unchanged; `dif` refreshed (same formula as computeRolyPolyDif).
+ * then assign tiers by scaled `dif` rank: easiest ~3/12 → easy, next ~4/12 → medium, ~5/12 → hard
+ * (integer split from pool size via largest remainder). Tutorial unchanged; `dif` from computeRolyPolyDif.
  *
  *   node --import ./tools/registerSharedContractsResolve.mjs tools/reorganizeRolyPolyPuzzles.mjs
  *   node --import ./tools/registerSharedContractsResolve.mjs tools/reorganizeRolyPolyPuzzles.mjs --write
@@ -16,9 +16,23 @@ const repoRoot = path.resolve(import.meta.dirname, '..')
 const PUZZLES_REL = 'puzzlegames/rolypoly/puzzles.js'
 const write = process.argv.includes('--write')
 
-/** Split deduped pool by ascending scaled `dif` (counts include all non-tutorial puzzles). */
-const EASY_COUNT = 50
-const MEDIUM_COUNT = 70
+/** Target shares of deduped pool: 3 : 4 : 5 (easy : medium : hard). */
+const TIER_WEIGHTS = [3, 4, 5]
+
+/**
+ * @param {number} n deduped non-tutorial pool size
+ * @returns {{ easy: number, medium: number, hard: number }}
+ */
+function tierCountsFromPool(n) {
+  if (n <= 0) return { easy: 0, medium: 0, hard: 0 }
+  const quota = TIER_WEIGHTS.map((w) => (n * w) / 12)
+  const floors = quota.map((q) => Math.floor(q))
+  let rem = n - floors.reduce((a, b) => a + b, 0)
+  const order = [0, 1, 2].sort((i, j) => quota[j] - floors[j] - (quota[i] - floors[i]))
+  const counts = [...floors]
+  for (let k = 0; k < rem; k++) counts[order[k]]++
+  return { easy: counts[0], medium: counts[1], hard: counts[2] }
+}
 
 /** Same layout = duplicate (size default 7). */
 function fingerprint(p) {
@@ -79,8 +93,7 @@ async function main() {
 
   const sorted = pool.slice().sort((a, b) => a.dif - b.dif || (a.par ?? 0) - (b.par ?? 0))
   const n = sorted.length
-  const easyN = Math.min(EASY_COUNT, n)
-  const mediumN = Math.min(MEDIUM_COUNT, Math.max(0, n - easyN))
+  const { easy: easyN, medium: mediumN } = tierCountsFromPool(n)
   const easy = sorted.slice(0, easyN)
   const medium = sorted.slice(easyN, easyN + mediumN)
   const hard = sorted.slice(easyN + mediumN)
@@ -94,7 +107,7 @@ async function main() {
  * Roly Poly daily tiers + tutorial. Grid size: easy 5×5, medium 6×6, hard 7×7 (every puzzle lists size explicitly).
  *
  * dif = (sum over solution moves of unlocked balls before each move) × grid size — see tools/computeRolyPolyDif.mjs.
- * Non-tutorial: ~${EASY_COUNT} lowest dif → easy, next ~${MEDIUM_COUNT} → medium, rest → hard; sorted by dif within tier.
+ * Non-tutorial: sorted by dif; split ~3/12 → easy, ~4/12 → medium, ~5/12 → hard (integer split from pool size).
  */
 export default {
 `

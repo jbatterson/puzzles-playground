@@ -4,16 +4,16 @@
  * by grid size (5×5 → ×5, 6×6 → ×6, 7×7 → ×7) so larger boards rank harder for the same path weight.
  * Matches puzzlegames/rolypoly/rolypoly.jsx slide physics.
  *
- * Dry-run: prints tier dif ranges. Pass --write to set or refresh `, dif: N` in puzzles.js.
+ * Dry-run: prints tier dif ranges. Pass --write to set or refresh `, dif: N` in puzzles.js (keeps optional `solns:` unchanged).
  *
- *   node --import ./tools/registerSharedContractsResolve.mjs tools/computeRolyPolyDif.mjs
- *   node --import ./tools/registerSharedContractsResolve.mjs tools/computeRolyPolyDif.mjs --write
+ *   node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/computeRolyPolyDif.mjs
+ *   node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/computeRolyPolyDif.mjs --write
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 
-const repoRoot = path.resolve(import.meta.dirname, '..')
+const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const PUZZLES_REL = 'puzzlegames/rolypoly/puzzles.js'
 const write = process.argv.includes('--write')
 

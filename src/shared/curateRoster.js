@@ -65,6 +65,11 @@ function formatRolyPolyPuzzleForPuzzlesJs(puzzle) {
   line += `balls: [${fmtPairs(puzzle.balls)}], targets: [${fmtPairs(puzzle.targets)}], blocks: [${fmtPairs(puzzle.blocks)}]`
   if (Number.isFinite(puzzle.minMoves)) line += `, minMoves: ${puzzle.minMoves}`
   else if (Number.isFinite(puzzle.par)) line += `, par: ${puzzle.par}`
+  if (typeof puzzle.solution === 'string' && puzzle.solution.length) {
+    line += `, solution: ${JSON.stringify(puzzle.solution)}`
+  }
+  if (Number.isFinite(puzzle.dif)) line += `, dif: ${puzzle.dif}`
+  if (Number.isFinite(puzzle.solns)) line += `, solns: ${puzzle.solns}`
   line += ' }'
   return line
 }

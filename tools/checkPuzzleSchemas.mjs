@@ -107,6 +107,13 @@ function validateGame(game, data, errors) {
             )
           })
         }
+        if ('solns' in puzzle && puzzle.solns != null) {
+          assert(
+            Number.isInteger(puzzle.solns) && puzzle.solns >= 1,
+            `${game.id}: tier "${tier}" puzzle[${i}] solns must be a positive integer when present`,
+            errors
+          )
+        }
       }
     })
   }

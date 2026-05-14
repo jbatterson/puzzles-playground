@@ -1,18 +1,19 @@
 /**
  * Dedupe Roly Poly puzzles (easy+medium+hard) by layout fingerprint, drop copies of tutorial layouts,
  * then assign tiers by scaled `dif` rank: easiest ~3/12 → easy, next ~4/12 → medium, ~5/12 → hard
- * (integer split from pool size via largest remainder). Tutorial unchanged; `dif` from computeRolyPolyDif.
+ * (integer split from pool size via largest remainder). Tutorial unchanged; `dif` from stored `solution` (run canonicalize to align).
  *
- *   node --import ./tools/registerSharedContractsResolve.mjs tools/reorganizeRolyPolyPuzzles.mjs
- *   node --import ./tools/registerSharedContractsResolve.mjs tools/reorganizeRolyPolyPuzzles.mjs --write
+ *   node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/reorganizeRolyPolyPuzzles.mjs
+ *   node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/reorganizeRolyPolyPuzzles.mjs --write
  */
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 
 import { computeDifFromSolution } from './computeRolyPolyDif.mjs'
+import { formatRolyPolyTier } from './rolyPolyPuzzleLedgerFormat.mjs'
 
-const repoRoot = path.resolve(import.meta.dirname, '..')
+const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const PUZZLES_REL = 'puzzlegames/rolypoly/puzzles.js'
 const write = process.argv.includes('--write')
 
@@ -50,29 +51,6 @@ function ensureDif(p) {
   return { ...p, dif: d }
 }
 
-function formatPuzzle(p) {
-  const bits = []
-  const sz = Number.isFinite(p.size) ? Math.trunc(p.size) : 7
-  bits.push(`size: ${sz}`)
-  bits.push(`balls: ${JSON.stringify(p.balls)}`)
-  bits.push(`targets: ${JSON.stringify(p.targets)}`)
-  bits.push(`blocks: ${JSON.stringify(p.blocks)}`)
-  if (Number.isFinite(p.par)) bits.push(`par: ${p.par}`)
-  else if (Number.isFinite(p.minMoves)) bits.push(`minMoves: ${p.minMoves}`)
-  if (typeof p.solution === 'string' && p.solution.length) bits.push(`solution: ${JSON.stringify(p.solution)}`)
-  if (Number.isFinite(p.dif)) bits.push(`dif: ${p.dif}`)
-  return `    { ${bits.join(', ')} }`
-}
-
-function formatTier(name, puzzles) {
-  const lines = [`  ${name}: [`, '']
-  for (const p of puzzles) {
-    lines.push(formatPuzzle(p) + ',')
-  }
-  lines.push('', '  ],')
-  return lines.join('\n')
-}
-
 async function main() {
   const abs = path.join(repoRoot, PUZZLES_REL)
   const data = (await import(pathToFileURL(abs).href + `?v=${Date.now()}`)).default
@@ -104,21 +82,22 @@ async function main() {
   console.log(`Tier sizes — easy: ${easy.length}, medium: ${medium.length}, hard: ${hard.length}`)
 
   const header = `/**
- * Roly Poly daily tiers + tutorial. Grid size: easy 5×5, medium 6×6, hard 7×7 (every puzzle lists size explicitly).
+ * Roly Poly daily tiers + tutorial. Grid size: easy 5x5, medium 6x6, hard 7x7 (every puzzle lists size explicitly).
  *
- * dif = (sum over solution moves of unlocked balls before each move) × grid size — see tools/computeRolyPolyDif.mjs.
- * Non-tutorial: sorted by dif; split ~3/12 → easy, ~4/12 → medium, ~5/12 → hard (integer split from pool size).
+ * Each puzzle's \`solution\` is a minimum-move path with the lowest inner \`dif\` weight, then lexicographic LRUD tie-break - tools/rolypoly/rolyPolyBfsSolver.mjs (\`analyzeCanonicalSolution\`). Refresh: npm run canonicalize:rolypoly -- --write
+ * \`dif\` = inner sum times grid size - tools/rolypoly/computeRolyPolyDif.mjs. Optional \`solns\` = distinct shortest winning paths.
+ * Non-tutorial: sorted by dif; split ~3/12 easy, ~4/12 medium, ~5/12 hard (integer split from pool size).
  */
 export default {
 `
   const body = [
-    formatTier('tutorial', tutorial),
+    formatRolyPolyTier('tutorial', tutorial),
     '',
-    formatTier('easy', easy),
+    formatRolyPolyTier('easy', easy),
     '',
-    formatTier('medium', medium),
+    formatRolyPolyTier('medium', medium),
     '',
-    formatTier('hard', hard),
+    formatRolyPolyTier('hard', hard),
     '',
     '}',
   ].join('\n')

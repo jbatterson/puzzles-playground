@@ -308,8 +308,16 @@
     <script type="text/babel">
       const { useState, useEffect, useRef, useCallback } = React
 
-      const DIRS = ['up', 'down', 'left', 'right']
       const MAX_CELL_PX = 80
+      /** L,R,U,D order matches tools/rolypoly/rolyPolyBfsSolver.mjs */
+      const DIR_STEPS = [
+        ['L', 'left'],
+        ['R', 'right'],
+        ['U', 'up'],
+        ['D', 'down'],
+      ]
+      const LRUD_TO_WORD = { L: 'left', R: 'right', U: 'up', D: 'down' }
+      const LRUD_ARROW = { L: '←', R: '→', U: '↑', D: '↓' }
 
       // ─── Pure game logic (no DOM) ──────────────────────────────────────────────
 
@@ -363,37 +371,176 @@
       }
 
       function stateKey(balls) {
-        return balls
+        return [...balls]
+          .sort((a, b) => a.id - b.id)
           .map((b) => `${b.row},${b.col},${b.locked ? 1 : 0}`)
-          .sort()
           .join('|')
       }
 
-      // BFS — returns { solvable, par, solution } where solution is array of dir strings
-      function bfsSolve(initBalls, targets, blocks, gridSize, maxMoves = 30) {
-        const initKey = stateKey(initBalls)
-        if (isSolved(initBalls, targets)) return { solvable: true, par: 0, solution: [] }
+      function cloneBalls(balls) {
+        return balls.map((b) => ({ ...b }))
+      }
 
-        const queue = [{ balls: initBalls, path: [] }]
-        const visited = new Set([initKey])
+      function stepInnerCost(balls) {
+        return balls.filter((b) => !b.locked).length
+      }
 
-        while (queue.length) {
-          const { balls, path } = queue.shift()
-          if (path.length >= maxMoves) continue
+      /**
+       * Shortest moves, then lowest inner dif sum, then lex smallest LRUD — mirrors tools/rolypoly/rolyPolyBfsSolver.mjs.
+       * @returns {{ solvable: true, par, solution, dif, solns } | { solvable: false }}
+       */
+      function analyzeCanonicalLayout(initBalls, targets, blocks, gridSize, maxNodes = 2000000) {
+        const startKey = stateKey(initBalls)
+        if (isSolved(initBalls, targets)) {
+          return { solvable: true, par: 0, solution: '', dif: 0, solns: 1 }
+        }
 
-          for (const dir of DIRS) {
-            const { balls: next, moved } = slideState(balls, targets, blocks, dir, gridSize)
+        const dist = new Map()
+        const ways = new Map()
+        const states = new Map()
+        dist.set(startKey, 0)
+        ways.set(startKey, 1n)
+        states.set(startKey, cloneBalls(initBalls))
+
+        const queue = [startKey]
+        let head = 0
+        let explored = 0
+
+        while (head < queue.length) {
+          const k = queue[head++]
+          explored++
+          if (explored > maxNodes) return { solvable: false }
+
+          const cur = states.get(k)
+          const d = dist.get(k)
+
+          for (const [, dir] of DIR_STEPS) {
+            const { balls: nb, moved } = slideState(cur, targets, blocks, dir, gridSize)
             if (!moved) continue
-            const key = stateKey(next)
-            if (visited.has(key)) continue
-            visited.add(key)
-            const newPath = [...path, dir]
-            if (isSolved(next, targets))
-              return { solvable: true, par: newPath.length, solution: newPath }
-            queue.push({ balls: next, path: newPath })
+            const nk = stateKey(nb)
+            const nd = d + 1
+            if (!dist.has(nk)) {
+              dist.set(nk, nd)
+              ways.set(nk, ways.get(k))
+              states.set(nk, cloneBalls(nb))
+              queue.push(nk)
+            } else if (dist.get(nk) === nd) {
+              ways.set(nk, ways.get(nk) + ways.get(k))
+            }
           }
         }
-        return { solvable: false, par: null, solution: [] }
+
+        let par = Infinity
+        for (const [k, balls] of states) {
+          if (isSolved(balls, targets)) {
+            const dd = dist.get(k)
+            if (dd < par) par = dd
+          }
+        }
+        if (!Number.isFinite(par)) return { solvable: false }
+
+        let solnsBig = 0n
+        for (const [k, balls] of states) {
+          if (isSolved(balls, targets) && dist.get(k) === par) {
+            solnsBig += ways.get(k)
+          }
+        }
+        const MAX_SAFE = Number.MAX_SAFE_INTEGER
+        const solns = solnsBig <= BigInt(MAX_SAFE) ? Number(solnsBig) : null
+
+        const prefixMin = new Map()
+        prefixMin.set(startKey, 0)
+        const byDist = Array.from({ length: par + 1 }, () => [])
+        for (const k of dist.keys()) {
+          const dd = dist.get(k)
+          if (dd <= par) byDist[dd].push(k)
+        }
+
+        for (let d = 0; d < par; d++) {
+          for (const k of byDist[d]) {
+            const u = states.get(k)
+            const base = prefixMin.get(k)
+            if (base === undefined) continue
+            for (const [, dir] of DIR_STEPS) {
+              const { balls: nb, moved } = slideState(u, targets, blocks, dir, gridSize)
+              if (!moved) continue
+              const nk = stateKey(nb)
+              if (dist.get(nk) !== d + 1) continue
+              const cost = stepInnerCost(u)
+              const cand = base + cost
+              const prev = prefixMin.get(nk)
+              if (prev === undefined || cand < prev) prefixMin.set(nk, cand)
+            }
+          }
+        }
+
+        let OPT = Infinity
+        for (const [k, balls] of states) {
+          if (!isSolved(balls, targets) || dist.get(k) !== par) continue
+          const pm = prefixMin.get(k)
+          if (pm !== undefined && pm < OPT) OPT = pm
+        }
+        if (!Number.isFinite(OPT)) return { solvable: false }
+
+        const goodGoals = []
+        for (const [k, balls] of states) {
+          if (!isSolved(balls, targets) || dist.get(k) !== par) continue
+          if (prefixMin.get(k) === OPT) goodGoals.push(k)
+        }
+        if (!goodGoals.length) return { solvable: false }
+
+        const suffixFrom = new Map()
+        for (const g of goodGoals) suffixFrom.set(g, 0)
+
+        for (let d = par - 1; d >= 0; d--) {
+          for (const k of byDist[d]) {
+            const u = states.get(k)
+            let best = Infinity
+            for (const [, dir] of DIR_STEPS) {
+              const { balls: nb, moved } = slideState(u, targets, blocks, dir, gridSize)
+              if (!moved) continue
+              const nk = stateKey(nb)
+              if (dist.get(nk) !== d + 1) continue
+              const sv = suffixFrom.get(nk)
+              if (sv === undefined) continue
+              const c = stepInnerCost(u) + sv
+              if (c < best) best = c
+            }
+            if (best < Infinity) suffixFrom.set(k, best)
+          }
+        }
+
+        if (suffixFrom.get(startKey) !== OPT) return { solvable: false }
+
+        let path = ''
+        let curKey = startKey
+        for (let step = 0; step < par; step++) {
+          const u = states.get(curKey)
+          const du = dist.get(curKey)
+          const pu = prefixMin.get(curKey)
+          let picked = null
+          let pickedKey = null
+          for (const [ch, dir] of DIR_STEPS) {
+            const { balls: nb, moved } = slideState(u, targets, blocks, dir, gridSize)
+            if (!moved) continue
+            const nk = stateKey(nb)
+            if (dist.get(nk) !== du + 1) continue
+            const cost = stepInnerCost(u)
+            const pv = prefixMin.get(nk)
+            if (pv !== pu + cost) continue
+            const sv = suffixFrom.get(nk)
+            if (sv === undefined || pv + sv !== OPT) continue
+            picked = ch
+            pickedKey = nk
+            break
+          }
+          if (picked == null) return { solvable: false }
+          path += picked
+          curKey = pickedKey
+        }
+
+        const dif = OPT * gridSize
+        return { solvable: true, par, solution: path, dif, solns }
       }
 
       // ─── Random layout ─────────────────────────────────────────────────────────
@@ -495,7 +642,9 @@
         // We highlight the first move of the solution on the current state by
         // showing the direction arrow on every non-locked ball
         const hintDir =
-          showHint && puzzle.solution && puzzle.solution.length > 0 ? puzzle.solution[0] : null
+          showHint && puzzle.solution && puzzle.solution.length > 0
+            ? LRUD_TO_WORD[puzzle.solution[0]]
+            : null
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -605,15 +754,18 @@
             while (found.length < BATCH_SIZE && attempts < MAX_ATTEMPTS) {
               attempts++
               const { balls, targets, blocks } = generateLayout(numBalls, numBlocks, gridSize)
-              const { solvable, par, solution } = bfsSolve(
-                balls,
-                targets,
-                blocks,
-                gridSize,
-                BFS_MAX
-              )
-              if (solvable && par >= minMoves) {
-                found.push({ balls, targets, blocks, par, solution, gridSize })
+              const r = analyzeCanonicalLayout(balls, targets, blocks, gridSize)
+              if (r.solvable && r.par >= minMoves && r.par <= BFS_MAX) {
+                found.push({
+                  balls,
+                  targets,
+                  blocks,
+                  par: r.par,
+                  solution: r.solution,
+                  dif: r.dif,
+                  solns: r.solns,
+                  gridSize,
+                })
               }
             }
 
@@ -634,10 +786,9 @@
           const ballArr = p.balls.map((b) => [b.row, b.col])
           const targetArr = p.targets.map((t) => [t.row, t.col])
           const blockArr = p.blocks.map((b) => [b.row, b.col])
-          const dirMap = { up: 'U', down: 'D', left: 'L', right: 'R' }
-          const solution = p.solution.map((d) => dirMap[d]).join('')
           const sz = p.gridSize ?? gridSize
-          const line = `{ size: ${sz}, balls: ${fmt(ballArr)}, targets: ${fmt(targetArr)}, blocks: ${fmt(blockArr)}, par: ${p.par}, solution: "${solution}" },\n`
+          const solnsPart = p.solns != null ? `, solns: ${p.solns}` : ''
+          const line = `{ size: ${sz}, balls: ${fmt(ballArr)}, targets: ${fmt(targetArr)}, blocks: ${fmt(blockArr)}, par: ${p.par}, solution: "${p.solution}", dif: ${p.dif}${solnsPart} },\n`
           setLedger((prev) => prev + line)
         }
 
@@ -762,10 +913,11 @@
                       <span className="label" style={{ marginBottom: 6 }}>
                         Solution path ({currentPuzzle.par} moves)
                       </span>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginTop: 4 }}>
+                        solns: {currentPuzzle.solns != null ? currentPuzzle.solns : '—'}
+                      </div>
                       <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '0.15em' }}>
-                        {currentPuzzle.solution
-                          .map((d) => ({ up: '↑', down: '↓', left: '←', right: '→' })[d])
-                          .join(' ')}
+                        {[...currentPuzzle.solution].map((ch) => LRUD_ARROW[ch] || ch).join(' ')}
                       </div>
                     </div>
                   )}

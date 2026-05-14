@@ -6,6 +6,8 @@
   "scripts": {
     "check:header-parity": "node tools/checkHeaderParity.mjs",
     "check:puzzle-schemas": "node --import ./tools/registerSharedContractsResolve.mjs tools/checkPuzzleSchemas.mjs",
+    "canonicalize:rolypoly": "node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/canonicalizeRolyPolySolutions.mjs",
+    "reorganize:rolypoly": "node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/reorganizeRolyPolyPuzzles.mjs",
     "dedupe:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/dedupePuzzles.mjs",
     "compact:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/compactPuzzleData.mjs",
     "check:migration": "npm run check:header-parity && npm run check:puzzle-schemas && npm test && npm run build",

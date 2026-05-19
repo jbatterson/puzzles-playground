@@ -14,9 +14,13 @@ export function getGameChrome(gameKey) {
   return GAME_CHROME[gameKey] || { title: 'Puzzle', showStats: false }
 }
 
-const TILE_GAME_KEYS = new Set([GAME_KEYS.SUMTILES, GAME_KEYS.PRODUCTILES])
+const TILE_GAME_KEYS = new Set([
+  GAME_KEYS.SUMTILES,
+  GAME_KEYS.PRODUCTILES,
+  GAME_KEYS.ROLYPOLY,
+])
 
-/** True for games that track move counts and show them on hub tiles (Sum Tiles, Productiles). */
+/** True for games that track move counts in share text and on hub dice (Sum Tiles, Productiles, Roly Poly). */
 export function isTileGameKey(gameKey) {
   return TILE_GAME_KEYS.has(gameKey)
 }

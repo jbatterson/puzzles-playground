@@ -47,4 +47,22 @@ describe('buildHubSharePlaintext', () => {
       expect(text).toContain('Hard   ⬜')
     })
   })
+
+  describe('rolypoly', () => {
+    it('shows move count in parentheses when recorded', () => {
+      localStorage.setItem(`rolypoly:${DATE}:0`, '1')
+      localStorage.setItem(`rolypoly:${DATE}:0:moves`, '8')
+      const text = buildHubSharePlaintext('rolypoly', DATE, BASE)
+      expect(text).toContain('ROLY POLY')
+      expect(text).toContain('(8 moves)')
+    })
+
+    it('shows star suffix when solved at minimum moves', () => {
+      localStorage.setItem(`rolypoly:${DATE}:1`, '2')
+      localStorage.setItem(`rolypoly:${DATE}:1:moves`, '5')
+      const text = buildHubSharePlaintext('rolypoly', DATE, BASE)
+      expect(text).toContain('(5 moves ⭐)')
+      expect(text).not.toContain('First try!')
+    })
+  })
 })

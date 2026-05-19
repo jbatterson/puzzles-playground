@@ -75,6 +75,30 @@
         cursor: pointer;
       }
 
+      .dif-bounds {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .dif-bounds input[type='number'] {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .dif-bounds input[type='number']:focus {
+        outline: none;
+        border-color: #000;
+      }
+      .field-error {
+        font-size: 11px;
+        font-weight: 700;
+        color: #dc2626;
+        margin-top: -6px;
+      }
+
       .btn {
         width: 100%;
         padding: 12px;
@@ -385,6 +409,14 @@
         return balls.filter((b) => !b.locked).length
       }
 
+      /** Dif scale: 5x5 -> 3, 6x6 -> 4, 7x7+ -> 5 — mirrors tools/rolypoly/rolyPolyDifScale.mjs */
+      function difMultiplierForSize(size) {
+        const sz = Number.isFinite(size) ? Math.trunc(size) : 7
+        if (sz <= 5) return 3
+        if (sz === 6) return 4
+        return 5
+      }
+
       /**
        * Shortest moves, then lowest inner dif sum, then lex smallest LRUD — mirrors tools/rolypoly/rolyPolyBfsSolver.mjs.
        * @returns {{ solvable: true, par, solution, dif, solns } | { solvable: false }}
@@ -539,7 +571,7 @@
           curKey = pickedKey
         }
 
-        const dif = OPT * gridSize
+        const dif = OPT * difMultiplierForSize(gridSize)
         return { solvable: true, par, solution: path, dif, solns }
       }
 
@@ -559,6 +591,21 @@
           }
         }
         return chosen
+      }
+
+      /** @returns {{ bound: number | null, invalid: boolean }} */
+      function parseOptionalDifBound(raw) {
+        const s = String(raw ?? '').trim()
+        if (!s) return { bound: null, invalid: false }
+        const n = Number(s)
+        if (!Number.isFinite(n) || !Number.isInteger(n)) return { bound: null, invalid: true }
+        return { bound: n, invalid: false }
+      }
+
+      function passesDifFilter(dif, minBound, maxBound) {
+        if (minBound != null && dif < minBound) return false
+        if (maxBound != null && dif > maxBound) return false
+        return true
       }
 
       function generateLayout(numBalls, numBlocks, gridSize) {
@@ -658,6 +705,16 @@
                 <span className="meta-label">Par</span>
                 <span className="meta-num">{par}</span>
               </div>
+              <div className="meta-stat">
+                <span className="meta-label">Dif</span>
+                <span className="meta-num">{puzzle.dif ?? '—'}</span>
+              </div>
+              <div className="meta-stat">
+                <span className="meta-label">Solns</span>
+                <span className="meta-num" style={{ fontSize: '1.75rem' }}>
+                  {puzzle.solns != null ? puzzle.solns : '—'}
+                </span>
+              </div>
             </div>
 
             {/* Board */}
@@ -727,7 +784,12 @@
         const [gridSize, setGridSize] = useState(7)
         const [numBalls, setNumBalls] = useState(3)
         const [numBlocks, setNumBlocks] = useState(3)
-        const [minMoves, setMinMoves] = useState(4)
+        const PAR_MIN = 3
+        const PAR_MAX = 20
+        const [minPar, setMinPar] = useState(4)
+        const [maxPar, setMaxPar] = useState(20)
+        const [minDifInput, setMinDifInput] = useState('')
+        const [maxDifInput, setMaxDifInput] = useState('')
         const [batch, setBatch] = useState([])
         const [batchIdx, setBatchIdx] = useState(-1)
         const [log, setLog] = useState('Ready')
@@ -738,9 +800,24 @@
         const boardPx = Math.min(420, gridSize * MAX_CELL_PX)
         const BATCH_SIZE = 10
         const MAX_ATTEMPTS = 5000
-        const BFS_MAX = 20 // cap BFS depth to keep it snappy
+        const minParsed = parseOptionalDifBound(minDifInput)
+        const maxParsed = parseOptionalDifBound(maxDifInput)
+        const difFilterInvalid = minParsed.invalid || maxParsed.invalid
+        const minDifBound = minParsed.bound
+        const maxDifBound = maxParsed.bound
+        const difRangeInvalid =
+          !difFilterInvalid && minDifBound != null && maxDifBound != null && minDifBound > maxDifBound
 
         const generateBatch = () => {
+          if (difFilterInvalid) {
+            setLog('Min/Max dif must be whole numbers (or leave blank)')
+            return
+          }
+          if (difRangeInvalid) {
+            setLog('Min dif cannot be greater than max dif')
+            return
+          }
+
           setIsSearching(true)
           setLog('Scanning...')
           setShowHint(false)
@@ -755,7 +832,12 @@
               attempts++
               const { balls, targets, blocks } = generateLayout(numBalls, numBlocks, gridSize)
               const r = analyzeCanonicalLayout(balls, targets, blocks, gridSize)
-              if (r.solvable && r.par >= minMoves && r.par <= BFS_MAX) {
+              if (
+                r.solvable &&
+                r.par >= minPar &&
+                r.par <= maxPar &&
+                passesDifFilter(r.dif, minDifBound, maxDifBound)
+              ) {
                 found.push({
                   balls,
                   targets,
@@ -771,10 +853,14 @@
 
             setBatch(found)
             setBatchIdx(found.length > 0 ? 0 : -1)
+            const difHint =
+              minDifBound != null || maxDifBound != null
+                ? ', relax the dif range'
+                : ''
             setLog(
               found.length > 0
                 ? `Found ${found.length} puzzle${found.length > 1 ? 's' : ''} in ${attempts} attempts`
-                : 'No puzzles found — try fewer balls or lower Min Moves'
+                : `No puzzles found — try fewer balls, widen the moves range${difHint}`
             )
             setIsSearching(false)
           }, 50)
@@ -836,18 +922,88 @@
                   />
                 </div>
                 <div>
-                  <span className="label">Minimum Moves: {minMoves}</span>
-                  <input
-                    type="range"
-                    min="3"
-                    max="20"
-                    value={minMoves}
-                    onChange={(e) => setMinMoves(Number(e.target.value))}
-                  />
+                  <span className="label">
+                    Moves (par): {minPar} – {maxPar}
+                  </span>
+                  <div className="dif-bounds" style={{ marginTop: 6 }}>
+                    <div>
+                      <span className="label" style={{ marginBottom: 2 }}>
+                        Min
+                      </span>
+                      <input
+                        type="range"
+                        min={PAR_MIN}
+                        max={PAR_MAX}
+                        value={minPar}
+                        onChange={(e) => {
+                          const v = Number(e.target.value)
+                          setMinPar(v)
+                          if (v > maxPar) setMaxPar(v)
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <span className="label" style={{ marginBottom: 2 }}>
+                        Max
+                      </span>
+                      <input
+                        type="range"
+                        min={PAR_MIN}
+                        max={PAR_MAX}
+                        value={maxPar}
+                        onChange={(e) => {
+                          const v = Number(e.target.value)
+                          setMaxPar(v)
+                          if (v < minPar) setMinPar(v)
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <span className="label">Dif range (optional)</span>
+                  <div className="dif-bounds">
+                    <div>
+                      <span className="label" style={{ marginBottom: 2 }}>
+                        Min
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="—"
+                        value={minDifInput}
+                        onChange={(e) => setMinDifInput(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <span className="label" style={{ marginBottom: 2 }}>
+                        Max
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        placeholder="—"
+                        value={maxDifInput}
+                        onChange={(e) => setMaxDifInput(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {difFilterInvalid && (
+                    <p className="field-error">Use whole numbers or leave blank</p>
+                  )}
+                  {difRangeInvalid && !difFilterInvalid && (
+                    <p className="field-error">Min dif must be ≤ max dif</p>
+                  )}
                 </div>
               </div>
 
-              <button className="btn btn-black" onClick={generateBatch} disabled={isSearching}>
+              <button
+                className="btn btn-black"
+                onClick={generateBatch}
+                disabled={isSearching || difFilterInvalid || difRangeInvalid}
+              >
                 {isSearching ? 'Searching…' : 'Generate Batch'}
               </button>
 
@@ -867,6 +1023,12 @@
                   <div className="nav-row">
                     <span className="puzzle-label">
                       Puzzle {batchIdx + 1} / {batch.length}
+                      {currentPuzzle != null && (
+                        <>
+                          {' '}
+                          · dif {currentPuzzle.dif}
+                        </>
+                      )}
                     </span>
                     <div style={{ display: 'flex' }}>
                       <div

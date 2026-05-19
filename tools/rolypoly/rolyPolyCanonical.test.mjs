@@ -26,11 +26,11 @@ describe('analyzeCanonicalSolution', () => {
     expect(a.par).toBe(5)
     expect(a.solution).toBe('LRULU')
     expect(a.innerSum).toBe(6)
-    expect(a.dif).toBe(30)
+    expect(a.dif).toBe(18)
     expect(a.solns).toBe(2)
-    expect(computeDifFromSolution({ ...multiOptimalLowDifFixture, solution: a.solution })).toBe(30)
+    expect(computeDifFromSolution({ ...multiOptimalLowDifFixture, solution: a.solution })).toBe(18)
     const legacy = computeDifFromSolution({ ...multiOptimalLowDifFixture, solution: 'URDLU' })
-    expect(legacy).toBe(50)
+    expect(legacy).toBe(30)
   })
 
   it('is deterministic across calls', () => {

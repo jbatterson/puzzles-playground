@@ -20,9 +20,9 @@ const HEADER = `/**
  * Roly Poly daily tiers + tutorial. Grid size: easy 5x5, medium 6x6, hard 7x7 (every puzzle lists size explicitly).
  *
  * Each puzzle's \`solution\` is a minimum-move path with the lowest inner \`dif\` weight (unlocked balls before each move), then lexicographic LRUD tie-break - see tools/rolypoly/rolyPolyBfsSolver.mjs (\`analyzeCanonicalSolution\`).
- * \`dif\` = that inner sum times grid size - see tools/rolypoly/computeRolyPolyDif.mjs.
+ * \`dif\` = inner sum times size multiplier (5->3, 6->4, 7->5) - see tools/rolypoly/computeRolyPolyDif.mjs.
  * \`solns\` = count of distinct shortest winning paths (same \`par\`). Refresh: npm run canonicalize:rolypoly -- --write
- * Non-tutorial: when using tools/rolypoly/reorganizeRolyPolyPuzzles.mjs, sorted by \`dif\`; split ~3/12 easy, ~4/12 medium, ~5/12 hard.
+ * Non-tutorial: when using tools/rolypoly/reorganizeRolyPolyPuzzles.mjs, sorted by \`dif\` within tier; easy dif < 52, medium 52–108, hard dif > 108.
  */
 export default {
 `

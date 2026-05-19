@@ -1,7 +1,7 @@
 /**
  * Dedupe Roly Poly puzzles (easy+medium+hard) by layout fingerprint, drop copies of tutorial layouts,
- * then assign tiers by scaled `dif` rank: easiest ~3/12 → easy, next ~4/12 → medium, ~5/12 → hard
- * (integer split from pool size via largest remainder). Tutorial unchanged; `dif` from stored `solution` (run canonicalize to align).
+ * then assign tiers by `dif`: easy &lt; 52, medium 52–108, hard &gt; 108 (each tier sorted by dif).
+ * Tutorial unchanged; `dif` from stored `solution` (run canonicalize to align).
  *
  *   node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/reorganizeRolyPolyPuzzles.mjs
  *   node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/reorganizeRolyPolyPuzzles.mjs --write
@@ -17,22 +17,21 @@ const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const PUZZLES_REL = 'puzzlegames/rolypoly/puzzles.js'
 const write = process.argv.includes('--write')
 
-/** Target shares of deduped pool: 3 : 4 : 5 (easy : medium : hard). */
-const TIER_WEIGHTS = [3, 4, 5]
+/** Inclusive medium band; easy is strictly below, hard is strictly above. */
+const DIF_MEDIUM_MIN = 52
+const DIF_MEDIUM_MAX = 108
+
+const sortByDif = (a, b) => a.dif - b.dif || (a.par ?? 0) - (b.par ?? 0)
 
 /**
- * @param {number} n deduped non-tutorial pool size
- * @returns {{ easy: number, medium: number, hard: number }}
+ * @param {Record<string, unknown> & { dif: number }} p
+ * @returns {'easy' | 'medium' | 'hard'}
  */
-function tierCountsFromPool(n) {
-  if (n <= 0) return { easy: 0, medium: 0, hard: 0 }
-  const quota = TIER_WEIGHTS.map((w) => (n * w) / 12)
-  const floors = quota.map((q) => Math.floor(q))
-  let rem = n - floors.reduce((a, b) => a + b, 0)
-  const order = [0, 1, 2].sort((i, j) => quota[j] - floors[j] - (quota[i] - floors[i]))
-  const counts = [...floors]
-  for (let k = 0; k < rem; k++) counts[order[k]]++
-  return { easy: counts[0], medium: counts[1], hard: counts[2] }
+function tierForDif(p) {
+  const d = p.dif
+  if (d < DIF_MEDIUM_MIN) return 'easy'
+  if (d <= DIF_MEDIUM_MAX) return 'medium'
+  return 'hard'
 }
 
 /** Same layout = duplicate (size default 7). */
@@ -69,24 +68,32 @@ async function main() {
     pool.push(ensureDif({ ...p }))
   }
 
-  const sorted = pool.slice().sort((a, b) => a.dif - b.dif || (a.par ?? 0) - (b.par ?? 0))
-  const n = sorted.length
-  const { easy: easyN, medium: mediumN } = tierCountsFromPool(n)
-  const easy = sorted.slice(0, easyN)
-  const medium = sorted.slice(easyN, easyN + mediumN)
-  const hard = sorted.slice(easyN + mediumN)
+  const easy = []
+  const medium = []
+  const hard = []
+  for (const p of pool) {
+    const tier = tierForDif(p)
+    if (tier === 'easy') easy.push(p)
+    else if (tier === 'medium') medium.push(p)
+    else hard.push(p)
+  }
+  easy.sort(sortByDif)
+  medium.sort(sortByDif)
+  hard.sort(sortByDif)
 
   console.log(
     `Deduped pool: ${pool.length} (from ${poolRaw.length} rows). Tutorial: ${tutorial.length} (unchanged).`
   )
-  console.log(`Tier sizes — easy: ${easy.length}, medium: ${medium.length}, hard: ${hard.length}`)
+  console.log(
+    `Tier by dif — easy: dif < ${DIF_MEDIUM_MIN} (${easy.length}), medium: ${DIF_MEDIUM_MIN}–${DIF_MEDIUM_MAX} (${medium.length}), hard: dif > ${DIF_MEDIUM_MAX} (${hard.length})`
+  )
 
   const header = `/**
  * Roly Poly daily tiers + tutorial. Grid size: easy 5x5, medium 6x6, hard 7x7 (every puzzle lists size explicitly).
  *
  * Each puzzle's \`solution\` is a minimum-move path with the lowest inner \`dif\` weight, then lexicographic LRUD tie-break - tools/rolypoly/rolyPolyBfsSolver.mjs (\`analyzeCanonicalSolution\`). Refresh: npm run canonicalize:rolypoly -- --write
- * \`dif\` = inner sum times grid size - tools/rolypoly/computeRolyPolyDif.mjs. Optional \`solns\` = distinct shortest winning paths.
- * Non-tutorial: sorted by dif; split ~3/12 easy, ~4/12 medium, ~5/12 hard (integer split from pool size).
+ * \`dif\` = inner sum times size multiplier (5->3, 6->4, 7->5) - tools/rolypoly/computeRolyPolyDif.mjs. Optional \`solns\` = distinct shortest winning paths.
+ * Non-tutorial: sorted by dif within tier; easy dif &lt; 52, medium 52–108, hard dif &gt; 108.
  */
 export default {
 `

@@ -1,7 +1,7 @@
 /**
  * Compute `dif` along the stored solution: before each slide, add the number of balls not yet
  * locked on a target (each such ball counts 1 toward that move’s weight). That sum is then multiplied
- * by grid size (5×5 → ×5, 6×6 → ×6, 7×7 → ×7) so larger boards rank harder for the same path weight.
+ * by a size multiplier (5x5 -> x3, 6x6 -> x4, 7x7 -> x5) so larger boards rank harder for the same path weight.
  * Matches puzzlegames/rolypoly/rolypoly.jsx slide physics.
  *
  * Dry-run: prints tier dif ranges. Pass --write to set or refresh `, dif: N` in puzzles.js (keeps optional `solns:` unchanged).
@@ -13,17 +13,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 
+import { difFromInnerSum, gridSizeOf } from './rolyPolyDifScale.mjs'
+
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const PUZZLES_REL = 'puzzlegames/rolypoly/puzzles.js'
 const write = process.argv.includes('--write')
 
 const TIER_ORDER = ['tutorial', 'easy', 'medium', 'hard']
-
-function gridSizeOf(p) {
-  const s = p.size
-  if (Number.isFinite(s) && s >= 3 && s <= 16) return Math.trunc(s)
-  return 7
-}
 
 function initFromPuzzle(p) {
   const balls = p.balls.map(([r, c], i) => ({ id: i, row: r, col: c, locked: false }))
@@ -76,7 +72,7 @@ const DIR_MAP = { L: 'left', R: 'right', U: 'up', D: 'down' }
 
 /**
  * @param {object} p puzzle with balls, targets, blocks, solution
- * @returns {number|null} (weighted move sum) × grid size; null if no solution string or no balls
+ * @returns {number|null} (weighted move sum) × dif multiplier; null if no solution string or no balls
  */
 export function computeDifFromSolution(p) {
   if (!p || typeof p.solution !== 'string' || p.solution.length === 0) return null
@@ -94,7 +90,7 @@ export function computeDifFromSolution(p) {
     base += unlocked
     balls = slide(dir, balls, targets, blocks, gridSize)
   }
-  return base * gridSize
+  return difFromInnerSum(base, gridSize)
 }
 
 function isPuzzleObjectLine(line) {
@@ -174,7 +170,7 @@ async function main() {
   }
 
   console.log(
-    'Roly Poly `dif` = (sum over solution moves of unlocked balls before each move) × grid size.\n'
+    'Roly Poly `dif` = (sum over solution moves of unlocked balls before each move) × size multiplier (5->3, 6->4, 7->5).\n'
   )
   for (const s of summary) {
     console.log(

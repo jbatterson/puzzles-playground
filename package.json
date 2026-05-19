@@ -7,6 +7,7 @@
     "check:header-parity": "node tools/checkHeaderParity.mjs",
     "check:puzzle-schemas": "node --import ./tools/registerSharedContractsResolve.mjs tools/checkPuzzleSchemas.mjs",
     "canonicalize:rolypoly": "node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/canonicalizeRolyPolySolutions.mjs",
+    "dedupe:rolypoly": "node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/dedupeRolyPolyPuzzles.mjs",
     "reorganize:rolypoly": "node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/reorganizeRolyPolyPuzzles.mjs",
     "dedupe:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/dedupePuzzles.mjs",
     "compact:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/compactPuzzleData.mjs",

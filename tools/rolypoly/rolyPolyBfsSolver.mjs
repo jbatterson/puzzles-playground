@@ -5,11 +5,7 @@
  * inner `dif` weight (sum of unlocked balls before each move, same rule as tools/rolypoly/computeRolyPolyDif.mjs),
  * then lexicographically smallest LRUD string. Also counts shortest-path solutions (`solns`).
  */
-function gridSizeOf(p) {
-  const s = p.size
-  if (Number.isFinite(s) && s >= 3 && s <= 16) return Math.trunc(s)
-  return 7
-}
+import { difFromInnerSum, gridSizeOf } from './rolyPolyDifScale.mjs'
 
 function initFromPuzzle(p) {
   const balls = p.balls.map(([r, c], i) => ({ id: i, row: r, col: c, locked: false }))
@@ -320,7 +316,7 @@ export function analyzeCanonicalSolution(p, opts = {}) {
   }
 
   const innerSum = OPT
-  const dif = innerSum * gridSize
+  const dif = difFromInnerSum(innerSum, gridSize)
 
   return { par, solution: path, innerSum, dif, solns }
 }

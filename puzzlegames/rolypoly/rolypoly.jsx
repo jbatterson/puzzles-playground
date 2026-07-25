@@ -46,6 +46,9 @@ const MAX_MOVE_DISPLAY = 99
 const ROLYPOLY_TUTORIAL_HINT =
   'Use arrow keys or swipes to slide every bug onto a yellow target. Bugs lock when they land on a target.'
 
+/** Shift hard rotation so today's 3-star stays the pre-expansion puzzle after hard pool grew. */
+const HARD_DAY_OFFSET = 144
+
 function getDailyPuzzles() {
   const key = getDailyKey()
   const dayIndex = getDayIndex(key)
@@ -56,7 +59,7 @@ function getDailyPuzzles() {
     puzzles: [
       easy[dayIndex % easy.length],
       medium[dayIndex % medium.length],
-      hard[dayIndex % hard.length],
+      hard[(dayIndex + HARD_DAY_OFFSET) % hard.length],
     ],
     key,
   }

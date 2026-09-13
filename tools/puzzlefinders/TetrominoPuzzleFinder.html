@@ -1034,7 +1034,9 @@ function PlayBoard({puzzle,dungMode}){
   const n=state.size
   const cs=Math.min(72,420/n)
   const boardPx=n*cs
-  const colors=['#f4c542','#6bb6d9','#77ba74','#b67ac6','#e98a52','#9da7b1','#71b7a8','#d78fbb']
+  // Match the live games: color by tetromino letter, not piece index.
+  const TYPE_COLORS={I:'#6bb6d9',L:'#e98a52',O:'#f4c542',S:'#77ba74',T:'#b67ac6'}
+  const pieceColor=(p)=>TYPE_COLORS[p.type]||'#9da7b1'
 
   return (
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:14}}>
@@ -1054,7 +1056,7 @@ function PlayBoard({puzzle,dungMode}){
 
         {state.pieces.map((p,pi)=>p.cells.map((c,ci)=><div key={`${pi}-${ci}`} style={{
           position:'absolute',left:c.c*cs,top:c.r*cs,width:cs,height:cs,
-          background:colors[pi%colors.length],border:'2px solid #111',zIndex:3
+          background:pieceColor(p),border:'2px solid #111',zIndex:3
         }}/>))}
 
         {dungMode && <div style={{

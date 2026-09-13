@@ -6,6 +6,7 @@ import {
   normalizePuzzleInput,
   getParPushes,
   pieceAtIn,
+  pieceTypeClass,
   tryMove,
   checkWon,
   puzzleFingerprint,
@@ -769,11 +770,12 @@ export default function DungBeetle() {
           border: 2px solid rgba(255,255,255,.42);
           pointer-events: none;
         }
-        .dungbeetle-game .piece-0 { background: var(--db-yellow); }
-        .dungbeetle-game .piece-1 { background: var(--db-blue); }
-        .dungbeetle-game .piece-2 { background: var(--db-piece-green); }
-        .dungbeetle-game .piece-3 { background: var(--db-purple); }
-        .dungbeetle-game .piece-4 { background: var(--db-orange); }
+        .dungbeetle-game .piece-I { background: var(--db-blue); }
+        .dungbeetle-game .piece-L { background: var(--db-orange); }
+        .dungbeetle-game .piece-O { background: var(--db-yellow); }
+        .dungbeetle-game .piece-S { background: var(--db-piece-green); }
+        .dungbeetle-game .piece-T { background: var(--db-purple); }
+        .dungbeetle-game .piece-unknown { background: #9da7b1; }
         .dungbeetle-game .dung-ball {
           position: absolute;
           border-radius: 50%;
@@ -988,7 +990,7 @@ export default function DungBeetle() {
                 piece.cells.map((cell, ci) => (
                   <div
                     key={`p${pi}-${ci}`}
-                    className={`piece-block piece-${pi % 5}`}
+                    className={`piece-block ${pieceTypeClass(piece)}`}
                     style={{
                       width: cellW,
                       height: cellH,

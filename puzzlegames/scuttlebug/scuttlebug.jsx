@@ -6,6 +6,7 @@ import {
   normalizePuzzleInput,
   getParPushes,
   pieceAtIn,
+  pieceTypeClass,
   tryMove,
   checkWon,
   puzzleFingerprint,
@@ -767,11 +768,12 @@ export default function Scuttlebug() {
           border: 2px solid rgba(255,255,255,.42);
           pointer-events: none;
         }
-        .scuttlebug-game .piece-0 { background: var(--sb-yellow); }
-        .scuttlebug-game .piece-1 { background: var(--sb-blue); }
-        .scuttlebug-game .piece-2 { background: var(--sb-piece-green); }
-        .scuttlebug-game .piece-3 { background: var(--sb-purple); }
-        .scuttlebug-game .piece-4 { background: var(--sb-orange); }
+        .scuttlebug-game .piece-I { background: var(--sb-blue); }
+        .scuttlebug-game .piece-L { background: var(--sb-orange); }
+        .scuttlebug-game .piece-O { background: var(--sb-yellow); }
+        .scuttlebug-game .piece-S { background: var(--sb-piece-green); }
+        .scuttlebug-game .piece-T { background: var(--sb-purple); }
+        .scuttlebug-game .piece-unknown { background: #9da7b1; }
         .scuttlebug-game .hole-overlay {
           position: absolute;
           border-radius: 50%;
@@ -976,7 +978,7 @@ export default function Scuttlebug() {
                 piece.cells.map((cell, ci) => (
                   <div
                     key={`p${pi}-${ci}`}
-                    className={`piece-block piece-${pi % 5}`}
+                    className={`piece-block ${pieceTypeClass(piece)}`}
                     style={{
                       width: cellW,
                       height: cellH,

@@ -74,6 +74,49 @@ function formatRolyPolyPuzzleForPuzzlesJs(puzzle) {
   return line
 }
 
+/** Dung Beetle / Scuttlebug — compact cell objects */
+function formatTetrominoPushPuzzleForPuzzlesJs(puzzle, { expectBall }) {
+  if (!puzzle || typeof puzzle !== 'object') return null
+  if (!puzzle.player || !puzzle.target) return null
+  if (expectBall && !puzzle.ball) return null
+
+  const fmtCell = (cell) => {
+    if (Array.isArray(cell)) return `{r:${cell[0]},c:${cell[1]}}`
+    if (cell && typeof cell === 'object') return `{r:${cell.r},c:${cell.c}}`
+    return 'null'
+  }
+
+  let piecesPart
+  if (Array.isArray(puzzle.pieces)) {
+    piecesPart =
+      '[' +
+      puzzle.pieces
+        .map((piece) => {
+          const cells = (piece.cells || []).map(fmtCell).join(',')
+          return `{cells:[${cells}]}`
+        })
+        .join(',') +
+      ']'
+  } else if (puzzle.pieces && typeof puzzle.pieces === 'object') {
+    piecesPart = JSON.stringify(puzzle.pieces)
+  } else {
+    return null
+  }
+
+  const min = puzzle.minPushes ?? puzzle.pushes
+  let line = `{pieces:${piecesPart},player:${fmtCell(puzzle.player)}`
+  if (expectBall) line += `,ball:${fmtCell(puzzle.ball)}`
+  line += `,target:${fmtCell(puzzle.target ?? puzzle.hole)}`
+  if (Number.isFinite(min)) line += `,minPushes:${min}`
+  if (Number.isFinite(puzzle.size) && puzzle.size !== 7) line += `,size:${puzzle.size}`
+  if (typeof puzzle.solution === 'string' && puzzle.solution.length) {
+    line += `,solution:${JSON.stringify(puzzle.solution)}`
+  }
+  if (Number.isFinite(puzzle.solns)) line += `,solns:${puzzle.solns}`
+  line += '}'
+  return line
+}
+
 /**
  * Line 2 matches how puzzles appear in each game's puzzles.js (spacing, quotes).
  * Falls back to truncated JSON.stringify for unknown shapes / games.
@@ -100,6 +143,12 @@ export function formatCurateClipboard(
       break
     case 'rolypoly':
       line2 = formatRolyPolyPuzzleForPuzzlesJs(puzzle)
+      break
+    case 'dungbeetle':
+      line2 = formatTetrominoPushPuzzleForPuzzlesJs(puzzle, { expectBall: true })
+      break
+    case 'scuttlebug':
+      line2 = formatTetrominoPushPuzzleForPuzzlesJs(puzzle, { expectBall: false })
       break
     default:
       break

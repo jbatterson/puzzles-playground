@@ -26,6 +26,8 @@ const GAME_TITLES = Object.freeze({
   sumtiles: 'Sum Tiles',
   productiles: 'Productiles',
   rolypoly: 'Roly Poly',
+  dungbeetle: 'Dung Beetle',
+  scuttlebug: 'Scuttlebug',
 })
 
 function buildShareText(key, title, href, completions, perfects, moveCounts, dateKey, prefs) {

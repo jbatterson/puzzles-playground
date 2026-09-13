@@ -13,6 +13,8 @@ const suiteFiles = [
   'puzzlegames/sumtiles/sumtiles.jsx',
   'puzzlegames/productiles/productiles.jsx',
   'puzzlegames/rolypoly/rolypoly.jsx',
+  'puzzlegames/dungbeetle/dungbeetle.jsx',
+  'puzzlegames/scuttlebug/scuttlebug.jsx',
 ]
 
 for (const relPath of suiteFiles) {

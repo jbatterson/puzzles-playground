@@ -7,6 +7,8 @@ import './shared/style.css'
 import ProductilesIcon from './shared/icons/ProductilesIcon.jsx'
 import SumTilesIcon from './shared/icons/SumTilesIcon.jsx'
 import RolyPolyIcon from './shared/icons/RolyPolyIcon.jsx'
+import DungBeetleIcon from './shared/icons/DungBeetleIcon.jsx'
+import ScuttlebugIcon from './shared/icons/ScuttlebugIcon.jsx'
 import DiceFace from './shared/DiceFace.jsx'
 import { HubDiceStar, HubDiceCheck } from './shared/HubDiceStar.jsx'
 import { PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
@@ -107,6 +109,20 @@ const GAMES = [
     Icon: RolyPolyIcon,
     title: 'Roly Poly',
     desc: 'Swipe to roll every bug onto a yellow target.',
+  },
+  {
+    key: 'dungbeetle',
+    href: `${base}puzzlegames/dungbeetle/`,
+    Icon: DungBeetleIcon,
+    title: 'Dung Beetle',
+    desc: 'Push tetrominoes and roll the ball into the hole.',
+  },
+  {
+    key: 'scuttlebug',
+    href: `${base}puzzlegames/scuttlebug/`,
+    Icon: ScuttlebugIcon,
+    title: 'Scuttlebug',
+    desc: 'Push tetrominoes and scuttle the beetle into the hole.',
   },
 ]
 

@@ -1,0 +1,1372 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tetromino Puzzle Finder</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script
+      crossorigin
+      src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+    ></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        font-family: 'Outfit', sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #fff;
+        display: flex;
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
+
+      #sidebar {
+        width: 320px;
+        min-width: 320px;
+        background: #f8fafc;
+        border-right: 1.5px solid #e2e8f0;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        overflow-y: auto;
+        z-index: 10;
+      }
+
+      #game-view {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        gap: 24px;
+      }
+
+      h1 {
+        font-size: 1.1rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        border-bottom: 1.5px solid #e2e8f0;
+        padding-bottom: 12px;
+      }
+
+      .label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #64748b;
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      input[type='range'] {
+        accent-color: #000;
+        width: 100%;
+        cursor: pointer;
+      }
+
+      .dif-bounds {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .dif-bounds input[type='number'] {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .dif-bounds input[type='number']:focus {
+        outline: none;
+        border-color: #000;
+      }
+      .field-error {
+        font-size: 11px;
+        font-weight: 700;
+        color: #dc2626;
+        margin-top: -6px;
+      }
+      .field-warn {
+        font-size: 11px;
+        font-weight: 700;
+        color: #b45309;
+        margin-top: -6px;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 12px;
+        border-radius: 4px;
+        border: none;
+        font-weight: 900;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+      }
+      .btn-black {
+        background: #000;
+        color: #fff;
+      }
+      .btn-black:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .btn-white {
+        background: #fff;
+        color: #000;
+        border: 2px solid #000;
+      }
+      .btn-white:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .btn-green {
+        background: #16a34a;
+        color: #fff;
+      }
+      .btn-blue {
+        background: #eff6ff;
+        color: #2563eb;
+        border: 1.5px solid #bfdbfe;
+      }
+      .btn-red {
+        background: #fff;
+        color: #dc2626;
+        border: 2px solid #dc2626;
+      }
+
+      .btn-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .log {
+        font-size: 11px;
+        color: #94a3b8;
+        text-align: center;
+        font-style: italic;
+        min-height: 16px;
+        white-space: pre-line;
+        line-height: 1.5;
+      }
+
+      .nav-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .nav-arrow {
+        font-size: 26px;
+        cursor: pointer;
+        color: #94a3b8;
+        padding: 0 10px;
+        user-select: none;
+        line-height: 1;
+      }
+      .nav-arrow:hover:not(.disabled) {
+        color: #000;
+      }
+      .nav-arrow.disabled {
+        opacity: 0.2;
+        cursor: default;
+      }
+      .puzzle-label {
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .ledger-code {
+        font-family: monospace;
+        font-size: 10px;
+        background: #0f172a;
+        color: #38bdf8;
+        padding: 12px;
+        border-radius: 6px;
+        white-space: pre-wrap;
+        height: 140px;
+        overflow-y: auto;
+        border: 1px solid #334155;
+        margin-top: 4px;
+      }
+
+      .board-wrap {
+        position: relative;
+        border: 2px solid #000;
+        background: #fff;
+      }
+
+      .grid-overlay {
+        display: grid;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        inset: 0;
+      }
+
+      .cell {
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        position: relative;
+      }
+
+      .meta-row {
+        display: flex;
+        gap: 32px;
+        align-items: flex-end;
+      }
+      .meta-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .meta-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #94a3b8;
+      }
+      .meta-num {
+        font-size: 2.5rem;
+        font-weight: 900;
+        line-height: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React
+
+const DIRS = [
+  ['U', -1, 0],
+  ['D', 1, 0],
+  ['L', 0, -1],
+  ['R', 0, 1],
+]
+
+const SHAPES = {
+  I:[[0,0],[1,0],[2,0],[3,0]],
+  L:[[0,0],[1,0],[2,0],[2,1]],
+  O:[[0,0],[0,1],[1,0],[1,1]],
+  S:[[0,1],[0,2],[1,0],[1,1]],
+  T:[[0,0],[0,1],[0,2],[1,1]],
+}
+
+/**
+ * Search + generation mirror tools/tetromino/pushEngine.mjs - that file is the source of truth
+ * and has the Node CLI (findTetrominoPuzzles.mjs) for bulk runs. Keep the two in step.
+ */
+const VERIFY_STATES = 250000
+
+function clone(x){ return JSON.parse(JSON.stringify(x)) }
+function inBounds(r,c,n){ return r>=0 && c>=0 && r<n && c<n }
+
+function normalizeShape(shape){
+  const mr=Math.min(...shape.map(([r])=>r))
+  const mc=Math.min(...shape.map(([,c])=>c))
+  return shape.map(([r,c])=>[r-mr,c-mc]).sort((a,b)=>a[0]-b[0]||a[1]-b[1])
+}
+function rotateShape(shape){ return normalizeShape(shape.map(([r,c])=>[c,-r])) }
+function uniqueOrientations(shape){
+  const out=[]
+  let cur=normalizeShape(shape)
+  for(let i=0;i<4;i++){
+    const k=JSON.stringify(cur)
+    if(!out.some(s=>JSON.stringify(s)===k)) out.push(cur)
+    cur=rotateShape(cur)
+  }
+  return out
+}
+const ORIENT=Object.fromEntries(Object.entries(SHAPES).map(([k,s])=>[k,uniqueOrientations(s)]))
+
+function pieceAt(pieces,r,c){
+  for(let i=0;i<pieces.length;i++){
+    if(pieces[i].cells.some(p=>p.r===r && p.c===c)) return i
+  }
+  return -1
+}
+
+function canMovePiece(pieces,pi,dr,dc,n,ball=null){
+  for(const cell of pieces[pi].cells){
+    const nr=cell.r+dr, nc=cell.c+dc
+    if(!inBounds(nr,nc,n)) return false
+    if(ball && nr===ball.r && nc===ball.c) return false
+    const other=pieceAt(pieces,nr,nc)
+    if(other!==-1 && other!==pi) return false
+  }
+  return true
+}
+
+function shuffle(arr){
+  const a=arr.slice()
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1))
+    ;[a[i],a[j]]=[a[j],a[i]]
+  }
+  return a
+}
+
+/** Sampling origins beats enumerating them: this runs on every generation attempt. */
+function randomPlacement(n, counts){
+  const used=new Set()
+  const pieces=[]
+  const wanted=[]
+  for(const type of ['I','L','O','S','T']){
+    for(let i=0;i<counts[type];i++) wanted.push(type)
+  }
+
+  for(const type of wanted){
+    const ors=ORIENT[type]
+    let placed=false
+    for(let attempt=0;attempt<80 && !placed;attempt++){
+      const shape=ors[Math.floor(Math.random()*ors.length)]
+      const h=Math.max(...shape.map(([r])=>r))+1
+      const w=Math.max(...shape.map(([,c])=>c))+1
+      const r0=Math.floor(Math.random()*(n-h+1))
+      const c0=Math.floor(Math.random()*(n-w+1))
+      const cells=shape.map(([r,c])=>({r:r+r0,c:c+c0}))
+      if(cells.every(p=>!used.has(p.r*n+p.c))){
+        cells.forEach(p=>used.add(p.r*n+p.c))
+        pieces.push({type,cells})
+        placed=true
+      }
+    }
+    if(!placed) return null
+  }
+
+  const empty=[]
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++){
+    if(!used.has(r*n+c)) empty.push({r,c})
+  }
+  return {size:n,pieces,used,empty}
+}
+
+/** Interactive play step (walk-level). */
+function stepState(state,ch,dungMode){
+  const [,dr,dc]=DIRS.find(([d])=>d===ch)
+  const n=state.size
+  const nr=state.player.r+dr
+  const nc=state.player.c+dc
+  if(!inBounds(nr,nc,n)) return null
+
+  if(dungMode && nr===state.ball.r && nc===state.ball.c){
+    const br=state.ball.r+dr, bc=state.ball.c+dc
+    if(!inBounds(br,bc,n)) return null
+    if(pieceAt(state.pieces,br,bc)!==-1) return null
+    const next=clone(state)
+    next.ball={r:br,c:bc}
+    next.player={r:nr,c:nc}
+    return {state:next, blockPush:0, ballPush:1, movedPiece:-1}
+  }
+
+  const pi=pieceAt(state.pieces,nr,nc)
+  if(pi===-1){
+    const next=clone(state)
+    next.player={r:nr,c:nc}
+    return {state:next, blockPush:0, ballPush:0, movedPiece:-1}
+  }
+
+  if(!canMovePiece(state.pieces,pi,dr,dc,n,dungMode?state.ball:null)) return null
+
+  const next=clone(state)
+  next.pieces[pi].cells.forEach(c=>{c.r+=dr;c.c+=dc})
+  next.player={r:nr,c:nc}
+  return {state:next, blockPush:1, ballPush:0, movedPiece:pi}
+}
+
+function solved(state,dungMode){
+  return dungMode
+    ? state.ball.r===state.target.r && state.ball.c===state.target.c
+    : state.player.r===state.target.r && state.player.c===state.target.c
+}
+
+/**
+ * Push-optimal solver. Walking is free and the beetle's exact cell never matters, so a state
+ * stores its walk region's lowest cell index instead of the beetle position. Ball pushes are
+ * free too, which makes this a 0-1 BFS: the first goal popped is push-optimal.
+ *
+ * Returns `{solvable, cutoff, pushes, ballPushes, blocksMoved, solution, statesExplored}`.
+ */
+function solvePushPuzzle(puzzle, dungMode, maxStates=VERIFY_STATES){
+  const n=puzzle.size
+  const cellCount=n*n
+  const pieceCount=puzzle.pieces.length
+  const idxOf=cell=>cell.r*n+cell.c
+
+  // Pieces only ever translate, so each one's position is a single anchor cell.
+  const shapes=[]
+  const startRows=new Int8Array(pieceCount)
+  const startCols=new Int8Array(pieceCount)
+  puzzle.pieces.forEach((piece,i)=>{
+    let anchor=piece.cells[0]
+    for(const cell of piece.cells){ if(idxOf(cell)<idxOf(anchor)) anchor=cell }
+    shapes.push(piece.cells.map(cell=>({dr:cell.r-anchor.r,dc:cell.c-anchor.c})))
+    startRows[i]=anchor.r
+    startCols[i]=anchor.c
+  })
+
+  const targetIdx=idxOf(puzzle.target)
+  const startPlayerIdx=idxOf(puzzle.player)
+  const startBallIdx=dungMode?idxOf(puzzle.ball):-1
+
+  // Stamped scratch buffers avoid allocating per node.
+  const occStamp=new Int32Array(cellCount)
+  const occPiece=new Int8Array(cellCount)
+  let occToken=0
+  const seenStamp=new Int32Array(cellCount)
+  let seenToken=0
+  const queue=new Int32Array(cellCount)
+
+  function loadOcc(rows,cols){
+    occToken++
+    for(let i=0;i<pieceCount;i++){
+      const shape=shapes[i], r0=rows[i], c0=cols[i]
+      for(let j=0;j<shape.length;j++){
+        const idx=(r0+shape[j].dr)*n+(c0+shape[j].dc)
+        occStamp[idx]=occToken
+        occPiece[idx]=i
+      }
+    }
+  }
+  const pieceAtIdx=idx=>(occStamp[idx]===occToken?occPiece[idx]:-1)
+
+  /** Flood the beetle's walk region; its lowest cell index identifies the region. */
+  function floodRegion(startIdx,ballIdx){
+    seenToken++
+    if(occStamp[startIdx]===occToken||startIdx===ballIdx) return -1
+    let head=0,tail=0
+    queue[tail++]=startIdx
+    seenStamp[startIdx]=seenToken
+    let rep=startIdx
+    while(head<tail){
+      const cur=queue[head++]
+      const r=(cur/n)|0, c=cur-r*n
+      for(let d=0;d<4;d++){
+        const nr=r+DIRS[d][1], nc=c+DIRS[d][2]
+        if(nr<0||nr>=n||nc<0||nc>=n) continue
+        const idx=nr*n+nc
+        if(seenStamp[idx]===seenToken||occStamp[idx]===occToken||idx===ballIdx) continue
+        seenStamp[idx]=seenToken
+        if(idx<rep) rep=idx
+        queue[tail++]=idx
+      }
+    }
+    return rep
+  }
+  const inRegion=idx=>seenStamp[idx]===seenToken
+
+  // Numeric keys fit in a double at these piece counts; longer boards fall back to strings.
+  const numericKeys=pieceCount<=6 && cellCount<=64
+  function encode(rows,cols,ballIdx,rep){
+    if(numericKeys){
+      let k=(rep+1)*64+(ballIdx+1)
+      for(let i=0;i<pieceCount;i++) k=k*64+(rows[i]*n+cols[i])
+      return k
+    }
+    let s=String.fromCharCode(rep+1,ballIdx+2)
+    for(let i=0;i<pieceCount;i++) s+=String.fromCharCode(rows[i]*n+cols[i]+1)
+    return s
+  }
+
+  loadOcc(startRows,startCols)
+  const startRep=floodRegion(startPlayerIdx,startBallIdx)
+  if(startRep<0) return {solvable:false}
+
+  const startNode={
+    rows:startRows,cols:startCols,ballIdx:startBallIdx,
+    playerIdx:startPlayerIdx,rep:startRep,cost:0,parent:null,action:null
+  }
+
+  const seen=new Set([encode(startRows,startCols,startBallIdx,startRep)])
+  let current=[startNode]
+  let next=[]
+  let head=0
+  let popped=0
+
+  while(true){
+    if(head>=current.length){
+      if(!next.length) break
+      current=next; next=[]; head=0
+    }
+
+    const node=current[head++]
+    popped++
+    if(popped>maxStates) return {solvable:false,cutoff:true,statesExplored:popped}
+
+    loadOcc(node.rows,node.cols)
+    floodRegion(node.playerIdx,node.ballIdx)
+
+    const won=dungMode ? node.ballIdx===targetIdx : inRegion(targetIdx)
+    if(won) return finish(node)
+
+    // Gather successors first: flooding a successor's region clobbers the scratch buffers.
+    const candidates=[]
+
+    if(dungMode){
+      const br=(node.ballIdx/n)|0, bc=node.ballIdx-br*n
+      for(let d=0;d<4;d++){
+        const dr=DIRS[d][1], dc=DIRS[d][2]
+        const sr=br-dr, sc=bc-dc, ar=br+dr, ac=bc+dc
+        if(sr<0||sr>=n||sc<0||sc>=n) continue
+        if(ar<0||ar>=n||ac<0||ac>=n) continue
+        const standIdx=sr*n+sc, aheadIdx=ar*n+ac
+        if(!inRegion(standIdx)) continue
+        if(pieceAtIdx(aheadIdx)!==-1) continue
+        candidates.push({kind:'ball',d,standIdx,landIdx:node.ballIdx,newBallIdx:aheadIdx,pieceIdx:-1})
+      }
+    }
+
+    for(let i=0;i<pieceCount;i++){
+      const shape=shapes[i], r0=node.rows[i], c0=node.cols[i]
+      for(let d=0;d<4;d++){
+        const dr=DIRS[d][1], dc=DIRS[d][2]
+        let movable=true
+        for(let j=0;j<shape.length;j++){
+          const nr=r0+shape[j].dr+dr, nc=c0+shape[j].dc+dc
+          if(nr<0||nr>=n||nc<0||nc>=n){ movable=false; break }
+          const idx=nr*n+nc
+          if(idx===node.ballIdx){ movable=false; break }
+          const other=pieceAtIdx(idx)
+          if(other!==-1&&other!==i){ movable=false; break }
+        }
+        if(!movable) continue
+
+        // Every push face is its own successor: different faces can leave the beetle in
+        // different regions, so taking only the first would make the solver unsound.
+        for(let j=0;j<shape.length;j++){
+          const cr=r0+shape[j].dr, cc=c0+shape[j].dc
+          const sr=cr-dr, sc=cc-dc
+          if(sr<0||sr>=n||sc<0||sc>=n) continue
+          const standIdx=sr*n+sc
+          if(!inRegion(standIdx)) continue
+          candidates.push({kind:'push',pieceIdx:i,d,standIdx,landIdx:cr*n+cc})
+        }
+      }
+    }
+
+    for(const cand of candidates){
+      let rows=node.rows, cols=node.cols, ballIdx=node.ballIdx
+      if(cand.kind==='push'){
+        rows=Int8Array.from(node.rows)
+        cols=Int8Array.from(node.cols)
+        rows[cand.pieceIdx]+=DIRS[cand.d][1]
+        cols[cand.pieceIdx]+=DIRS[cand.d][2]
+      }else{
+        ballIdx=cand.newBallIdx
+      }
+
+      loadOcc(rows,cols)
+      const rep=floodRegion(cand.landIdx,ballIdx)
+      if(rep<0) continue
+
+      const key=encode(rows,cols,ballIdx,rep)
+      if(seen.has(key)) continue
+      seen.add(key)
+
+      const child={
+        rows,cols,ballIdx,playerIdx:cand.landIdx,rep,
+        cost:node.cost+(cand.kind==='push'?1:0),
+        parent:node,
+        action:{kind:cand.kind,pieceIdx:cand.pieceIdx,d:cand.d,standIdx:cand.standIdx}
+      }
+      if(cand.kind==='push') next.push(child)
+      else current.push(child)
+    }
+  }
+
+  return {solvable:false,statesExplored:popped}
+
+  function finish(goalNode){
+    const chain=[]
+    for(let cur=goalNode;cur&&cur.action;cur=cur.parent) chain.push(cur.action)
+    chain.reverse()
+
+    const moved=new Set()
+    let ballPushes=0
+    for(const action of chain){
+      if(action.kind==='push') moved.add(action.pieceIdx)
+      else ballPushes++
+    }
+
+    return {
+      solvable:true,
+      pushes:goalNode.cost,
+      ballPushes,
+      blocksMoved:moved.size,
+      solution:reconstruct(chain),
+      statesExplored:popped
+    }
+  }
+
+  /** Replay the action chain, filling in the free walking, to get a UDLR path. */
+  function reconstruct(chain){
+    const rows=Int8Array.from(startRows)
+    const cols=Int8Array.from(startCols)
+    let ballIdx=startBallIdx
+    let playerIdx=startPlayerIdx
+    let out=''
+
+    for(const action of chain){
+      loadOcc(rows,cols)
+      const walk=walkPath(playerIdx,action.standIdx,ballIdx)
+      if(walk==null) return null
+      out+=walk+DIRS[action.d][0]
+
+      if(action.kind==='push'){
+        rows[action.pieceIdx]+=DIRS[action.d][1]
+        cols[action.pieceIdx]+=DIRS[action.d][2]
+        const sr=(action.standIdx/n)|0, sc=action.standIdx-sr*n
+        playerIdx=(sr+DIRS[action.d][1])*n+(sc+DIRS[action.d][2])
+      }else{
+        playerIdx=ballIdx
+        ballIdx=ballIdx+DIRS[action.d][1]*n+DIRS[action.d][2]
+      }
+    }
+
+    if(!dungMode){
+      loadOcc(rows,cols)
+      const walk=walkPath(playerIdx,targetIdx,ballIdx)
+      if(walk==null) return null
+      out+=walk
+    }
+    return out
+  }
+
+  /** Shortest free walk between two cells on the currently loaded board. */
+  function walkPath(fromIdx,toIdx,ballIdx){
+    if(fromIdx===toIdx) return ''
+    const prevCell=new Int32Array(cellCount).fill(-1)
+    const prevDir=new Int8Array(cellCount).fill(-1)
+    const visited=new Uint8Array(cellCount)
+    visited[fromIdx]=1
+    let head=0,tail=0
+    queue[tail++]=fromIdx
+
+    while(head<tail){
+      const cur=queue[head++]
+      if(cur===toIdx) break
+      const r=(cur/n)|0, c=cur-r*n
+      for(let d=0;d<4;d++){
+        const nr=r+DIRS[d][1], nc=c+DIRS[d][2]
+        if(nr<0||nr>=n||nc<0||nc>=n) continue
+        const idx=nr*n+nc
+        if(visited[idx]||occStamp[idx]===occToken||idx===ballIdx) continue
+        visited[idx]=1
+        prevCell[idx]=cur
+        prevDir[idx]=d
+        queue[tail++]=idx
+      }
+    }
+
+    if(!visited[toIdx]) return null
+    const chars=[]
+    for(let cur=toIdx;cur!==fromIdx;cur=prevCell[cur]) chars.push(DIRS[prevDir[cur]][0])
+    return chars.reverse().join('')
+  }
+}
+
+/* ── Construct-first generation ───────────────────────────────────────────── */
+
+function pieceAtRC(state,r,c,skip=-1){
+  for(let i=0;i<state.pieces.length;i++){
+    if(i===skip) continue
+    if(state.pieces[i].cells.some(cell=>cell.r===r&&cell.c===c)) return i
+  }
+  return -1
+}
+
+/** Walk region of `startIdx` as a 0/1 grid; 2 marks reachable so 1 stays "blocked". */
+function reachableFrom(state,startIdx){
+  const n=state.size
+  const flags=new Uint8Array(n*n)
+  state.pieces.forEach(p=>p.cells.forEach(cell=>{flags[cell.r*n+cell.c]=1}))
+  if(state.ball) flags[state.ball.r*n+state.ball.c]=1
+  if(flags[startIdx]) return flags
+
+  const q=[startIdx]
+  flags[startIdx]=2
+  for(let i=0;i<q.length;i++){
+    const cur=q[i]
+    const r=(cur/n)|0, c=cur-r*n
+    for(const [,dr,dc] of DIRS){
+      const nr=r+dr, nc=c+dc
+      if(nr<0||nr>=n||nc<0||nc>=n) continue
+      const idx=nr*n+nc
+      if(flags[idx]) continue
+      flags[idx]=2
+      q.push(idx)
+    }
+  }
+  return flags
+}
+
+/** Cells on one shortest free walk from `fromIdx` to `toIdx`, empty when already sealed off. */
+function walkRouteCells(state,fromIdx,toIdx){
+  const n=state.size
+  const blocked=new Uint8Array(n*n)
+  state.pieces.forEach(p=>p.cells.forEach(cell=>{blocked[cell.r*n+cell.c]=1}))
+  if(state.ball) blocked[state.ball.r*n+state.ball.c]=1
+
+  const prev=new Int32Array(n*n).fill(-1)
+  const seen=new Uint8Array(n*n)
+  seen[fromIdx]=1
+  const q=[fromIdx]
+  let found=false
+  for(let i=0;i<q.length&&!found;i++){
+    const cur=q[i]
+    const r=(cur/n)|0, c=cur-r*n
+    for(const [,dr,dc] of DIRS){
+      const nr=r+dr, nc=c+dc
+      if(nr<0||nr>=n||nc<0||nc>=n) continue
+      const idx=nr*n+nc
+      if(seen[idx]||(blocked[idx]&&idx!==toIdx)) continue
+      seen[idx]=1
+      prev[idx]=cur
+      if(idx===toIdx){ found=true; break }
+      q.push(idx)
+    }
+  }
+
+  const route=new Set()
+  if(!found) return route
+  for(let cur=toIdx;cur!==fromIdx&&cur!==-1;cur=prev[cur]) route.add(cur)
+  return route
+}
+
+/**
+ * Propose undoing one forward tetromino push: pull piece `i` back by `-dir`, leaving the beetle
+ * on a cell the piece vacates. Does not mutate - the caller decides whether to apply it.
+ */
+function proposePiecePull(state,i,dir,canChain){
+  const n=state.size
+  const [,dr,dc]=dir
+  const cells=state.pieces[i].cells
+  const pulled=cells.map(cell=>({r:cell.r-dr,c:cell.c-dc}))
+
+  for(const cell of pulled){
+    if(!inBounds(cell.r,cell.c,n)) return null
+    if(pieceAtRC(state,cell.r,cell.c,i)!==-1) return null
+    if(state.ball&&state.ball.r===cell.r&&state.ball.c===cell.c) return null
+    // Hole stays empty in the start layout - pieces must never cover it.
+    if(state.target&&state.target.r===cell.r&&state.target.c===cell.c) return null
+  }
+
+  const pulledKeys=new Set(pulled.map(cell=>cell.r*n+cell.c))
+  const currentKeys=new Set(cells.map(cell=>cell.r*n+cell.c))
+
+  // The beetle lands on a cell the piece vacates, having pushed from the cell behind it.
+  for(const face of shuffle(pulled.filter(cell=>!currentKeys.has(cell.r*n+cell.c)))){
+    const stand={r:face.r-dr,c:face.c-dc}
+    if(!inBounds(stand.r,stand.c,n)) continue
+    if(pulledKeys.has(stand.r*n+stand.c)) continue
+    if(pieceAtRC(state,stand.r,stand.c,i)!==-1) continue
+    if(state.ball&&state.ball.r===stand.r&&state.ball.c===stand.c) continue
+    // Keep the hole free of the beetle in the start layout too.
+    if(state.target&&state.target.r===stand.r&&state.target.c===stand.c) continue
+
+    const landIdx=face.r*n+face.c
+    if(!canChain(landIdx)) continue
+    return {cells:pulled,standIdx:stand.r*n+stand.c,landIdx}
+  }
+  return null
+}
+
+/** Propose undoing one forward ball push (free in Dung Beetle, so it never costs par). */
+function proposeBallPull(state,dir){
+  const n=state.size
+  const [,dr,dc]=dir
+  const back={r:state.ball.r-dr,c:state.ball.c-dc}
+  const stand={r:state.ball.r-2*dr,c:state.ball.c-2*dc}
+  if(!inBounds(back.r,back.c,n)||!inBounds(stand.r,stand.c,n)) return null
+  if(pieceAtRC(state,back.r,back.c)!==-1) return null
+  if(pieceAtRC(state,stand.r,stand.c)!==-1) return null
+  if(state.target&&state.target.r===stand.r&&state.target.c===stand.c) return null
+  return {ball:back,standIdx:stand.r*n+stand.c,landIdx:back.r*n+back.c}
+}
+
+/**
+ * Build a puzzle by undoing pushes from a solved board, then let the solver report the true
+ * optimum. Random boards almost never need many pushes - the win rolls or walks to the hole
+ * for free - so pushes only become necessary when a piece plugs the route it used. Each phase
+ * therefore lets the win retreat, then plugs the cells it just travelled through.
+ *
+ * `strictChain` would make every undo walk-valid (guaranteeing solvability) but also rules out
+ * the sealed-in wins that make these puzzles hard, so it stays off and the verify is authority.
+ */
+function generateByReversePushes({size, counts, dungMode, reversePushes, minMoved, ballPulls, strictChain}){
+  const placement=randomPlacement(size,counts)
+  if(!placement) return null
+  const empty=placement.empty
+  if(empty.length<(dungMode?2:1)) return null
+
+  const state={
+    size,
+    pieces:placement.pieces.map(p=>({type:p.type,cells:p.cells.map(c=>({...c}))})),
+    ball:null,
+    target:null
+  }
+
+  const movedPieces=new Set()
+  const trail=new Set()
+  let nextStand=null
+  let pushesApplied=0
+  let ballPullsApplied=0
+
+  // Every proposal in a step is judged against the same board, so flood once per step.
+  let regionFlags=null
+  const chains=landIdx=>{
+    if(!strictChain||nextStand==null) return true
+    if(!regionFlags) regionFlags=reachableFrom(state,nextStand)
+    return regionFlags[landIdx]===2
+  }
+
+  const tryBallPull=()=>{
+    for(const dir of shuffle(DIRS)){
+      const step=proposeBallPull(state,dir)
+      if(!step||!chains(step.landIdx)) continue
+      trail.add(state.ball.r*size+state.ball.c)
+      state.ball=step.ball
+      trail.add(step.ball.r*size+step.ball.c)
+      nextStand=step.standIdx
+      ballPullsApplied++
+      regionFlags=null
+      return true
+    }
+    return false
+  }
+
+  /** Cells that must stay clear for a free win: covering one forces a forward push. */
+  const plugTargets=()=>{
+    if(dungMode){
+      const ballIdx=state.ball.r*size+state.ball.c
+      return new Set([...trail].filter(idx=>idx!==ballIdx))
+    }
+    if(nextStand==null) return new Set()
+    return walkRouteCells(state,nextStand,state.target.r*size+state.target.c)
+  }
+
+  const tryPiecePull=()=>{
+    const proposals=[]
+    for(let i=0;i<state.pieces.length;i++){
+      for(const dir of DIRS){
+        const step=proposePiecePull(state,i,dir,chains)
+        if(step) proposals.push({i,step})
+      }
+    }
+    if(!proposals.length) return false
+
+    const targets=plugTargets()
+    const scored=proposals.map(p=>{
+      const plugged=p.step.cells.filter(cell=>targets.has(cell.r*size+cell.c)).length
+      const owesMover=movedPieces.size<minMoved&&!movedPieces.has(p.i)
+      return {...p,score:plugged*4+(owesMover?2:0)+Math.random()}
+    })
+    scored.sort((a,b)=>b.score-a.score)
+
+    const best=scored[0]
+    state.pieces[best.i].cells=best.step.cells
+    nextStand=best.step.standIdx
+    movedPieces.add(best.i)
+    pushesApplied++
+    regionFlags=null
+    return true
+  }
+
+  // An enclosed hole is what forces pushes; prefer few free neighbours, with jitter to vary.
+  const freeNeighbours=cell=>{
+    let free=0
+    for(const [,dr,dc] of DIRS){
+      const r=cell.r+dr, c=cell.c+dc
+      if(inBounds(r,c,size)&&!placement.used.has(r*size+c)) free++
+    }
+    return free
+  }
+  const holes=shuffle(empty)
+    .map(cell=>({cell,rank:freeNeighbours(cell)+Math.random()}))
+    .sort((a,b)=>a.rank-b.rank)
+    .map(entry=>entry.cell)
+
+  if(dungMode){
+    // Dung Beetle's last forward move drops the ball in the hole, so undo that first -
+    // otherwise the ball never leaves the target and the puzzle starts solved.
+    let opened=false
+    for(const hole of holes){
+      state.target=hole
+      state.ball={r:hole.r,c:hole.c}
+      trail.clear()
+      if(tryBallPull()){ opened=true; break }
+    }
+    if(!opened) return null
+  }else{
+    // Scuttlebug wins by walking onto the hole, so under strictChain the last push must leave
+    // the beetle able to reach it.
+    let opened=false
+    for(const hole of holes){
+      if(strictChain&&freeNeighbours(hole)===0) continue
+      state.target=hole
+      nextStand=strictChain?hole.r*size+hole.c:null
+      regionFlags=null
+      if(tryPiecePull()){ opened=true; break }
+    }
+    if(!opened) return null
+  }
+
+  for(let phase=0;phase<reversePushes*3&&pushesApplied<reversePushes;phase++){
+    if(dungMode){
+      const retreat=1+Math.floor(Math.random()*3)
+      for(let i=0;i<retreat&&ballPullsApplied<ballPulls;i++){
+        if(!tryBallPull()) break
+      }
+    }
+    if(!tryPiecePull()) break
+  }
+
+  if(!pushesApplied||movedPieces.size<minMoved||nextStand==null) return null
+
+  const playerR=(nextStand/size)|0
+  const player={r:playerR,c:nextStand-playerR*size}
+  const {target,ball}=state
+
+  // Start layout must keep bug, tetrominoes, hole, and ball all visible (non-overlapping).
+  // Pieces may still be pushed onto the hole during play.
+  if(player.r===target.r&&player.c===target.c) return null
+  if(pieceAtRC(state,target.r,target.c)!==-1) return null
+  if(pieceAtRC(state,player.r,player.c)!==-1) return null
+  if(dungMode){
+    if(ball.r===target.r&&ball.c===target.c) return null
+    if(ball.r===player.r&&ball.c===player.c) return null
+    if(pieceAtRC(state,ball.r,ball.c)!==-1) return null
+  }
+
+  return {size,pieces:state.pieces,player,ball,target}
+}
+
+function groupedPieces(pieces){
+  const g={}
+  for(const p of pieces){
+    if(!g[p.type]) g[p.type]=[]
+    g[p.type].push(p.cells.map(c=>[c.r,c.c]))
+  }
+  return g
+}
+
+function validateFilters({grid, counts, dungMode, minP, maxP, minB, maxB, minMoved, maxMoves}){
+  const errors=[]
+  const warnings=[]
+  const pieceCount=Object.values(counts).reduce((a,b)=>a+b,0)
+  const occupied=4*pieceCount
+  const cells=grid*grid
+  const free=cells-occupied
+  const needEmpty=dungMode ? 2 : 1
+
+  if(pieceCount===0) errors.push('Need at least one tetromino')
+  if(minP>maxP) errors.push('Block pushes: min > max')
+  if(dungMode && minB>maxB) errors.push('Ball pushes: min > max')
+  if(minMoved>pieceCount) errors.push(`Min blocks moved (${minMoved}) > piece count (${pieceCount})`)
+  if(minMoved>maxP) errors.push(`Min blocks moved (${minMoved}) can't happen within ${maxP} pushes`)
+  if(!(maxMoves>=1)) errors.push('Max solution moves must be at least 1')
+  if(maxMoves<minP) errors.push(`Max solution moves (${maxMoves}) is below min pushes (${minP})`)
+  if(free<needEmpty) errors.push(`Not enough empty cells (${occupied} filled, need ${needEmpty} free on ${grid}×${grid})`)
+  if(free<pieceCount) warnings.push(`${pieceCount} pieces leave only ${free} free cells — they'll rarely have room to move`)
+  if(minP>=8) warnings.push(`${minP}+ pushes is rare: the win moves for free, so every push has to be forced`)
+
+  return {errors, warnings, pieceCount}
+}
+
+const BUG = (
+  <svg viewBox="0 0 28 28" width="44" height="44">
+    <path d="M10 6 Q 8 2 6 4" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
+    <path d="M18 6 Q 20 2 22 4" fill="none" stroke="#000" strokeWidth="1.5" strokeLinecap="round"/>
+    <g stroke="#000" strokeWidth="1.5" strokeLinecap="round">
+      <line x1="8" y1="12" x2="3" y2="10"/><line x1="7" y1="16" x2="2" y2="16"/><line x1="8" y1="20" x2="3" y2="22"/>
+      <line x1="20" y1="12" x2="25" y2="10"/><line x1="21" y1="16" x2="26" y2="16"/><line x1="20" y1="20" x2="25" y2="22"/>
+    </g>
+    <circle cx="14" cy="16" r="9" fill="#FF3B30" stroke="#000" strokeWidth="1"/>
+    <path d="M8 13 A 7 7 0 0 1 20 13" fill="#000"/>
+    <circle cx="11" cy="17" r="1.5" fill="white"/>
+    <circle cx="17" cy="17" r="1.5" fill="white"/>
+  </svg>
+)
+
+function PlayBoard({puzzle,dungMode}){
+  const [state,setState]=useState(()=>clone(puzzle))
+  const [history,setHistory]=useState([])
+
+  useEffect(()=>{
+    setState(clone(puzzle))
+    setHistory([])
+  },[puzzle])
+
+  const doMove=useCallback((ch)=>{
+    if(solved(state,dungMode)) return
+    const step=stepState(state,ch,dungMode)
+    if(!step) return
+    setHistory(h=>[...h,clone(state)])
+    setState(step.state)
+  },[state,dungMode])
+
+  useEffect(()=>{
+    const handler=e=>{
+      const map={ArrowUp:'U',ArrowDown:'D',ArrowLeft:'L',ArrowRight:'R',w:'U',W:'U',s:'D',S:'D',a:'L',A:'L',d:'R',D:'R'}
+      if(map[e.key]){
+        e.preventDefault()
+        doMove(map[e.key])
+      }
+    }
+    window.addEventListener('keydown',handler)
+    return()=>window.removeEventListener('keydown',handler)
+  },[doMove])
+
+  const n=state.size
+  const cs=Math.min(72,420/n)
+  const boardPx=n*cs
+  const colors=['#f4c542','#6bb6d9','#77ba74','#b67ac6','#e98a52','#9da7b1','#71b7a8','#d78fbb']
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:14}}>
+      <div className="board-wrap" style={{width:boardPx,height:boardPx}}>
+        <div className="grid-overlay" style={{gridTemplateColumns:`repeat(${n},1fr)`,gridTemplateRows:`repeat(${n},1fr)`}}>
+          {Array.from({length:n*n},(_,i)=>{
+            const r=Math.floor(i/n),c=i%n
+            const target=state.target.r===r&&state.target.c===c
+            return <div key={i} className="cell" style={{position:'relative'}}>
+              {target && <div style={{
+                position:'absolute',left:'25%',top:'25%',width:'50%',height:'50%',
+                borderRadius:'50%',background:'#2b211b',opacity:.9
+              }}/>}
+            </div>
+          })}
+        </div>
+
+        {state.pieces.map((p,pi)=>p.cells.map((c,ci)=><div key={`${pi}-${ci}`} style={{
+          position:'absolute',left:c.c*cs,top:c.r*cs,width:cs,height:cs,
+          background:colors[pi%colors.length],border:'2px solid #111',zIndex:3
+        }}/>))}
+
+        {dungMode && <div style={{
+          position:'absolute',left:state.ball.c*cs+cs*.15,top:state.ball.r*cs+cs*.15,
+          width:cs*.7,height:cs*.7,borderRadius:'50%',background:'#6b4b2f',
+          border:'2px solid #111',zIndex:5
+        }}/>}
+
+        <div style={{
+          position:'absolute',left:state.player.c*cs,top:state.player.r*cs,
+          width:cs,height:cs,display:'flex',alignItems:'center',justifyContent:'center',zIndex:6
+        }}>{BUG}</div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'52px 52px 52px',gridTemplateRows:'52px 52px',gap:5}}>
+        <button className="btn btn-white" style={{gridColumn:2}} onClick={()=>doMove('U')}>▲</button>
+        <button className="btn btn-white" onClick={()=>doMove('L')}>◀</button>
+        <button className="btn btn-white" onClick={()=>doMove('D')}>▼</button>
+        <button className="btn btn-white" onClick={()=>doMove('R')}>▶</button>
+      </div>
+
+      <div className="btn-row" style={{width:boardPx}}>
+        <button className="btn btn-white" disabled={!history.length} onClick={()=>{
+          if(!history.length)return
+          setState(history[history.length-1])
+          setHistory(h=>h.slice(0,-1))
+        }}>Undo</button>
+        <button className="btn btn-white" onClick={()=>{setState(clone(puzzle));setHistory([])}}>Reset</button>
+      </div>
+
+      {solved(state,dungMode) && <div style={{fontWeight:900,textTransform:'uppercase'}}>Solved</div>}
+    </div>
+  )
+}
+
+function App(){
+  const [mode,setMode]=useState('push')
+  const [grid,setGrid]=useState(6)
+  const [counts,setCounts]=useState({I:1,L:1,O:1,S:0,T:1})
+  const [minP,setMinP]=useState(4)
+  const [maxP,setMaxP]=useState(12)
+  const [minB,setMinB]=useState(0)
+  const [maxB,setMaxB]=useState(12)
+  const [minMoved,setMinMoved]=useState(2)
+  const [maxMoves,setMaxMoves]=useState(40)
+  const [batch,setBatch]=useState([])
+  const [idx,setIdx]=useState(-1)
+  const [log,setLog]=useState('Ready')
+  const [searching,setSearching]=useState(false)
+  const [show,setShow]=useState(false)
+  const [ledger,setLedger]=useState('')
+  const abortRef=useRef(false)
+
+  const dungMode=mode==='dung'
+  const current=idx>=0?batch[idx]:null
+
+  const validation=useMemo(()=>validateFilters({
+    grid, counts, dungMode, minP, maxP, minB, maxB, minMoved, maxMoves
+  }),[grid,counts,dungMode,minP,maxP,minB,maxB,minMoved,maxMoves])
+
+  const stopSearch=()=>{
+    abortRef.current=true
+  }
+
+  const generateBatch=()=>{
+    if(validation.errors.length) return
+    abortRef.current=false
+    setSearching(true)
+    setLog('Searching…')
+    setBatch([])
+    setIdx(-1)
+    setShow(false)
+
+    const found=[]
+    const tally={attempts:0,unbuildable:0,unsolvable:0,cutoff:0,below:0,above:0,filtered:0}
+    const histogram=new Map()
+
+    // Reverse chains overshoot - undoing 12 pushes rarely needs 12 to solve forward - so
+    // sample a spread of lengths and nudge the base toward whichever side rejects more.
+    let chainBase=Math.max(minP,minMoved)+1
+    const chainSpread=4
+    const chainCeiling=minP+8
+    const ballPulls=dungMode?Math.max(2,2*minP):0
+    let tunedAt=0, tunedBelow=0, tunedAbove=0
+
+    const status=()=>
+      `${found.length}/10 found · ${tally.attempts} tried · chain ${Math.min(chainCeiling,chainBase)}` +
+      ` · below ${tally.below} · above ${tally.above} · unsolvable ${tally.unsolvable}` +
+      (tally.cutoff?` · cutoff ${tally.cutoff}`:'')
+
+    const finishRun=(why)=>{
+      setBatch(found.slice())
+      setIdx(found.length?0:-1)
+      const spread=[...histogram.entries()].sort((a,b)=>a[0]-b[0])
+        .map(([pushes,n])=>`${pushes}:${n}`).join(' ')
+      setLog(
+        (found.length
+          ? `${why} — ${found.length} puzzle${found.length===1?'':'s'} in ${tally.attempts} attempts`
+          : `${why} — nothing in ${tally.attempts} attempts; widen the push range or lower min blocks moved`) +
+        (spread?`\nOptima seen — ${spread}`:'')
+      )
+      setSearching(false)
+    }
+
+    const tick=()=>{
+      if(abortRef.current){ finishRun('Stopped'); return }
+
+      // Work in time slices so the tab stays responsive and progress stays visible.
+      const sliceEnd=performance.now()+120
+      while(performance.now()<sliceEnd && found.length<10){
+        tally.attempts++
+
+        const candidate=generateByReversePushes({
+          size:grid,
+          counts,
+          dungMode,
+          reversePushes:Math.min(chainCeiling, chainBase+Math.floor(Math.random()*(chainSpread+1))),
+          minMoved,
+          ballPulls,
+          strictChain:false
+        })
+        if(!candidate){ tally.unbuildable++; continue }
+
+        const r=solvePushPuzzle(candidate, dungMode)
+        if(r.solvable) histogram.set(r.pushes,(histogram.get(r.pushes)||0)+1)
+
+        if(r.cutoff) tally.cutoff++
+        else if(!r.solvable) tally.unsolvable++
+        else if(r.pushes<minP) tally.below++
+        else if(r.pushes>maxP) tally.above++
+        else if(r.blocksMoved<minMoved) tally.filtered++
+        else if(dungMode&&(r.ballPushes<minB||r.ballPushes>maxB)) tally.filtered++
+        else if(!r.solution) tally.unsolvable++
+        else if(r.solution.length>maxMoves) tally.filtered++
+        else{
+          found.push({
+            ...candidate,
+            pushes:r.pushes,
+            ballPushes:r.ballPushes,
+            blocksMoved:r.blocksMoved,
+            solution:r.solution,
+            totalMoves:r.solution.length
+          })
+        }
+
+        if(tally.attempts-tunedAt>=3000){
+          const below=tally.below-tunedBelow
+          const above=tally.above-tunedAbove
+          if(below>above*4&&chainBase<chainCeiling) chainBase++
+          else if(above>below&&chainBase>minMoved) chainBase--
+          tunedAt=tally.attempts; tunedBelow=tally.below; tunedAbove=tally.above
+        }
+      }
+
+      if(found.length){
+        setBatch(found.slice())
+        setIdx(i=>i<0?0:i)
+      }
+      if(found.length>=10){ finishRun('Done'); return }
+
+      setLog(status())
+      setTimeout(tick, 0)
+    }
+
+    setTimeout(tick, 0)
+  }
+
+  const formatLedgerEntry=(p)=>{
+    const line1 =
+      `{ size: ${p.size}, pieces: ${JSON.stringify(groupedPieces(p.pieces))}, ` +
+      `player: [${p.player.r},${p.player.c}], ` +
+      (dungMode ? `ball: [${p.ball.r},${p.ball.c}], ` : '') +
+      `hole: [${p.target.r},${p.target.c}], pushes: ${p.pushes}, ` +
+      (dungMode ? `ballPushes: ${p.ballPushes}, ` : '') +
+      `blocksMoved: ${p.blocksMoved},`
+    return `${line1}\n  solution: "${p.solution}" },\n`
+  }
+
+  const addToLedger=()=>{
+    if(!current)return
+    setLedger(x=>x+formatLedgerEntry(current))
+  }
+
+  const addAllToLedger=()=>{
+    if(!batch.length)return
+    setLedger(x=>x+batch.map(formatLedgerEntry).join(''))
+  }
+
+  return (
+    <div style={{display:'flex',width:'100vw',height:'100vh'}}>
+      <div id="sidebar">
+        <h1>Tetromino Puzzle Finder</h1>
+
+        <div>
+          <span className="label">Game</span>
+          <div className="btn-row">
+            <button className={`btn ${mode==='push'?'btn-black':'btn-white'}`} onClick={()=>setMode('push')} disabled={searching}>Scuttlebug</button>
+            <button className={`btn ${mode==='dung'?'btn-black':'btn-white'}`} onClick={()=>setMode('dung')} disabled={searching}>Dung Beetle</button>
+          </div>
+        </div>
+
+        <div>
+          <span className="label">Grid size: {grid} × {grid}</span>
+          <input type="range" min="5" max="8" value={grid} onChange={e=>setGrid(+e.target.value)} disabled={searching}/>
+        </div>
+
+        <div>
+          <span className="label">Tetromino counts</span>
+          {['I','L','O','S','T'].map(t=><div key={t} style={{display:'grid',gridTemplateColumns:'28px 1fr 28px',gap:8,alignItems:'center',marginBottom:6}}>
+            <strong>{t}</strong>
+            <input type="range" min="0" max="4" value={counts[t]} onChange={e=>setCounts({...counts,[t]:+e.target.value})} disabled={searching}/>
+            <span>{counts[t]}</span>
+          </div>)}
+        </div>
+
+        <div>
+          <span className="label">Block pushes</span>
+          <div className="dif-bounds">
+            <input type="number" min="0" max="30" value={minP} onChange={e=>setMinP(+e.target.value)} disabled={searching}/>
+            <input type="number" min="0" max="30" value={maxP} onChange={e=>setMaxP(+e.target.value)} disabled={searching}/>
+          </div>
+        </div>
+
+        {dungMode && <div>
+          <span className="label">Ball pushes</span>
+          <div className="dif-bounds">
+            <input type="number" min="0" max="30" value={minB} onChange={e=>setMinB(+e.target.value)} disabled={searching}/>
+            <input type="number" min="0" max="30" value={maxB} onChange={e=>setMaxB(+e.target.value)} disabled={searching}/>
+          </div>
+        </div>}
+
+        <div>
+          <span className="label">Minimum blocks moved: {minMoved}</span>
+          <input type="range" min="1" max="6" value={minMoved} onChange={e=>setMinMoved(+e.target.value)} disabled={searching}/>
+        </div>
+
+        <div>
+          <span className="label">Max solution moves: {maxMoves}</span>
+          <input type="range" min="10" max="100" step="5" value={maxMoves} onChange={e=>setMaxMoves(+e.target.value)} disabled={searching}/>
+        </div>
+
+        {validation.errors.map((e,i)=><p key={`e${i}`} className="field-error">{e}</p>)}
+        {validation.warnings.map((w,i)=><p key={`w${i}`} className="field-warn">{w}</p>)}
+
+        <div className="btn-row">
+          <button
+            className="btn btn-black"
+            onClick={generateBatch}
+            disabled={searching || validation.errors.length>0}
+          >
+            {searching?'Searching…':'Generate Batch'}
+          </button>
+          <button className="btn btn-red" onClick={stopSearch} disabled={!searching}>Stop</button>
+        </div>
+        <p className="log">{log}</p>
+
+        {current && <div style={{display:'flex',flexDirection:'column',gap:10,paddingTop:12,borderTop:'1.5px solid #e2e8f0'}}>
+          <div className="nav-row">
+            <span className="puzzle-label">Puzzle {idx+1} / {batch.length}</span>
+            <div style={{display:'flex'}}>
+              <div className={`nav-arrow ${idx===0?'disabled':''}`} onClick={()=>{setShow(false);setIdx(i=>Math.max(0,i-1))}}>←</div>
+              <div className={`nav-arrow ${idx===batch.length-1?'disabled':''}`} onClick={()=>{setShow(false);setIdx(i=>Math.min(batch.length-1,i+1))}}>→</div>
+            </div>
+          </div>
+
+          <div className="meta-row">
+            <div className="meta-stat"><span className="meta-label">Pushes</span><span className="meta-num">{current.pushes}</span></div>
+            {dungMode && <div className="meta-stat"><span className="meta-label">Ball</span><span className="meta-num">{current.ballPushes}</span></div>}
+            <div className="meta-stat"><span className="meta-label">Moved</span><span className="meta-num">{current.blocksMoved}</span></div>
+            <div className="meta-stat"><span className="meta-label">Moves</span><span className="meta-num" style={{fontSize:'1.75rem'}}>{current.totalMoves}</span></div>
+          </div>
+
+          <button className="btn btn-blue" onClick={()=>setShow(v=>!v)}>
+            {show?'Hide Solution':'Show Solution'}
+          </button>
+
+          {show && <div style={{background:'#eff6ff',border:'1.5px solid #bfdbfe',borderRadius:4,padding:'10px 12px'}}>
+            <span className="label">Full beetle solution ({current.totalMoves} moves)</span>
+            <div style={{fontFamily:'monospace',fontSize:14,fontWeight:900,wordBreak:'break-all',lineHeight:1.5}}>
+              {current.solution}
+            </div>
+            <div style={{fontSize:10,color:'#64748b',marginTop:6}}>
+              Every character is one beetle move. Only tetromino pushes count toward par.
+            </div>
+          </div>}
+
+          <div className="btn-row">
+            <button className="btn btn-green" onClick={addToLedger}>Add to Ledger</button>
+            <button className="btn btn-green" onClick={addAllToLedger} disabled={!batch.length}>Add All</button>
+          </div>
+        </div>}
+
+        <div style={{marginTop:'auto'}}>
+          <span className="label">Ledger</span>
+          <div className="ledger-code">{ledger||'// Approved puzzles...'}</div>
+          <div className="btn-row" style={{marginTop:8}}>
+            <button className="btn btn-white" disabled={!ledger} onClick={()=>ledger&&navigator.clipboard.writeText(ledger)}>Copy Ledger</button>
+            <button className="btn btn-white" disabled={!ledger} onClick={()=>setLedger('')}>Clear Ledger</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="game-view">
+        {current
+          ? <PlayBoard key={idx} puzzle={current} dungMode={dungMode}/>
+          : <div style={{color:'#94a3b8',fontWeight:700,fontSize:13,textTransform:'uppercase',letterSpacing:'0.08em'}}>Generate a batch to begin</div>}
+      </div>
+    </div>
+  )
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>)
+</script>
+  </body>
+</html>

@@ -184,7 +184,7 @@ export default {
     { size: 6, balls: [[1,5],[0,0],[2,5]], targets: [[1,2],[4,4],[1,1]], blocks: [[2,2],[4,3],[5,4],[3,0]], par: 8, solution: "URDULDRU", dif: 64, solns: 1 },
     { size: 6, balls: [[5,4],[5,5],[2,5]], targets: [[5,3],[3,4],[1,1]], blocks: [[1,5],[3,2],[1,3]], par: 9, solution: "ULULURLDR", dif: 64, solns: 1 },
     { size: 6, balls: [[3,0],[0,5],[1,0]], targets: [[2,3],[3,3],[5,0]], blocks: [[2,4],[5,5],[1,1]], par: 9, solution: "RURDLDLUR", dif: 64, solns: 2 },
-    { size: 6, balls: [[0,3],[0,1],[3,5]], targets: [[0,5],[4,2],[2,2]], blocks: [[2,1],[3,0]], par: 10, solution: "UDRULRDLUR", dif: 64, solns: 1 },
+    { size: 6, balls: [[0,3],[0,1],[3,5]], targets: [[0,5],[4,2],[2,2]], blocks: [[2,1],[3,0]], par: 10, solution: "UDRULRDLUR", dif: 64, solns: 1 }, //very hard
     { size: 6, balls: [[1,1],[5,0],[1,5]], targets: [[1,0],[4,3],[3,2]], blocks: [[4,2],[3,5]], par: 10, solution: "UDLURLDRUL", dif: 64, solns: 1 },
     { size: 5, balls: [[4,4],[1,4],[2,0]], targets: [[1,2],[1,3],[2,2]], blocks: [[2,1],[3,4],[1,1]], par: 8, solution: "ULURURDL", dif: 66, solns: 1 },
     { size: 5, balls: [[0,2],[0,1],[2,1]], targets: [[4,3],[3,4],[3,1]], blocks: [[0,3],[4,1],[3,3],[1,1]], par: 9, solution: "LDLDRURDR", dif: 66, solns: 1 },

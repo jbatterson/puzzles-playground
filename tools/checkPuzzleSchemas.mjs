@@ -9,7 +9,12 @@ import { pathToFileURL } from 'node:url'
 
 const repoRoot = path.resolve(import.meta.dirname, '..')
 
-/** @typedef {{ id: string, rel: string, tiers: string[], keys: string[] }} GameSpec */
+/**
+ * `keys` entries may be an array of interchangeable names (the finder writes `hole`, the
+ * hand-authored rows write `target`; both games' engines accept either).
+ *
+ * @typedef {{ id: string, rel: string, tiers: string[], keys: (string | string[])[] }} GameSpec
+ */
 
 /** @type {GameSpec[]} */
 const GAMES = [
@@ -30,6 +35,18 @@ const GAMES = [
     rel: 'puzzlegames/rolypoly/puzzles.js',
     tiers: ['tutorial', 'easy', 'medium', 'hard'],
     keys: ['balls', 'targets', 'blocks'],
+  },
+  {
+    id: 'dungbeetle',
+    rel: 'puzzlegames/dungbeetle/puzzles.js',
+    tiers: ['tutorial', 'easy', 'medium', 'hard'],
+    keys: ['pieces', 'player', 'ball', ['target', 'hole']],
+  },
+  {
+    id: 'scuttlebug',
+    rel: 'puzzlegames/scuttlebug/puzzles.js',
+    tiers: ['tutorial', 'easy', 'medium', 'hard'],
+    keys: ['pieces', 'player', ['target', 'hole']],
   },
 ]
 
@@ -70,9 +87,10 @@ function validateGame(game, data, errors) {
       )
       if (!puzzle || typeof puzzle !== 'object') return
       for (const key of game.keys) {
+        const names = Array.isArray(key) ? key : [key]
         assert(
-          key in puzzle,
-          `${game.id}: tier "${tier}" puzzle[${i}] missing key "${key}"`,
+          names.some((name) => name in puzzle),
+          `${game.id}: tier "${tier}" puzzle[${i}] missing key ${names.map((n) => `"${n}"`).join(' or ')}`,
           errors
         )
       }
@@ -111,6 +129,50 @@ function validateGame(game, data, errors) {
           assert(
             Number.isInteger(puzzle.solns) && puzzle.solns >= 1,
             `${game.id}: tier "${tier}" puzzle[${i}] solns must be a positive integer when present`,
+            errors
+          )
+        }
+      }
+      if (game.id === 'dungbeetle' || game.id === 'scuttlebug') {
+        const sz = puzzle.size != null ? Number(puzzle.size) : 7
+        /** Cells are written as `[r, c]` by the finder and `{ r, c }` by hand. */
+        const cellInRange = (value) => {
+          const r = Array.isArray(value) ? value[0] : value?.r
+          const c = Array.isArray(value) ? value[1] : value?.c
+          return (
+            Number.isFinite(r) && Number.isFinite(c) && r >= 0 && r < sz && c >= 0 && c < sz
+          )
+        }
+
+        assert(
+          Number.isFinite(puzzle.minPushes) || Number.isFinite(puzzle.pushes),
+          `${game.id}: tier "${tier}" puzzle[${i}] needs minPushes or pushes`,
+          errors
+        )
+        assert(
+          Number.isFinite(sz) && sz >= 4 && sz <= 8,
+          `${game.id}: tier "${tier}" puzzle[${i}] has invalid size (expected 4–8 or omit for 7)`,
+          errors
+        )
+        assert(
+          cellInRange(puzzle.player),
+          `${game.id}: tier "${tier}" puzzle[${i}] needs an in-bounds player`,
+          errors
+        )
+        assert(
+          cellInRange(puzzle.target ?? puzzle.hole),
+          `${game.id}: tier "${tier}" puzzle[${i}] needs an in-bounds target/hole`,
+          errors
+        )
+        assert(
+          Array.isArray(puzzle.pieces) || (puzzle.pieces != null && typeof puzzle.pieces === 'object'),
+          `${game.id}: tier "${tier}" puzzle[${i}] needs pieces`,
+          errors
+        )
+        if (game.id === 'dungbeetle') {
+          assert(
+            cellInRange(puzzle.ball),
+            `${game.id}: tier "${tier}" puzzle[${i}] needs an in-bounds ball`,
             errors
           )
         }

@@ -30,7 +30,13 @@ describe('createDefaultSuiteDashboardPreferences', () => {
 
   it('has all three tiers on for every three-tier game', () => {
     const { tierOn } = createDefaultSuiteDashboardPreferences()
-    const threeTierKeys = [GAME_KEYS.SUMTILES, GAME_KEYS.PRODUCTILES, GAME_KEYS.ROLYPOLY]
+    const threeTierKeys = [
+      GAME_KEYS.SUMTILES,
+      GAME_KEYS.PRODUCTILES,
+      GAME_KEYS.ROLYPOLY,
+      GAME_KEYS.DUNGBEETLE,
+      GAME_KEYS.SCUTTLEBUG,
+    ]
     for (const key of threeTierKeys) {
       expect(tierOn[key]).toEqual([true, true, true])
     }

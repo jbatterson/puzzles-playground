@@ -66,6 +66,8 @@ export default defineConfig(({ mode }) => {
           sumtiles: 'puzzlegames/sumtiles/index.html',
           productiles: 'puzzlegames/productiles/index.html',
           rolypoly: 'puzzlegames/rolypoly/index.html',
+          dungbeetle: 'puzzlegames/dungbeetle/index.html',
+          scuttlebug: 'puzzlegames/scuttlebug/index.html',
         },
       },
     },

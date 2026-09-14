@@ -40,6 +40,7 @@ import {
 import { hasShareableHubProgress } from '@shared-contracts/hubSharePlaintext.js'
 import GameShareNavButton from '../../src/shared/GameShareNavButton.jsx'
 import ScuttlebugIcon from '../../src/shared/icons/ScuttlebugIcon.jsx'
+import { SVG_SCUTTLEBUG } from '../../src/shared/icons/dungBeetleSvg.js'
 import { buildTierRoster, formatCurateClipboard } from '../../src/shared/curateRoster.js'
 import { useCurateModeFromRoster } from '../../src/shared/useCurateMode.js'
 import { CurateCopyToast, CurateLevelNav } from '../../src/shared/CurateModeChrome.jsx'
@@ -52,19 +53,6 @@ const MAX_PUSH_DISPLAY = 99
 const SWIPE_THRESHOLD_PX = 36
 /** Dominant axis must beat the other by this ratio so diagonal flicks don't pick the wrong way. */
 const SWIPE_AXIS_RATIO = 1.2
-
-const BEETLE_SVG = `<svg viewBox="0 0 28 28" aria-hidden="true">
-  <path d="M10 6 Q 8 2 6 4" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M18 6 Q 20 2 22 4" fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
-  <g stroke="#000" stroke-width="1.5" stroke-linecap="round">
-    <line x1="8" y1="12" x2="3" y2="10"/><line x1="7" y1="16" x2="2" y2="16"/><line x1="8" y1="20" x2="3" y2="22"/>
-    <line x1="20" y1="12" x2="25" y2="10"/><line x1="21" y1="16" x2="26" y2="16"/><line x1="20" y1="20" x2="25" y2="22"/>
-  </g>
-  <circle cx="14" cy="16" r="9" fill="#F59E0B" stroke="#000" stroke-width="1"/>
-  <path d="M8 13 A 7 7 0 0 1 20 13" fill="#000"/>
-  <circle cx="11" cy="17" r="1.5" fill="white"/>
-  <circle cx="17" cy="17" r="1.5" fill="white"/>
-</svg>`
 
 function normalizeTier(data) {
   const out = {}
@@ -1010,7 +998,7 @@ export default function Scuttlebug() {
                   left: play.player.c * cellW + (cellW - Math.min(62, cellW * 0.78)) / 2,
                   top: play.player.r * cellH + (cellH - Math.min(62, cellH * 0.78)) / 2,
                 }}
-                dangerouslySetInnerHTML={{ __html: BEETLE_SVG }}
+                dangerouslySetInnerHTML={{ __html: SVG_SCUTTLEBUG }}
               />
             </>
           )}

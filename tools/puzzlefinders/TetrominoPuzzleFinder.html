@@ -257,6 +257,14 @@ const DIRS = [
   ['L', 0, -1],
   ['R', 0, 1],
 ]
+/** Walk / ball glyphs — keep in step with tools/tetromino/pushEngine.mjs (capitals = push). */
+const WALK_CH = ['u', 'd', 'l', 'r']
+const BALL_CH = ['N', 'S', 'W', 'E']
+function encodeSolutionStep(dirIndex, kind){
+  if(kind==='push') return DIRS[dirIndex][0]
+  if(kind==='ball') return BALL_CH[dirIndex]
+  return WALK_CH[dirIndex]
+}
 
 const SHAPES = {
   I:[[0,0],[1,0],[2,0],[3,0]],
@@ -612,7 +620,7 @@ function solvePushPuzzle(puzzle, dungMode, maxStates=VERIFY_STATES){
     }
   }
 
-  /** Replay the action chain, filling in the free walking, to get a UDLR path. */
+  /** Replay the action chain; glyphs: udlr walk, UDLR push, NSWE ball. */
   function reconstruct(chain){
     const rows=Int8Array.from(startRows)
     const cols=Int8Array.from(startCols)
@@ -624,7 +632,7 @@ function solvePushPuzzle(puzzle, dungMode, maxStates=VERIFY_STATES){
       loadOcc(rows,cols)
       const walk=walkPath(playerIdx,action.standIdx,ballIdx)
       if(walk==null) return null
-      out+=walk+DIRS[action.d][0]
+      out+=walk+encodeSolutionStep(action.d, action.kind==='push'?'push':'ball')
 
       if(action.kind==='push'){
         rows[action.pieceIdx]+=DIRS[action.d][1]
@@ -646,7 +654,7 @@ function solvePushPuzzle(puzzle, dungMode, maxStates=VERIFY_STATES){
     return out
   }
 
-  /** Shortest free walk between two cells on the currently loaded board. */
+  /** Shortest free walk between two cells (lowercase udlr). */
   function walkPath(fromIdx,toIdx,ballIdx){
     if(fromIdx===toIdx) return ''
     const prevCell=new Int32Array(cellCount).fill(-1)
@@ -674,7 +682,7 @@ function solvePushPuzzle(puzzle, dungMode, maxStates=VERIFY_STATES){
 
     if(!visited[toIdx]) return null
     const chars=[]
-    for(let cur=toIdx;cur!==fromIdx;cur=prevCell[cur]) chars.push(DIRS[prevDir[cur]][0])
+    for(let cur=toIdx;cur!==fromIdx;cur=prevCell[cur]) chars.push(encodeSolutionStep(prevDir[cur],'walk'))
     return chars.reverse().join('')
   }
 }
@@ -1339,7 +1347,7 @@ function App(){
               {current.solution}
             </div>
             <div style={{fontSize:10,color:'#64748b',marginTop:6}}>
-              Every character is one beetle move. Only tetromino pushes count toward par.
+              Capitals push: UDLR = blocks (par), NSWE = ball. udlr = walks.
             </div>
           </div>}
 

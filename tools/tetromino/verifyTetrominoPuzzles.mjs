@@ -14,7 +14,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-import { DIRS, solvePushPuzzle } from './pushEngine.mjs'
+import { dirFromSolutionChar, solvePushPuzzle } from './pushEngine.mjs'
 
 const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const args = new Map(
@@ -39,14 +39,14 @@ let cutoffs = 0
 let checked = 0
 
 /**
- * Replay a UDLR path through the game's own engine: the source of truth for what a player
- * can actually do. Catches any drift between the solver's move rules and the game's.
+ * Replay a solution path through the game's own engine: the source of truth for what a player
+ * can actually do. Accepts UDLR (push), udlr (walk), NSWE (ball), and legacy glyphs.
  */
 function replay(engine, puzzle, solution) {
   let state = engine.initPlayState(puzzle)
   let pushes = 0
   for (const ch of solution) {
-    const dir = DIRS.find((d) => d.ch === ch)
+    const dir = dirFromSolutionChar(ch)
     if (!dir) return { ok: false, why: `bad character "${ch}"` }
     const move = engine.tryMove(state, dir.dr, dir.dc)
     if (!move.ok) return { ok: false, why: `illegal move at "${ch}"` }

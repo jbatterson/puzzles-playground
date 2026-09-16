@@ -12,12 +12,46 @@
  * Mirrored by tools/puzzlefinders/TetrominoPuzzleFinder.html - this file is the source of truth.
  */
 
+/**
+ * Solution alphabet: capitals = pushing something.
+ *   `UDLR` = tetromino push (par), `NSWE` = ball roll (N↑ S↓ W← E→), `udlr` = walk.
+ * Legacy all-caps UDLR paths and prior wase ball glyphs still parse.
+ */
 export const DIRS = [
-  { ch: 'U', dr: -1, dc: 0 },
-  { ch: 'D', dr: 1, dc: 0 },
-  { ch: 'L', dr: 0, dc: -1 },
-  { ch: 'R', dr: 0, dc: 1 },
+  { ch: 'U', walk: 'u', ball: 'N', dr: -1, dc: 0 },
+  { ch: 'D', walk: 'd', ball: 'S', dr: 1, dc: 0 },
+  { ch: 'L', walk: 'l', ball: 'W', dr: 0, dc: -1 },
+  { ch: 'R', walk: 'r', ball: 'E', dr: 0, dc: 1 },
 ]
+
+/** Prior ball alphabet (wase); kept for reading already-annotated ledgers. */
+const LEGACY_BALL_CH = ['w', 's', 'a', 'e']
+
+const SOLUTION_CHAR_TO_DIR = new Map()
+for (const dir of DIRS) {
+  SOLUTION_CHAR_TO_DIR.set(dir.ch, dir)
+  SOLUTION_CHAR_TO_DIR.set(dir.walk, dir)
+  SOLUTION_CHAR_TO_DIR.set(dir.ball, dir)
+}
+DIRS.forEach((dir, i) => SOLUTION_CHAR_TO_DIR.set(LEGACY_BALL_CH[i], dir))
+
+/** Resolve a solution glyph to a direction. Accepts UDLR / udlr / NSWE (+ legacy wase). */
+export function dirFromSolutionChar(ch) {
+  return SOLUTION_CHAR_TO_DIR.get(ch) ?? null
+}
+
+/**
+ * Encode one beetle step for a stored solution string.
+ * @param {number} dirIndex index into DIRS
+ * @param {'walk' | 'push' | 'ball'} kind
+ */
+export function encodeSolutionStep(dirIndex, kind) {
+  const dir = DIRS[dirIndex]
+  if (!dir) return null
+  if (kind === 'push') return dir.ch
+  if (kind === 'ball') return dir.ball
+  return dir.walk
+}
 
 export const PIECE_TYPES = ['I', 'L', 'O', 'S', 'T']
 
@@ -417,7 +451,10 @@ export function solvePushPuzzle(puzzle, options = {}) {
     }
   }
 
-  /** Replay the action chain, filling in free walking with BFS, to get a UDLR path. */
+  /**
+   * Replay the action chain, filling in free walking with BFS.
+   * Glyphs: udlr walk, UDLR tetromino push, NSWE ball roll.
+   */
   function reconstruct(chain) {
     const rows = Int8Array.from(startRows)
     const cols = Int8Array.from(startCols)
@@ -429,7 +466,8 @@ export function solvePushPuzzle(puzzle, options = {}) {
       loadOcc(rows, cols)
       const walk = walkPath(playerIdx, action.standIdx, ballIdx)
       if (walk == null) return null
-      out += walk + DIRS[action.d].ch
+      const actionKind = action.kind === 'push' ? 'push' : 'ball'
+      out += walk + encodeSolutionStep(action.d, actionKind)
 
       if (action.kind === 'push') {
         rows[action.pieceIdx] += DIRS[action.d].dr
@@ -453,7 +491,7 @@ export function solvePushPuzzle(puzzle, options = {}) {
     return out
   }
 
-  /** Shortest free walk between two cells on the currently loaded board. */
+  /** Shortest free walk between two cells on the currently loaded board (lowercase udlr). */
   function walkPath(fromIdx, toIdx, ballIdx) {
     if (fromIdx === toIdx) return ''
     const prevCell = new Int32Array(cellCount).fill(-1)
@@ -485,7 +523,7 @@ export function solvePushPuzzle(puzzle, options = {}) {
     if (!visited[toIdx]) return null
     const chars = []
     for (let cur = toIdx; cur !== fromIdx; cur = prevCell[cur]) {
-      chars.push(DIRS[prevDir[cur]].ch)
+      chars.push(encodeSolutionStep(prevDir[cur], 'walk'))
     }
     return chars.reverse().join('')
   }

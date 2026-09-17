@@ -3,7 +3,6 @@
  *
  * Difficulty bands (approximate): easy lower pushes, medium mid, hard higher.
  * Layouts deduped across tiers.
- * Solution glyphs: capitals push — UDLR = tetromino (par), NSWE = ball; udlr = walk.
  */
 export default {
   tutorial: [
@@ -566,5 +565,58 @@ export default {
   solution: "ulDulllDurrrdLrdddddlNdrrruuUdddlluuuuurDldRuuulllldRRddrddlNNNNluE" },
     { size: 7, pieces: {"I":[[[0,2],[0,3],[0,4],[0,5]]],"L":[[[3,4],[4,4],[5,4],[5,5]]],"S":[[[2,0],[3,0],[3,1],[4,1]]],"T":[[[2,2],[3,2],[3,3],[4,2]],[[1,5],[2,5],[2,6],[3,5]]]}, player: [1,6], ball: [2,4], hole: [0,6], pushes: 8, ballPushes: 4, blocksMoved: 4,
   solution: "DullllllDDuurrrdLrddddrrruLdllluuUdddrrruLuuNluEEDrN" },
+
+    { size: 7, pieces: {"I":[[[3,4],[4,4],[5,4],[6,4]]],"L":[[[1,6],[2,4],[2,5],[2,6]]],"O":[[[4,1],[4,2],[5,1],[5,2]]],"S":[[[1,2],[2,2],[2,3],[3,3]]],"T":[[[0,1],[1,0],[1,1],[2,1]]]}, player: [4,3], ball: [0,4], hole: [0,2], pushes: 13, ballPushes: 4, blocksMoved: 4,
+  solution: "RuUddddlllluuurrRluuurElldddlDrrdLuuuuurDDrdLurrrdLulldLurrrdLuluurDDurruWWW" },
+    { size: 7, pieces: {"I":[[[6,2],[6,3],[6,4],[6,5]]],"L":[[[1,0],[1,1],[2,1],[3,1]]],"O":[[[2,4],[2,5],[3,4],[3,5]]],"S":[[[0,5],[0,6],[1,4],[1,5]]],"T":[[[3,3],[4,2],[4,3],[5,3]]]}, player: [1,6], ball: [4,0], hole: [6,0], pushes: 12, ballPushes: 4, blocksMoved: 4,
+  solution: "LDllluullDrrdrrrrdddllUrruuuuLdrdddllUrruuulLrrdddllUlldRlddllNRdrrRllluuRlulSSS" },
+    { size: 7, pieces: {"I":[[[2,5],[3,5],[4,5],[5,5]]],"L":[[[0,0],[0,1],[1,1],[2,1]]],"O":[[[3,1],[3,2],[4,1],[4,2]]],"S":[[[5,3],[5,4],[6,2],[6,3]]],"T":[[[0,3],[1,2],[1,3],[2,3]]]}, player: [6,4], ball: [4,0], hole: [6,0], pushes: 12, ballPushes: 8, blocksMoved: 5,
+  solution: "UdlllulNNNddddrrrrrUUddlllluRRuuruuuRdddldldllluuRRuRluurRlddldlluRuRlulSSSSS" },
+    { size: 7, pieces: {"I":[[[1,4],[2,4],[3,4],[4,4]]],"L":[[[2,1],[2,2],[2,3],[3,1]]],"O":[[[0,1],[0,2],[1,1],[1,2]]],"S":[[[4,5],[5,5],[5,6],[6,6]]],"T":[[[4,1],[5,0],[5,1],[5,2]]]}, player: [0,4], ball: [3,2], hole: [4,2], pushes: 14, ballPushes: 7, blocksMoved: 5,
+  solution: "DDLddlDuluEdrNNruulSrdrdLuuulLdDllDurrurrdddddrUUUluullddRluurSSRddllUdrruW" },
+    { size: 7, pieces: {"I":[[[1,2],[1,3],[1,4],[1,5]]],"L":[[[3,5],[4,5],[5,5],[5,6]]],"O":[[[4,1],[4,2],[5,1],[5,2]]],"S":[[[2,1],[2,2],[3,0],[3,1]]],"T":[[[2,3],[2,4],[2,5],[3,4]]]}, player: [1,6], ball: [5,4], hole: [6,6], pushes: 13, ballPushes: 7, blocksMoved: 5,
+  solution: "LLrrdddDuuuullDlUllldRlddddrrruuLUdrUdddrNluuRUdlddrNluEEluUdrrSSLrS" },
+    { size: 7, pieces: {"I":[[[2,3],[3,3],[4,3],[5,3]]],"L":[[[3,5],[4,5],[5,5],[5,6]]],"O":[[[2,1],[2,2],[3,1],[3,2]]],"S":[[[1,5],[2,5],[2,6],[3,6]]],"T":[[[4,1],[5,0],[5,1],[5,2]]]}, player: [4,6], ball: [2,4], hole: [5,4], pushes: 14, ballPushes: 3, blocksMoved: 5,
+  solution: "LrddlllUUddrrruuluUddrddllluuRddrUlullDulluuurDldddRRRuLrruLuurSSlddRluurS" },
+    { size: 7, pieces: {"I":[[[4,3],[4,4],[4,5],[4,6]]],"L":[[[0,5],[1,5],[2,5],[2,6]]],"O":[[[1,2],[1,3],[2,2],[2,3]]],"S":[[[3,1],[4,1],[4,2],[5,2]]],"T":[[[5,5],[6,4],[6,5],[6,6]]]}, player: [3,2], ball: [1,4], hole: [5,4], pushes: 12, ballPushes: 4, blocksMoved: 4,
+  solution: "rruLuurSullllddddddrrruULulUdrdddlluUdrrurrrrdLLLLuuurDuurSldDuurSldDuurS" },
+    { size: 7, pieces: {"I":[[[3,1],[4,1],[5,1],[6,1]]],"L":[[[0,3],[1,1],[1,2],[1,3]]],"O":[[[4,3],[4,4],[5,3],[5,4]]],"S":[[[2,3],[2,4],[3,2],[3,3]]],"T":[[[0,5],[1,4],[1,5],[2,5]]]}, player: [0,4], ball: [5,5], hole: [0,6], pushes: 12, ballPushes: 8, blocksMoved: 5,
+  solution: "LrRDurDDldlUdlldddrrrrUdlNdllluuuLdddrrrruLuuuruullDrrdLdddrrUWdlNNNNluEE" },
+    { size: 7, pieces: {"I":[[[5,1],[5,2],[5,3],[5,4]]],"L":[[[3,2],[4,0],[4,1],[4,2]]],"O":[[[1,1],[1,2],[2,1],[2,2]]],"S":[[[4,5],[5,5],[5,6],[6,6]]],"T":[[[1,4],[1,5],[1,6],[2,5]]]}, player: [6,5], ball: [6,2], hole: [6,4], pushes: 13, ballPushes: 2, blocksMoved: 5,
+  solution: "ULuuuluullldddrRlluuurrrdLdrrUdrruLruLddldddrUUUllldRurrdddlUddlUlldEE" },
+    { size: 7, pieces: {"I":[[[0,5],[1,5],[2,5],[3,5]]],"L":[[[3,1],[3,2],[3,3],[4,1]]],"O":[[[4,2],[4,3],[5,2],[5,3]]],"S":[[[0,1],[1,1],[1,2],[2,2]]],"T":[[[0,4],[1,3],[1,4],[2,4]]]}, player: [5,1], ball: [2,6], hole: [4,6], pushes: 12, ballPushes: 2, blocksMoved: 5,
+  solution: "drrruuuLDrdLLuruuLuurDurDDDldlddrUdrruuLrruLuurSS" },
+    { size: 7, pieces: {"I":[[[2,1],[2,2],[2,3],[2,4]]],"L":[[[0,4],[0,5],[0,6],[1,4]]],"O":[[[5,3],[5,4],[6,3],[6,4]]],"S":[[[3,4],[4,4],[4,5],[5,5]]],"T":[[[3,0],[3,1],[3,2],[4,1]]]}, player: [2,0], ball: [4,3], hole: [6,5], pushes: 16, ballPushes: 4, blocksMoved: 4,
+  solution: "DrrrRlllluurDrrrruLrruLLLddllldDrUUrrrruullDrrdLrrdLrdddlUUlulldEEuUdrSS" },
+    { size: 7, pieces: {"I":[[[4,2],[4,3],[4,4],[4,5]]],"L":[[[1,3],[1,4],[2,4],[3,4]]],"O":[[[5,3],[5,4],[6,3],[6,4]]],"S":[[[3,0],[4,0],[4,1],[5,1]]],"T":[[[0,0],[0,1],[0,2],[1,1]]]}, player: [5,0], ball: [1,5], hole: [0,4], pushes: 13, ballPushes: 8, blocksMoved: 4,
+  solution: "UUdrRuurUddrruruulSrddllllddRUrrrdLLLuluurDrrruulSrdWWDlNNRlluEuRlddrN" },
+    { size: 7, pieces: {"I":[[[0,1],[1,1],[2,1],[3,1]]],"L":[[[3,3],[4,3],[5,3],[5,4]]],"O":[[[2,4],[2,5],[3,4],[3,5]]],"S":[[[4,1],[4,2],[5,0],[5,1]]],"T":[[[0,3],[1,2],[1,3],[2,3]]]}, player: [4,4], ball: [2,0], hole: [6,0], pushes: 14, ballPushes: 4, blocksMoved: 5,
+  solution: "DurruuullDDllDuuRluurRRldddrrdddlUlUrruLdlUlldlluRuulSrddrRllldRuuulSSS" },
+    { size: 7, pieces: {"I":[[[4,1],[4,2],[4,3],[4,4]]],"L":[[[1,4],[1,5],[2,5],[3,5]]],"O":[[[5,3],[5,4],[6,3],[6,4]]],"S":[[[2,2],[2,3],[3,1],[3,2]]],"T":[[[1,0],[1,1],[1,2],[2,1]]]}, player: [6,2], ball: [2,4], hole: [0,6], pushes: 12, ballPushes: 10, blocksMoved: 4,
+  solution: "ulluRRlluuUdrDururRSllldlddrUUrrurrdWuuulDrdLulDlDurrrdWulldDrNluEdrNluEdrNluEE" },
+    { size: 7, pieces: {"I":[[[3,4],[4,4],[5,4],[6,4]]],"L":[[[1,1],[1,2],[1,3],[2,1]]],"O":[[[3,2],[3,3],[4,2],[4,3]]],"S":[[[1,4],[1,5],[2,3],[2,4]]],"T":[[[4,1],[5,1],[5,2],[6,1]]]}, player: [6,3], ball: [4,6], hole: [2,6], pushes: 15, ballPushes: 2, blocksMoved: 5,
+  solution: "uRlLdlUURuuULdDuurrurrrdLLLdldddrUUUrrrdLddrNN" },
+
+  { size: 7, pieces: {"I":[[[5,2],[5,3],[5,4],[5,5]]],"L":[[[2,4],[3,4],[4,4],[4,5]]],"O":[[[2,5],[2,6],[3,5],[3,6]]],"S":[[[0,2],[1,2],[1,3],[2,3]]],"T":[[[4,0],[4,1],[4,2],[5,1]]]}, player: [6,1], ball: [5,0], hole: [2,0], pushes: 12, ballPushes: 3, blocksMoved: 5,
+    solution: "rrrrruuUlUdrdddlllllURurDuuRuuulDulldRdllDrrrddlUddllNrruUddllNrruUddllN" },
+  { size: 7, pieces: {"I":[[[4,1],[4,2],[4,3],[4,4]]],"L":[[[1,0],[2,0],[3,0],[3,1]]],"O":[[[2,3],[2,4],[3,3],[3,4]]],"S":[[[1,2],[1,3],[2,1],[2,2]]],"T":[[[5,1],[6,0],[6,1],[6,2]]]}, player: [4,0], ball: [5,3], hole: [6,3], pushes: 19, ballPushes: 7, blocksMoved: 5,
+    solution: "RRdEElluuRuUddldlldRRuuulDDuulDurrrurrrdLLLLdddRUrrrddLNruWWUllddRluurSlddRluurS" },
+  { size: 7, pieces: {"I":[[[1,6],[2,6],[3,6],[4,6]]],"L":[[[2,2],[2,3],[2,4],[3,2]]],"O":[[[3,0],[3,1],[4,0],[4,1]]],"S":[[[3,4],[4,4],[4,5],[5,5]]],"T":[[[4,2],[5,1],[5,2],[6,2]]]}, player: [5,0], ball: [6,1], hole: [6,4], pushes: 14, ballPushes: 3, blocksMoved: 5,
+    solution: "UUrRuuurrrrDDLdLUlUdrdrdddlluUUlldRldldEuurRldldEuurRldldE" },
+  { size: 7, pieces: {"I":[[[3,1],[4,1],[5,1],[6,1]]],"L":[[[2,4],[2,5],[3,5],[4,5]]],"O":[[[2,2],[2,3],[3,2],[3,3]]],"S":[[[5,3],[5,4],[6,2],[6,3]]],"T":[[[0,2],[0,3],[0,4],[1,3]]]}, player: [1,4], ball: [5,0], hole: [1,0], pushes: 13, ballPushes: 4, blocksMoved: 5,
+    solution: "rrddddlUluuRddllldRRuuuuLrurDllDlluluRRRddrdddllUrruuullldRlldRdddlNNNN" },
+  { size: 7, pieces: {"I":[[[1,5],[2,5],[3,5],[4,5]]],"L":[[[0,1],[0,2],[1,2],[2,2]]],"O":[[[3,3],[3,4],[4,3],[4,4]]],"S":[[[5,3],[5,4],[6,2],[6,3]]],"T":[[[0,4],[1,3],[1,4],[2,4]]]}, player: [6,4], ball: [5,5], hole: [0,0], pushes: 12, ballPushes: 10, blocksMoved: 4,
+    solution: "LrrruWdllLrrruWrruuuuulDrdddddlluRdlllUURuuLDlldRlddrUdrrruWWWdlNNNNRlN" },
+  { size: 7, pieces: {"I":[[[2,5],[3,5],[4,5],[5,5]]],"L":[[[3,4],[4,2],[4,3],[4,4]]],"O":[[[5,2],[5,3],[6,2],[6,3]]],"S":[[[3,1],[3,2],[4,0],[4,1]]],"T":[[[0,1],[0,2],[0,3],[1,2]]]}, player: [5,1], ball: [5,0], hole: [1,0], pushes: 13, ballPushes: 4, blocksMoved: 5,
+    solution: "RlUdrUrrRddrUlullldRRuruuulDDDuuuuLdlDlldRurrrddldlldlNNNN" },
+  { size: 7, pieces: {"I":[[[1,1],[1,2],[1,3],[1,4]]],"L":[[[3,2],[4,0],[4,1],[4,2]]],"O":[[[3,3],[3,4],[4,3],[4,4]]],"S":[[[4,5],[5,5],[5,6],[6,6]]],"T":[[[2,0],[2,1],[2,2],[3,1]]]}, player: [3,0], ball: [5,3], hole: [6,0], pushes: 13, ballPushes: 10, blocksMoved: 4,
+    solution: "DDuuRluuurrrrrddlUruLdllllddrUluRRRdrUdrdLLdrddlNNNruWWullddddrRlluuuurrdWulSSSS" },
+  { size: 7, pieces: {"I":[[[1,1],[2,1],[3,1],[4,1]]],"L":[[[0,5],[1,5],[2,5],[2,6]]],"O":[[[5,3],[5,4],[6,3],[6,4]]],"S":[[[0,2],[1,2],[1,3],[2,3]]],"T":[[[3,5],[4,4],[4,5],[5,5]]]}, player: [1,6], ball: [2,2], hole: [4,2], pushes: 13, ballPushes: 2, blocksMoved: 5,
+    solution: "uLdrdddddlLuLuulLdrrdLuurrDurruulDrddLLrruuuullDDDllluuuRdSS" },
+  { size: 7, pieces: {"I":[[[4,2],[4,3],[4,4],[4,5]]],"L":[[[4,1],[5,1],[6,1],[6,2]]],"O":[[[2,1],[2,2],[3,1],[3,2]]],"S":[[[0,4],[1,4],[1,5],[2,5]]],"T":[[[0,2],[1,1],[1,2],[1,3]]]}, player: [2,0], ball: [1,0], hole: [3,0], pushes: 15, ballPushes: 2, blocksMoved: 5,
+    solution: "RRdDLrDurrruLrruuulDulDrdrdddlluRluuurDDldllluuRRddrUrruuulllDulllSS" },
+  { size: 7, pieces: {"I":[[[1,0],[2,0],[3,0],[4,0]]],"L":[[[3,3],[3,4],[4,4],[5,4]]],"O":[[[2,1],[2,2],[3,1],[3,2]]],"S":[[[4,2],[5,2],[5,3],[6,3]]],"T":[[[0,4],[1,3],[1,4],[2,4]]]}, player: [1,2], ball: [1,1], hole: [6,2], pushes: 13, ballPushes: 6, blocksMoved: 5,
+    solution: "ullDDuurrrRRlddrddddlUUluuUlullddRddRRlluuluurSrDulldEdddrrRllluuRluurSSSS" },
+
   ],
 }

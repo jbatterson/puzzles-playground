@@ -28,6 +28,7 @@ export function CurateCopyToast({ message }) {
  * @param {{ tier: string, indexInTier: number, puzzle: unknown }[]} props.roster
  * @param {Record<string, unknown>} props.puzzleData — original module export (for tier lengths)
  * @param {React.ReactNode} [props.metricsSlot] — e.g. bugs/folds counts (left column, under exit)
+ * @param {React.ReactNode} [props.rightSlot] — e.g. solution Play/Pause (mirrors Exit on the right)
  */
 export function CurateLevelNav({
   exitCurateHref,
@@ -36,6 +37,7 @@ export function CurateLevelNav({
   roster,
   puzzleData,
   metricsSlot = null,
+  rightSlot = null,
 }) {
   const entry = roster[curateIdx]
   const tierTotal =
@@ -78,7 +80,7 @@ export function CurateLevelNav({
           →
         </button>
       </div>
-      <div className="level-nav__right-slot" aria-hidden />
+      <div className="level-nav__right-slot">{rightSlot}</div>
     </div>
   )
 }

@@ -33,6 +33,7 @@ import RolyPolyIcon from '../../src/shared/icons/RolyPolyIcon.jsx'
 import { buildTierRoster, formatCurateClipboard } from '../../src/shared/curateRoster.js'
 import { useCurateModeFromRoster } from '../../src/shared/useCurateMode.js'
 import { CurateCopyToast, CurateLevelNav } from '../../src/shared/CurateModeChrome.jsx'
+import { useCurateSolutionPlayback } from '../../src/shared/useCurateSolutionPlayback.js'
 import SmartRightButton from '../../src/shared/SmartRightButton.jsx'
 import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyPuzzleDate.js'
 
@@ -191,6 +192,14 @@ function checkSolved(balls, targets) {
   return targets.every((t) => balls.some((b) => b.locked && b.row === t.row && b.col === t.col))
 }
 
+function dirFromDelta(dr, dc) {
+  if (dr === -1 && dc === 0) return 'up'
+  if (dr === 1 && dc === 0) return 'down'
+  if (dr === 0 && dc === -1) return 'left'
+  if (dr === 0 && dc === 1) return 'right'
+  return null
+}
+
 function slide(dir, ballsIn, targets, blocks, gridSize) {
   const next = ballsIn.map((b) => ({ ...b }))
   let sorted
@@ -340,6 +349,16 @@ export default function RolyPoly() {
   const [rollingDir, setRollingDir] = useState(null)
   const [pendingLockIds, setPendingLockIds] = useState(() => new Set())
   const [postSolveCtaAttention, setPostSolveCtaAttention] = useState(false)
+  const ballsRef = useRef([])
+  const targetsRef = useRef([])
+  const blocksRef = useRef([])
+  const historyRef = useRef([])
+  const movesRef = useRef(0)
+  ballsRef.current = balls
+  targetsRef.current = targets
+  blocksRef.current = blocks
+  historyRef.current = history
+  movesRef.current = moves
   /** Padding-box cell size — must use clientWidth/Height, not offsetWidth (excludes border). */
   const [cellW, setCellW] = useState(40)
   const [cellH, setCellH] = useState(40)
@@ -468,9 +487,72 @@ export default function RolyPoly() {
     [currentPuzzleData, curateMode, curateIdx, daily.key, dailyIdx, mode]
   )
 
+  const applyPlaybackStep = useCallback(
+    (dr, dc) => {
+      if (!currentPuzzleData) return { ok: false }
+      const dir = dirFromDelta(dr, dc)
+      if (!dir) return { ok: false }
+      const ballsNow = ballsRef.current
+      const targetsNow = targetsRef.current
+      const blocksNow = blocksRef.current
+      const { moved, balls: nb } = slide(dir, ballsNow, targetsNow, blocksNow, gridSizeRef.current)
+      if (!moved) return { ok: false }
+
+      const newlyLocked = new Set(
+        nb
+          .filter((b) => b.locked && !ballsNow.find((ob) => ob.id === b.id).locked)
+          .map((b) => b.id)
+      )
+      const snap = ballsNow.map((x) => ({ ...x }))
+      const newHist = [...historyRef.current, { balls: snap, moves: movesRef.current }]
+      const newMoves = movesRef.current + 1
+      const done = checkSolved(nb, targetsNow)
+
+      ballsRef.current = nb
+      historyRef.current = newHist
+      movesRef.current = newMoves
+
+      setHistory(newHist)
+      setMoves(newMoves)
+      setIsAnimating(true)
+      setRollingDir(dir)
+      setPendingLockIds(newlyLocked)
+      setBalls(nb)
+      if (animTimerRef.current) clearTimeout(animTimerRef.current)
+      animTimerRef.current = window.setTimeout(() => {
+        setIsAnimating(false)
+        setRollingDir(null)
+        setPendingLockIds(new Set())
+        if (done) {
+          setSolved(true)
+          setPostSolveCtaAttention(true)
+        }
+        persistNow(nb, newHist, newMoves, done)
+      }, ROLYPOLY_ANIM_MS)
+      return { ok: true, done }
+    },
+    [currentPuzzleData, persistNow]
+  )
+
+  const {
+    playbackButtonLabel,
+    playbackButtonEnabled,
+    togglePlayback,
+    noteManualInteraction,
+    stopPlayback,
+  } = useCurateSolutionPlayback({
+    active: curateMode,
+    solution: currentPuzzleData?.solution ?? '',
+    resetKey: curateIdx,
+    isInitial: history.length === 0,
+    onStep: applyPlaybackStep,
+    intervalMs: ROLYPOLY_ANIM_MS + 80,
+  })
+
   const runSlide = useCallback(
     (dir) => {
       if (isAnimating || solved || !currentPuzzleData) return
+      noteManualInteraction()
       const { moved, balls: nb } = slide(dir, balls, targets, blocks, gridSize)
       if (!moved) return
       const newlyLocked = new Set(
@@ -509,6 +591,7 @@ export default function RolyPoly() {
       currentPuzzleData,
       persistNow,
       gridSize,
+      noteManualInteraction,
     ]
   )
 
@@ -581,6 +664,7 @@ export default function RolyPoly() {
 
   const handleUndo = useCallback(() => {
     if (history.length === 0 || isAnimating) return
+    noteManualInteraction()
     const prev = history[history.length - 1]
     const newHist = history.slice(0, -1)
     setBalls(prev.balls.map((x) => ({ ...x })))
@@ -596,16 +680,38 @@ export default function RolyPoly() {
       else if (mode === 'daily')
         saveGameState(daily.key, dailyIdx, data, prev.balls, newHist, prev.moves, false)
     }
-  }, [history, isAnimating, currentPuzzleData, curateMode, curateIdx, daily.key, dailyIdx, mode])
+  }, [
+    history,
+    isAnimating,
+    currentPuzzleData,
+    curateMode,
+    curateIdx,
+    daily.key,
+    dailyIdx,
+    mode,
+    noteManualInteraction,
+  ])
 
   const handleReset = useCallback(() => {
     if (!currentPuzzleData) return
+    stopPlayback()
+    if (animTimerRef.current) clearTimeout(animTimerRef.current)
+    setIsAnimating(false)
     setRollingDir(null)
     setPendingLockIds(new Set())
     resetFromData(currentPuzzleData, null)
     if (curateMode) clearGameState('curate', curateIdx)
     else if (mode === 'daily') clearGameState(daily.key, dailyIdx)
-  }, [currentPuzzleData, resetFromData, curateMode, curateIdx, daily.key, dailyIdx, mode])
+  }, [
+    currentPuzzleData,
+    resetFromData,
+    curateMode,
+    curateIdx,
+    daily.key,
+    dailyIdx,
+    mode,
+    stopPlayback,
+  ])
 
   const base = import.meta.env.BASE_URL
 
@@ -820,6 +926,16 @@ export default function RolyPoly() {
               <span className="stats-num">{Math.min(moves, MAX_MOVE_DISPLAY)}</span>
               <span className="stats-label">{`min=${getRolyPolyParMoves(currentPuzzleData) ?? '?'}`}</span>
             </>
+          }
+          rightSlot={
+            <button
+              type="button"
+              className="skip-link"
+              disabled={!playbackButtonEnabled}
+              onClick={togglePlayback}
+            >
+              {playbackButtonLabel}
+            </button>
           }
         />
       ) : mode === 'tutorial' ? (

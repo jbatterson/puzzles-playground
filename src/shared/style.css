@@ -963,6 +963,12 @@ body {
   opacity: 0.6;
 }
 
+.skip-link:disabled {
+  opacity: 0.28;
+  cursor: default;
+  text-decoration: none;
+}
+
 /* =============================================================================
    GAME STAGE & BOARD
    The stage flex-grows to fill available vertical space.

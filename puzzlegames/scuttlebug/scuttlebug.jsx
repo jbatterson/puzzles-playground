@@ -44,6 +44,7 @@ import { SVG_SCUTTLEBUG } from '../../src/shared/icons/dungBeetleSvg.js'
 import { buildTierRoster, formatCurateClipboard } from '../../src/shared/curateRoster.js'
 import { useCurateModeFromRoster } from '../../src/shared/useCurateMode.js'
 import { CurateCopyToast, CurateLevelNav } from '../../src/shared/CurateModeChrome.jsx'
+import { useCurateSolutionPlayback } from '../../src/shared/useCurateSolutionPlayback.js'
 import SmartRightButton from '../../src/shared/SmartRightButton.jsx'
 import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyPuzzleDate.js'
 
@@ -275,6 +276,12 @@ export default function Scuttlebug() {
   const [solved, setSolved] = useState(false)
   const [celebrating, setCelebrating] = useState(false)
   const [postSolveCtaAttention, setPostSolveCtaAttention] = useState(false)
+  const playRef = useRef(null)
+  const historyRef = useRef([])
+  const pushesRef = useRef(0)
+  playRef.current = play
+  historyRef.current = history
+  pushesRef.current = pushes
   const [cellW, setCellW] = useState(40)
   const [cellH, setCellH] = useState(40)
 
@@ -401,9 +408,56 @@ export default function Scuttlebug() {
     [currentPuzzleData, curateMode, curateIdx, daily.key, dailyIdx, mode]
   )
 
+  const applyPlaybackStep = useCallback(
+    (dr, dc) => {
+      const state = playRef.current
+      if (!state || !currentPuzzleData) return { ok: false }
+      const result = tryMove(state, dr, dc)
+      if (!result.ok) return { ok: false }
+
+      const snap = clone(state)
+      const newHist = [...historyRef.current, { play: snap, pushes: pushesRef.current }]
+      const newPushes = result.pushedTetromino ? pushesRef.current + 1 : pushesRef.current
+      const nextPlay = result.state
+      const done = checkWon(nextPlay)
+
+      playRef.current = nextPlay
+      historyRef.current = newHist
+      pushesRef.current = newPushes
+
+      setHistory(newHist)
+      setPushes(newPushes)
+      setPlay(nextPlay)
+
+      if (done) {
+        setSolved(true)
+        setCelebrating(true)
+        setPostSolveCtaAttention(true)
+      }
+      persistNow(nextPlay, newHist, newPushes, done)
+      return { ok: true, done }
+    },
+    [currentPuzzleData, persistNow]
+  )
+
+  const {
+    playbackButtonLabel,
+    playbackButtonEnabled,
+    togglePlayback,
+    noteManualInteraction,
+    stopPlayback,
+  } = useCurateSolutionPlayback({
+    active: curateMode,
+    solution: currentPuzzleData?.solution ?? '',
+    resetKey: curateIdx,
+    isInitial: history.length === 0,
+    onStep: applyPlaybackStep,
+  })
+
   const applyDirection = useCallback(
     (dr, dc) => {
       if (solved || !play || !currentPuzzleData) return
+      noteManualInteraction()
       const result = tryMove(play, dr, dc)
       if (!result.ok) return
 
@@ -424,7 +478,7 @@ export default function Scuttlebug() {
       }
       persistNow(nextPlay, newHist, newPushes, done)
     },
-    [solved, play, currentPuzzleData, history, pushes, persistNow]
+    [solved, play, currentPuzzleData, history, pushes, persistNow, noteManualInteraction]
   )
 
   useEffect(() => {
@@ -497,6 +551,7 @@ export default function Scuttlebug() {
 
   const handleUndo = useCallback(() => {
     if (history.length === 0) return
+    noteManualInteraction()
     const prev = history[history.length - 1]
     const newHist = history.slice(0, -1)
     setPlay(clone(prev.play))
@@ -511,14 +566,33 @@ export default function Scuttlebug() {
       else if (mode === 'daily')
         saveGameState(daily.key, dailyIdx, data, prev.play, newHist, prev.pushes, false)
     }
-  }, [history, currentPuzzleData, curateMode, curateIdx, daily.key, dailyIdx, mode])
+  }, [
+    history,
+    currentPuzzleData,
+    curateMode,
+    curateIdx,
+    daily.key,
+    dailyIdx,
+    mode,
+    noteManualInteraction,
+  ])
 
   const handleReset = useCallback(() => {
     if (!currentPuzzleData) return
+    stopPlayback()
     resetFromData(currentPuzzleData, null)
     if (curateMode) clearGameState('curate', curateIdx)
     else if (mode === 'daily') clearGameState(daily.key, dailyIdx)
-  }, [currentPuzzleData, resetFromData, curateMode, curateIdx, daily.key, dailyIdx, mode])
+  }, [
+    currentPuzzleData,
+    resetFromData,
+    curateMode,
+    curateIdx,
+    daily.key,
+    dailyIdx,
+    mode,
+    stopPlayback,
+  ])
 
   const base = import.meta.env.BASE_URL
 
@@ -836,6 +910,16 @@ export default function Scuttlebug() {
               <span className="stats-num">{pushesDisplay}</span>
               <span className="stats-label">{`min=${parPushes ?? '?'}`}</span>
             </>
+          }
+          rightSlot={
+            <button
+              type="button"
+              className="skip-link"
+              disabled={!playbackButtonEnabled}
+              onClick={togglePlayback}
+            >
+              {playbackButtonLabel}
+            </button>
           }
         />
       ) : mode === 'tutorial' ? (

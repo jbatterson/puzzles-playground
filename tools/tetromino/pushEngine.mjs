@@ -529,6 +529,678 @@ export function solvePushPuzzle(puzzle, options = {}) {
   }
 }
 
+/**
+ * Among min-push solutions: pick a min-move (glyph length) witness, count unique per-piece
+ * trajectories (ball routing ignored), and return derived counters.
+ *
+ * Phase A: 0-1 BFS for min pushes P and dist[state].
+ * Phase B1: Dijkstra on the min-push DAG for a min-glyph witness (walks + pushes + ball rolls).
+ * Phase B2: count piece-trajectory classes — flood ball-only 0-cost components, expand only
+ * tetromino pushes (free ball tours do not multiply solns or the search).
+ *
+ * @param {object} puzzle
+ * @param {{ dungMode?: boolean, maxStates?: number, maxPaths?: number, timeBudgetMs?: number }} [options]
+ */
+export function analyzeCanonicalTetrominoSolution(puzzle, options = {}) {
+  const {
+    dungMode = puzzle.ball != null,
+    maxStates = 2_000_000,
+    maxPaths = 5_000_000,
+    timeBudgetMs = 120_000,
+  } = options
+
+  const n = puzzle.size
+  const cellCount = n * n
+  const pieceCount = puzzle.pieces.length
+  const idxOf = (cell) => cell.r * n + cell.c
+
+  const shapes = []
+  const startRows = new Int8Array(pieceCount)
+  const startCols = new Int8Array(pieceCount)
+  puzzle.pieces.forEach((piece, i) => {
+    let anchor = piece.cells[0]
+    for (const cell of piece.cells) {
+      if (idxOf(cell) < idxOf(anchor)) anchor = cell
+    }
+    shapes.push(piece.cells.map((cell) => ({ dr: cell.r - anchor.r, dc: cell.c - anchor.c })))
+    startRows[i] = anchor.r
+    startCols[i] = anchor.c
+  })
+
+  const targetIdx = idxOf(puzzle.target)
+  const startPlayerIdx = idxOf(puzzle.player)
+  const startBallIdx = dungMode ? idxOf(puzzle.ball) : -1
+
+  const occStamp = new Int32Array(cellCount)
+  const occPiece = new Int8Array(cellCount)
+  let occToken = 0
+  const seenStamp = new Int32Array(cellCount)
+  let seenToken = 0
+  const queue = new Int32Array(cellCount)
+
+  function loadOcc(rows, cols) {
+    occToken++
+    for (let i = 0; i < pieceCount; i++) {
+      const shape = shapes[i]
+      const r0 = rows[i]
+      const c0 = cols[i]
+      for (let j = 0; j < shape.length; j++) {
+        const idx = (r0 + shape[j].dr) * n + (c0 + shape[j].dc)
+        occStamp[idx] = occToken
+        occPiece[idx] = i
+      }
+    }
+  }
+
+  const pieceAtIdx = (idx) => (occStamp[idx] === occToken ? occPiece[idx] : -1)
+
+  function floodRegion(startIdx, ballIdx) {
+    seenToken++
+    if (occStamp[startIdx] === occToken || startIdx === ballIdx) return -1
+    let head = 0
+    let tail = 0
+    queue[tail++] = startIdx
+    seenStamp[startIdx] = seenToken
+    let rep = startIdx
+    while (head < tail) {
+      const cur = queue[head++]
+      const r = (cur / n) | 0
+      const c = cur - r * n
+      for (let d = 0; d < 4; d++) {
+        const nr = r + DIRS[d].dr
+        const nc = c + DIRS[d].dc
+        if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue
+        const idx = nr * n + nc
+        if (seenStamp[idx] === seenToken || occStamp[idx] === occToken || idx === ballIdx) continue
+        seenStamp[idx] = seenToken
+        if (idx < rep) rep = idx
+        queue[tail++] = idx
+      }
+    }
+    return rep
+  }
+
+  const inRegion = (idx) => seenStamp[idx] === seenToken
+
+  const numericKeys = pieceCount <= 6 && cellCount <= 64
+  function encode(rows, cols, ballIdx, rep) {
+    if (numericKeys) {
+      let k = (rep + 1) * 64 + (ballIdx + 1)
+      for (let i = 0; i < pieceCount; i++) k = k * 64 + (rows[i] * n + cols[i])
+      return k
+    }
+    let s = String.fromCharCode(rep + 1, ballIdx + 2)
+    for (let i = 0; i < pieceCount; i++) s += String.fromCharCode(rows[i] * n + cols[i] + 1)
+    return s
+  }
+
+  function walkPath(fromIdx, toIdx, ballIdx) {
+    if (fromIdx === toIdx) return ''
+    const prevCell = new Int32Array(cellCount).fill(-1)
+    const prevDir = new Int8Array(cellCount).fill(-1)
+    const visited = new Uint8Array(cellCount)
+    visited[fromIdx] = 1
+    let head = 0
+    let tail = 0
+    queue[tail++] = fromIdx
+
+    while (head < tail) {
+      const cur = queue[head++]
+      if (cur === toIdx) break
+      const r = (cur / n) | 0
+      const c = cur - r * n
+      for (let d = 0; d < 4; d++) {
+        const nr = r + DIRS[d].dr
+        const nc = c + DIRS[d].dc
+        if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue
+        const idx = nr * n + nc
+        if (visited[idx] || occStamp[idx] === occToken || idx === ballIdx) continue
+        visited[idx] = 1
+        prevCell[idx] = cur
+        prevDir[idx] = d
+        queue[tail++] = idx
+      }
+    }
+
+    if (!visited[toIdx]) return null
+    const chars = []
+    for (let cur = toIdx; cur !== fromIdx; cur = prevCell[cur]) {
+      chars.push(encodeSolutionStep(prevDir[cur], 'walk'))
+    }
+    return chars.reverse().join('')
+  }
+
+  function reconstruct(chain) {
+    const rows = Int8Array.from(startRows)
+    const cols = Int8Array.from(startCols)
+    let ballIdx = startBallIdx
+    let playerIdx = startPlayerIdx
+    let out = ''
+
+    for (const action of chain) {
+      loadOcc(rows, cols)
+      const walk = walkPath(playerIdx, action.standIdx, ballIdx)
+      if (walk == null) return null
+      const actionKind = action.kind === 'push' ? 'push' : 'ball'
+      out += walk + encodeSolutionStep(action.d, actionKind)
+
+      if (action.kind === 'push') {
+        rows[action.pieceIdx] += DIRS[action.d].dr
+        cols[action.pieceIdx] += DIRS[action.d].dc
+        const sr = (action.standIdx / n) | 0
+        const sc = action.standIdx - sr * n
+        playerIdx = (sr + DIRS[action.d].dr) * n + (sc + DIRS[action.d].dc)
+      } else {
+        playerIdx = ballIdx
+        ballIdx = ballIdx + DIRS[action.d].dr * n + DIRS[action.d].dc
+      }
+    }
+
+    if (!dungMode) {
+      loadOcc(rows, cols)
+      const walk = walkPath(playerIdx, targetIdx, ballIdx)
+      if (walk == null) return null
+      out += walk
+    }
+
+    return out
+  }
+
+  function collectCandidates(node) {
+    const candidates = []
+    if (dungMode) {
+      const br = (node.ballIdx / n) | 0
+      const bc = node.ballIdx - br * n
+      for (let d = 0; d < 4; d++) {
+        const { dr, dc } = DIRS[d]
+        const sr = br - dr
+        const sc = bc - dc
+        const ar = br + dr
+        const ac = bc + dc
+        if (sr < 0 || sr >= n || sc < 0 || sc >= n) continue
+        if (ar < 0 || ar >= n || ac < 0 || ac >= n) continue
+        const standIdx = sr * n + sc
+        const aheadIdx = ar * n + ac
+        if (!inRegion(standIdx)) continue
+        if (pieceAtIdx(aheadIdx) !== -1) continue
+        candidates.push({
+          kind: 'ball',
+          d,
+          standIdx,
+          landIdx: node.ballIdx,
+          newBallIdx: aheadIdx,
+          pieceIdx: -1,
+        })
+      }
+    }
+
+    for (let i = 0; i < pieceCount; i++) {
+      const shape = shapes[i]
+      const r0 = node.rows[i]
+      const c0 = node.cols[i]
+      for (let d = 0; d < 4; d++) {
+        const { dr, dc } = DIRS[d]
+        let movable = true
+        for (let j = 0; j < shape.length; j++) {
+          const nr = r0 + shape[j].dr + dr
+          const nc = c0 + shape[j].dc + dc
+          if (nr < 0 || nr >= n || nc < 0 || nc >= n) {
+            movable = false
+            break
+          }
+          const idx = nr * n + nc
+          if (idx === node.ballIdx) {
+            movable = false
+            break
+          }
+          const other = pieceAtIdx(idx)
+          if (other !== -1 && other !== i) {
+            movable = false
+            break
+          }
+        }
+        if (!movable) continue
+
+        for (let j = 0; j < shape.length; j++) {
+          const cr = r0 + shape[j].dr
+          const cc = c0 + shape[j].dc
+          const sr = cr - dr
+          const sc = cc - dc
+          if (sr < 0 || sr >= n || sc < 0 || sc >= n) continue
+          const standIdx = sr * n + sc
+          if (!inRegion(standIdx)) continue
+          candidates.push({ kind: 'push', pieceIdx: i, d, standIdx, landIdx: cr * n + cc })
+        }
+      }
+    }
+    return candidates
+  }
+
+  function applyCand(node, cand) {
+    let rows = node.rows
+    let cols = node.cols
+    let ballIdx = node.ballIdx
+    if (cand.kind === 'push') {
+      rows = Int8Array.from(node.rows)
+      cols = Int8Array.from(node.cols)
+      rows[cand.pieceIdx] += DIRS[cand.d].dr
+      cols[cand.pieceIdx] += DIRS[cand.d].dc
+    } else {
+      ballIdx = cand.newBallIdx
+    }
+    loadOcc(rows, cols)
+    const rep = floodRegion(cand.landIdx, ballIdx)
+    if (rep < 0) return null
+    const pushCost = cand.kind === 'push' ? 1 : 0
+    return {
+      rows,
+      cols,
+      ballIdx,
+      playerIdx: cand.landIdx,
+      rep,
+      cost: node.cost + pushCost,
+      pushCost,
+      action: { kind: cand.kind, pieceIdx: cand.pieceIdx, d: cand.d, standIdx: cand.standIdx },
+      key: encode(rows, cols, ballIdx, rep),
+    }
+  }
+
+  function isGoal(node) {
+    if (dungMode) return node.ballIdx === targetIdx
+    loadOcc(node.rows, node.cols)
+    floodRegion(node.playerIdx, node.ballIdx)
+    return inRegion(targetIdx)
+  }
+
+  loadOcc(startRows, startCols)
+  const startRep = floodRegion(startPlayerIdx, startBallIdx)
+  if (startRep < 0) return { ok: false, reason: 'player-blocked' }
+
+  const startKey = encode(startRows, startCols, startBallIdx, startRep)
+  const startNode = {
+    rows: startRows,
+    cols: startCols,
+    ballIdx: startBallIdx,
+    playerIdx: startPlayerIdx,
+    rep: startRep,
+    cost: 0,
+    key: startKey,
+  }
+
+  const dist = new Map([[startKey, 0]])
+  let current = [startNode]
+  let next = []
+  let head = 0
+  let popped = 0
+  let minPushes = null
+  const deadline = timeBudgetMs > 0 ? Date.now() + timeBudgetMs : Infinity
+
+  // Phase A: shortest-push distances (do not stop at first goal; finish cost <= P).
+  while (true) {
+    if (head >= current.length) {
+      if (next.length === 0) break
+      if (minPushes != null && next.length > 0 && next[0].cost > minPushes) break
+      current = next
+      next = []
+      head = 0
+    }
+
+    const node = current[head++]
+    popped++
+    if (popped > maxStates) {
+      return { ok: false, cutoff: true, statesExplored: popped }
+    }
+    if ((popped & 63) === 0 && Date.now() > deadline) {
+      return { ok: false, cutoff: true, timedOut: true, statesExplored: popped }
+    }
+
+    loadOcc(node.rows, node.cols)
+    floodRegion(node.playerIdx, node.ballIdx)
+
+    if (dungMode ? node.ballIdx === targetIdx : inRegion(targetIdx)) {
+      if (minPushes == null) minPushes = node.cost
+      continue
+    }
+
+    if (minPushes != null && node.cost > minPushes) continue
+
+    for (const cand of collectCandidates(node)) {
+      const child = applyCand(node, cand)
+      if (!child) continue
+      if (minPushes != null && child.cost > minPushes) continue
+      if (dist.has(child.key)) continue
+      dist.set(child.key, child.cost)
+      const stored = {
+        rows: child.rows,
+        cols: child.cols,
+        ballIdx: child.ballIdx,
+        playerIdx: child.playerIdx,
+        rep: child.rep,
+        cost: child.cost,
+        key: child.key,
+      }
+      if (child.pushCost === 1) next.push(stored)
+      else current.push(stored)
+    }
+  }
+
+  if (minPushes == null) return { ok: false, reason: 'unsolvable', statesExplored: popped }
+
+  // Phase B1: min-move witness on the min-push DAG (exact beetle cell; edge cost = walk + 1).
+  const moveDeadline = deadline
+  /** @type {Map<string, number>} */
+  const bestMovesAt = new Map()
+  const startMoveKey = `${startKey}@${startPlayerIdx}`
+  bestMovesAt.set(startMoveKey, 0)
+  /** @type {{ rows: Int8Array, cols: Int8Array, ballIdx: number, playerIdx: number, rep: number, cost: number, key: string, moves: number, parent: any, action: any }[]} */
+  const pq = [
+    {
+      rows: startRows,
+      cols: startCols,
+      ballIdx: startBallIdx,
+      playerIdx: startPlayerIdx,
+      rep: startRep,
+      cost: 0,
+      key: startKey,
+      moves: 0,
+      parent: null,
+      action: null,
+    },
+  ]
+
+  let bestGoal = null
+  let moveStates = 0
+
+  while (pq.length > 0) {
+    let bi = 0
+    for (let i = 1; i < pq.length; i++) {
+      if (pq[i].moves < pq[bi].moves) bi = i
+    }
+    const node = pq[bi]
+    pq[bi] = pq[pq.length - 1]
+    pq.pop()
+    moveStates++
+    if (Date.now() > moveDeadline) {
+      return { ok: false, cutoff: true, timedOut: true, statesExplored: popped }
+    }
+    if (moveStates > maxStates) {
+      return { ok: false, cutoff: true, statesExplored: popped }
+    }
+    if (bestGoal != null && node.moves > bestGoal.endMoves) break
+
+    const mk = `${node.key}@${node.playerIdx}`
+    const known = bestMovesAt.get(mk)
+    if (known != null && node.moves > known) continue
+
+    loadOcc(node.rows, node.cols)
+    floodRegion(node.playerIdx, node.ballIdx)
+    if (dungMode ? node.ballIdx === targetIdx : inRegion(targetIdx)) {
+      if (node.cost === minPushes) {
+        let endMoves = node.moves
+        if (!dungMode) {
+          const walk = walkPath(node.playerIdx, targetIdx, node.ballIdx)
+          if (walk == null) continue
+          endMoves += walk.length
+        }
+        if (bestGoal == null || endMoves < bestGoal.endMoves) {
+          bestGoal = { node, endMoves }
+        }
+        continue
+      }
+    }
+
+    if (node.cost > minPushes) continue
+    if (bestGoal != null && node.moves >= bestGoal.endMoves) continue
+
+    for (const cand of collectCandidates(node)) {
+      const child = applyCand(node, cand)
+      if (!child) continue
+      const dChild = dist.get(child.key)
+      if (dChild == null || dChild !== node.cost + child.pushCost || dChild > minPushes) continue
+      loadOcc(node.rows, node.cols)
+      const walk = walkPath(node.playerIdx, cand.standIdx, node.ballIdx)
+      if (walk == null) continue
+      const nextMoves = node.moves + walk.length + 1
+      if (bestGoal != null && nextMoves > bestGoal.endMoves) continue
+      const childMk = `${child.key}@${child.playerIdx}`
+      const prevBest = bestMovesAt.get(childMk)
+      if (prevBest != null && nextMoves >= prevBest) continue
+      bestMovesAt.set(childMk, nextMoves)
+      pq.push({
+        rows: child.rows,
+        cols: child.cols,
+        ballIdx: child.ballIdx,
+        playerIdx: child.playerIdx,
+        rep: child.rep,
+        cost: child.cost,
+        key: child.key,
+        moves: nextMoves,
+        parent: node,
+        action: child.action,
+      })
+    }
+  }
+
+  if (!bestGoal) {
+    return { ok: false, reason: 'no-path', statesExplored: popped }
+  }
+
+  const bestChain = []
+  for (let cur = bestGoal.node; cur && cur.action; cur = cur.parent) {
+    bestChain.push(cur.action)
+  }
+  bestChain.reverse()
+  let bestSolution = reconstruct(bestChain)
+  if (bestSolution == null) {
+    return { ok: false, reason: 'reconstruct-failed', statesExplored: popped }
+  }
+  /** @type {{ kind: string, pieceIdx: number, d: number, standIdx: number }[]} */
+  let witnessChain = bestChain.map((a) => ({ ...a }))
+
+  // Phase B2: count distinct tetromino trajectories. Free ball rolls are flooded as one
+  // 0-cost component and never appear in the fingerprint (or as DFS branches).
+  const fingerprints = new Set()
+  let pathsEnumerated = 0
+  let cutoff = false
+
+  function pieceConfigKey(rows, cols) {
+    if (numericKeys) {
+      let k = 1
+      for (let i = 0; i < pieceCount; i++) k = k * 64 + (rows[i] * n + cols[i])
+      return k
+    }
+    let s = ''
+    for (let i = 0; i < pieceCount; i++) s += String.fromCharCode(rows[i] * n + cols[i] + 1)
+    return s
+  }
+
+  function pieceTrajectoryFingerprint(pushChain) {
+    const rows = Int8Array.from(startRows)
+    const cols = Int8Array.from(startCols)
+    /** @type {string[]} */
+    const pieceTraj = Array.from({ length: pieceCount }, () => '')
+    for (const action of pushChain) {
+      if (action.kind !== 'push') continue
+      rows[action.pieceIdx] += DIRS[action.d].dr
+      cols[action.pieceIdx] += DIRS[action.d].dc
+      const sep = pieceTraj[action.pieceIdx] ? ';' : ''
+      pieceTraj[action.pieceIdx] += `${sep}${rows[action.pieceIdx]},${cols[action.pieceIdx]}`
+    }
+    return pieceTraj.join('|')
+  }
+
+  /** All DAG states reachable by ball rolls only (same push cost / piece layout). */
+  function floodBallComponent(seed) {
+    const out = []
+    const seen = new Set()
+    const q = [seed]
+    seen.add(seed.key)
+    for (let qi = 0; qi < q.length; qi++) {
+      const node = q[qi]
+      out.push(node)
+      if ((qi & 63) === 0 && Date.now() > deadline) {
+        cutoff = true
+        return out
+      }
+      loadOcc(node.rows, node.cols)
+      floodRegion(node.playerIdx, node.ballIdx)
+      for (const cand of collectCandidates(node)) {
+        if (cand.kind !== 'ball') continue
+        const child = applyCand(node, cand)
+        if (!child) continue
+        const dChild = dist.get(child.key)
+        if (dChild == null || dChild !== node.cost) continue
+        if (seen.has(child.key)) continue
+        seen.add(child.key)
+        q.push({
+          rows: child.rows,
+          cols: child.cols,
+          ballIdx: child.ballIdx,
+          playerIdx: child.playerIdx,
+          rep: child.rep,
+          cost: child.cost,
+          key: child.key,
+        })
+      }
+    }
+    return out
+  }
+
+  function componentHasGoal(component) {
+    for (const node of component) {
+      if (node.cost !== minPushes) continue
+      if (dungMode) {
+        if (node.ballIdx === targetIdx) return true
+      } else {
+        loadOcc(node.rows, node.cols)
+        floodRegion(node.playerIdx, node.ballIdx)
+        if (inRegion(targetIdx)) return true
+      }
+    }
+    return false
+  }
+
+  function dfsCount(seeds, pushChain, onPathPieces) {
+    if (cutoff) return
+    if (Date.now() > deadline) {
+      cutoff = true
+      return
+    }
+    if (pathsEnumerated >= maxPaths) {
+      cutoff = true
+      return
+    }
+
+    /** @type {any[]} */
+    const component = []
+    const compSeen = new Set()
+    for (const seed of seeds) {
+      for (const node of floodBallComponent(seed)) {
+        if (compSeen.has(node.key)) continue
+        compSeen.add(node.key)
+        component.push(node)
+      }
+      if (cutoff) return
+    }
+
+    if (componentHasGoal(component)) {
+      pathsEnumerated++
+      fingerprints.add(pieceTrajectoryFingerprint(pushChain))
+      return
+    }
+
+    // Unique tetromino pushes; keep every post-push seed (stand face / region matters for later ball rolls).
+    /** @type {Map<string, { action: any, seeds: any[], pieceKey: any }>} */
+    const pushEdges = new Map()
+    for (const from of component) {
+      loadOcc(from.rows, from.cols)
+      floodRegion(from.playerIdx, from.ballIdx)
+      for (const cand of collectCandidates(from)) {
+        if (cand.kind !== 'push') continue
+        const child = applyCand(from, cand)
+        if (!child) continue
+        const dChild = dist.get(child.key)
+        if (dChild == null || dChild !== from.cost + 1 || dChild > minPushes) continue
+        const pk = pieceConfigKey(child.rows, child.cols)
+        if (onPathPieces.has(pk)) continue
+        const edgeKey = `${cand.pieceIdx}:${cand.d}:${pk}`
+        let edge = pushEdges.get(edgeKey)
+        if (!edge) {
+          edge = {
+            action: { kind: 'push', pieceIdx: cand.pieceIdx, d: cand.d, standIdx: cand.standIdx },
+            seeds: [],
+            pieceKey: pk,
+          }
+          pushEdges.set(edgeKey, edge)
+        }
+        if (!edge.seeds.some((s) => s.key === child.key)) {
+          edge.seeds.push({
+            rows: child.rows,
+            cols: child.cols,
+            ballIdx: child.ballIdx,
+            playerIdx: child.playerIdx,
+            rep: child.rep,
+            cost: child.cost,
+            key: child.key,
+          })
+        }
+      }
+    }
+
+    for (const edge of pushEdges.values()) {
+      onPathPieces.add(edge.pieceKey)
+      pushChain.push(edge.action)
+      dfsCount(edge.seeds, pushChain, onPathPieces)
+      pushChain.pop()
+      onPathPieces.delete(edge.pieceKey)
+      if (cutoff) return
+    }
+  }
+
+  if (isGoal(startNode) && minPushes === 0) {
+    pathsEnumerated = 1
+    fingerprints.add(pieceTrajectoryFingerprint([]))
+  } else {
+    const onPathPieces = new Set([pieceConfigKey(startRows, startCols)])
+    dfsCount([startNode], [], onPathPieces)
+  }
+
+  if (cutoff) {
+    return { ok: false, cutoff: true, timedOut: Date.now() > deadline, statesExplored: popped }
+  }
+  if (bestSolution == null) {
+    return { ok: false, reason: 'no-path', statesExplored: popped }
+  }
+
+  // Witness always contributes at least one piece-trajectory class.
+  fingerprints.add(pieceTrajectoryFingerprint(witnessChain.filter((a) => a.kind === 'push')))
+  if (fingerprints.size === 0) {
+    return { ok: false, reason: 'no-solns', statesExplored: popped }
+  }
+
+  const moved = new Set()
+  let ballPushes = 0
+  for (const action of witnessChain) {
+    if (action.kind === 'push') moved.add(action.pieceIdx)
+    else ballPushes++
+  }
+
+  const verified = reconstruct(witnessChain)
+  if (verified != null) bestSolution = verified
+
+  return {
+    ok: true,
+    pushes: minPushes,
+    moves: bestSolution.length,
+    solution: bestSolution,
+    solns: fingerprints.size,
+    ballPushes,
+    blocksMoved: moved.size,
+    pathsEnumerated: Math.max(pathsEnumerated, 1),
+    statesExplored: popped,
+  }
+}
+
 /* ── Construct-first generation ─────────────────────────────────────────────── */
 
 function pieceAtRC(state, r, c, skip = -1) {

@@ -12,6 +12,7 @@
     "find:dungbeetle": "node tools/tetromino/findTetrominoPuzzles.mjs --mode=dung",
     "find:scuttlebug": "node tools/tetromino/findTetrominoPuzzles.mjs --mode=scuttle",
     "annotate:tetromino": "node tools/tetromino/annotateTetrominoSolutions.mjs",
+    "canonicalize:tetromino": "node tools/tetromino/canonicalizeTetrominoSolutions.mjs",
     "analyze:branching": "node tools/tetromino/analyzeBranching.mjs",
     "analyze:starts-forced": "node tools/tetromino/startsForcedStaysForced.mjs",
     "verify:tetromino": "node tools/tetromino/verifyTetrominoPuzzles.mjs",

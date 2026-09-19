@@ -972,7 +972,7 @@ function groupedPieces(pieces){
   return g
 }
 
-function validateFilters({grid, counts, dungMode, minP, maxP, minB, maxB, minMoved, maxMoves}){
+function validateFilters({grid, counts, dungMode, minP, maxP, minB, maxB, minMoved, minMoves, maxMoves}){
   const errors=[]
   const warnings=[]
   const pieceCount=Object.values(counts).reduce((a,b)=>a+b,0)
@@ -986,7 +986,9 @@ function validateFilters({grid, counts, dungMode, minP, maxP, minB, maxB, minMov
   if(dungMode && minB>maxB) errors.push('Ball pushes: min > max')
   if(minMoved>pieceCount) errors.push(`Min blocks moved (${minMoved}) > piece count (${pieceCount})`)
   if(minMoved>maxP) errors.push(`Min blocks moved (${minMoved}) can't happen within ${maxP} pushes`)
+  if(!(minMoves>=1)) errors.push('Min solution moves must be at least 1')
   if(!(maxMoves>=1)) errors.push('Max solution moves must be at least 1')
+  if(minMoves>maxMoves) errors.push('Solution moves: min > max')
   if(maxMoves<minP) errors.push(`Max solution moves (${maxMoves}) is below min pushes (${minP})`)
   if(free<needEmpty) errors.push(`Not enough empty cells (${occupied} filled, need ${needEmpty} free on ${grid}×${grid})`)
   if(free<pieceCount) warnings.push(`${pieceCount} pieces leave only ${free} free cells — they'll rarely have room to move`)
@@ -1109,6 +1111,7 @@ function App(){
   const [minB,setMinB]=useState(0)
   const [maxB,setMaxB]=useState(12)
   const [minMoved,setMinMoved]=useState(2)
+  const [minMoves,setMinMoves]=useState(20)
   const [maxMoves,setMaxMoves]=useState(40)
   const [batch,setBatch]=useState([])
   const [idx,setIdx]=useState(-1)
@@ -1122,8 +1125,8 @@ function App(){
   const current=idx>=0?batch[idx]:null
 
   const validation=useMemo(()=>validateFilters({
-    grid, counts, dungMode, minP, maxP, minB, maxB, minMoved, maxMoves
-  }),[grid,counts,dungMode,minP,maxP,minB,maxB,minMoved,maxMoves])
+    grid, counts, dungMode, minP, maxP, minB, maxB, minMoved, minMoves, maxMoves
+  }),[grid,counts,dungMode,minP,maxP,minB,maxB,minMoved,minMoves,maxMoves])
 
   const stopSearch=()=>{
     abortRef.current=true
@@ -1198,7 +1201,7 @@ function App(){
         else if(r.blocksMoved<minMoved) tally.filtered++
         else if(dungMode&&(r.ballPushes<minB||r.ballPushes>maxB)) tally.filtered++
         else if(!r.solution) tally.unsolvable++
-        else if(r.solution.length>maxMoves) tally.filtered++
+        else if(r.solution.length<minMoves||r.solution.length>maxMoves) tally.filtered++
         else{
           found.push({
             ...candidate,
@@ -1233,8 +1236,9 @@ function App(){
   }
 
   const formatLedgerEntry=(p)=>{
+    // Match puzzlegames/*/puzzles.js indentation: 4 spaces on the object, 2 on solution.
     const line1 =
-      `{ size: ${p.size}, pieces: ${JSON.stringify(groupedPieces(p.pieces))}, ` +
+      `    { size: ${p.size}, pieces: ${JSON.stringify(groupedPieces(p.pieces))}, ` +
       `player: [${p.player.r},${p.player.c}], ` +
       (dungMode ? `ball: [${p.ball.r},${p.ball.c}], ` : '') +
       `hole: [${p.target.r},${p.target.c}], pushes: ${p.pushes}, ` +
@@ -1301,9 +1305,15 @@ function App(){
           <input type="range" min="1" max="6" value={minMoved} onChange={e=>setMinMoved(+e.target.value)} disabled={searching}/>
         </div>
 
-        <div>
-          <span className="label">Max solution moves: {maxMoves}</span>
-          <input type="range" min="10" max="100" step="5" value={maxMoves} onChange={e=>setMaxMoves(+e.target.value)} disabled={searching}/>
+        <div className="dif-bounds">
+          <div>
+            <span className="label">Min solution moves: {minMoves}</span>
+            <input type="range" min="1" max="80" value={minMoves} onChange={e=>setMinMoves(+e.target.value)} disabled={searching}/>
+          </div>
+          <div>
+            <span className="label">Max solution moves: {maxMoves}</span>
+            <input type="range" min="10" max="100" step="5" value={maxMoves} onChange={e=>setMaxMoves(+e.target.value)} disabled={searching}/>
+          </div>
         </div>
 
         {validation.errors.map((e,i)=><p key={`e${i}`} className="field-error">{e}</p>)}

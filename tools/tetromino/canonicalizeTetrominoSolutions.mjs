@@ -100,6 +100,7 @@ function formatDungPuzzle(raw, normalizePuzzleInput) {
     (Number.isFinite(raw.ballPushes) ? `, ballPushes: ${raw.ballPushes}` : '') +
     (Number.isFinite(raw.blocksMoved) ? `, blocksMoved: ${raw.blocksMoved}` : '') +
     (Number.isFinite(raw.solns) ? `, solns: ${raw.solns}` : '') +
+    (typeof raw.note === 'string' && raw.note ? `, note: ${JSON.stringify(raw.note)}` : '') +
     ','
   const sol =
     typeof raw.solution === 'string' && raw.solution
@@ -130,6 +131,7 @@ function formatScuttlePuzzle(raw, normalizePuzzleInput) {
     `pushes: ${pushes}` +
     (Number.isFinite(raw.blocksMoved) ? `, blocksMoved: ${raw.blocksMoved}` : '') +
     (Number.isFinite(raw.solns) ? `, solns: ${raw.solns}` : '') +
+    (typeof raw.note === 'string' && raw.note ? `, note: ${JSON.stringify(raw.note)}` : '') +
     ','
   const sol =
     typeof raw.solution === 'string' && raw.solution
@@ -196,6 +198,7 @@ for (const tier of TIERS) {
       storedPar != null && storedPar !== analysis.pushes
         ? ` PAR ${storedPar}→${analysis.pushes}`
         : ''
+    const solnsNote = analysis.solnsLowerBound ? ' (solns lower-bound; path count timed out)' : ''
 
     const updatedRow = {
       ...raw,
@@ -208,9 +211,10 @@ for (const tier of TIERS) {
     list[i] = updatedRow
     updated++
 
+    const lenNote =
+      oldLen != null && oldLen !== analysis.moves ? ` moves ${oldLen}→${analysis.moves}` : ''
     console.log(
-      `  → ${label} pushes=${analysis.pushes} moves ${oldLen ?? '?'}→${analysis.moves}` +
-        ` solns=${analysis.solns} paths=${analysis.pathsEnumerated}${parNote}`
+      `  → ${label} pushes=${analysis.pushes}${lenNote} solns=${analysis.solns} paths=${analysis.pathsEnumerated}${parNote}${solnsNote}`
     )
 
     if (write) {

@@ -106,6 +106,7 @@ function formatDungPuzzle(raw, normalizePuzzleInput) {
     (Number.isFinite(raw.ballPushes) ? `, ballPushes: ${raw.ballPushes}` : '') +
     (Number.isFinite(raw.blocksMoved) ? `, blocksMoved: ${raw.blocksMoved}` : '') +
     (Number.isFinite(raw.solns) ? `, solns: ${raw.solns}` : '') +
+    (typeof raw.note === 'string' && raw.note ? `, note: ${JSON.stringify(raw.note)}` : '') +
     ','
   const sol =
     typeof raw.solution === 'string' && raw.solution
@@ -136,6 +137,7 @@ function formatScuttlePuzzle(raw, normalizePuzzleInput) {
     `pushes: ${pushes}` +
     (Number.isFinite(raw.blocksMoved) ? `, blocksMoved: ${raw.blocksMoved}` : '') +
     (Number.isFinite(raw.solns) ? `, solns: ${raw.solns}` : '') +
+    (typeof raw.note === 'string' && raw.note ? `, note: ${JSON.stringify(raw.note)}` : '') +
     ','
   const sol =
     typeof raw.solution === 'string' && raw.solution

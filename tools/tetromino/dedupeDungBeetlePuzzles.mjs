@@ -77,6 +77,7 @@ function formatPuzzle(raw) {
     (Number.isFinite(raw.ballPushes) ? `, ballPushes: ${raw.ballPushes}` : '') +
     (Number.isFinite(raw.blocksMoved) ? `, blocksMoved: ${raw.blocksMoved}` : '') +
     (Number.isFinite(raw.solns) ? `, solns: ${raw.solns}` : '') +
+    (typeof raw.note === 'string' && raw.note ? `, note: ${JSON.stringify(raw.note)}` : '') +
     ','
   const sol =
     typeof raw.solution === 'string' && raw.solution
@@ -110,6 +111,11 @@ const header = `/**
  *
  * Difficulty bands (approximate): easy lower pushes, medium mid, hard higher.
  * Layouts deduped across tiers.
+ * Solution glyphs: capitals push — UDLR = tetromino (par), NSWE = ball; udlr = walk.
+ * Official \`solution\` is min tetromino pushes, then min total glyphs, then lex — see
+ * tools/tetromino/canonicalizeTetrominoSolutions.mjs / analyzeCanonicalTetrominoSolution.
+ * \`solns\` = distinct per-piece trajectories among min-push solutions (free ball routing ignored).
+ * Refresh: npm run canonicalize:tetromino -- --mode=dung --write (skips rows that already have solns).
  */
 export default {
 `

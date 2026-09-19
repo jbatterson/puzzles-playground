@@ -1166,6 +1166,31 @@ export function analyzeCanonicalTetrominoSolution(puzzle, options = {}) {
   }
 
   if (cutoff) {
+    // Witness (B1) may already be known; still record it with a lower-bound solns count
+    // rather than failing the whole canonicalize when path-enumeration times out.
+    if (bestSolution != null) {
+      fingerprints.add(pieceTrajectoryFingerprint(witnessChain.filter((a) => a.kind === 'push')))
+      const moved = new Set()
+      let ballPushes = 0
+      for (const action of witnessChain) {
+        if (action.kind === 'push') moved.add(action.pieceIdx)
+        else ballPushes++
+      }
+      const verified = reconstruct(witnessChain)
+      if (verified != null) bestSolution = verified
+      return {
+        ok: true,
+        pushes: minPushes,
+        moves: bestSolution.length,
+        solution: bestSolution,
+        solns: Math.max(fingerprints.size, 1),
+        ballPushes,
+        blocksMoved: moved.size,
+        pathsEnumerated: Math.max(pathsEnumerated, 1),
+        statesExplored: popped,
+        solnsLowerBound: true,
+      }
+    }
     return { ok: false, cutoff: true, timedOut: Date.now() > deadline, statesExplored: popped }
   }
   if (bestSolution == null) {

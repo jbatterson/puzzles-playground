@@ -807,6 +807,11 @@
 
       // ── Input ─────────────────────────────────────────────────────────────────
       document.addEventListener('keydown', (e) => {
+        if ((e.key === 'z' || e.key === 'Z') && (e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+          e.preventDefault()
+          undo()
+          return
+        }
         const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
         if (map[e.key]) {
           e.preventDefault()

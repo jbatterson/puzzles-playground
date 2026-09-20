@@ -18,6 +18,8 @@
     "analyze:naive-look": "node tools/tetromino/analyzeNaiveLook.mjs",
     "analyze:naive-look-trace": "node tools/tetromino/traceNaiveLook.mjs",
     "analyze:freedom": "node tools/tetromino/analyzeFreedom.mjs",
+    "analyze:move-score": "node tools/tetromino/analyzeMoveScore.mjs",
+    "analyze:end-dupes": "node tools/tetromino/analyzeEndStateDupes.mjs",
     "verify:tetromino": "node tools/tetromino/verifyTetrominoPuzzles.mjs",
     "dedupe:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/dedupePuzzles.mjs",
     "compact:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/compactPuzzleData.mjs",

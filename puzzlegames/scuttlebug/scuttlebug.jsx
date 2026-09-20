@@ -13,6 +13,7 @@ import {
   initPlayState,
 } from './engine.js'
 import TopBar from '../../src/shared/TopBar.jsx'
+import { isKeyboardUndo } from '../../src/shared/keyboardUndo.js'
 import DiceFace from '../../src/shared/DiceFace.jsx'
 import SharedModalShell from '../../src/shared/SharedModalShell.jsx'
 import SimpleGameStatsModal from '../../src/shared/SimpleGameStatsModal.jsx'
@@ -654,7 +655,10 @@ export default function Scuttlebug() {
         d: [0, 1],
         D: [0, 1],
       }
-      if (map[e.key]) {
+      if (isKeyboardUndo(e)) {
+        e.preventDefault()
+        handleUndo()
+      } else if (map[e.key]) {
         e.preventDefault()
         const [dr, dc] = map[e.key]
         applyDirection(dr, dc)

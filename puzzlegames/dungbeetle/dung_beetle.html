@@ -1075,7 +1075,10 @@ document.addEventListener("keydown",e=>{
     D:[0,1]
   };
 
-  if(map[e.key]){
+  if((e.key==="z"||e.key==="Z")&&(e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey){
+    e.preventDefault();
+    undo();
+  }else if(map[e.key]){
     e.preventDefault();
     const [dr,dc]=map[e.key];
     handleDirection(dr,dc);

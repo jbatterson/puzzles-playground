@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import puzzleData from './puzzles.js'
 import TopBar from '../../src/shared/TopBar.jsx'
+import { isKeyboardUndo } from '../../src/shared/keyboardUndo.js'
 import { tileGameFillColor } from '../../src/shared/tileGamePalette.js'
 import DiceFace from '../../src/shared/DiceFace.jsx'
 import SharedModalShell from '../../src/shared/SharedModalShell.jsx'
@@ -917,6 +918,16 @@ export default function Productiles() {
     if (curateModeRef.current) saveGameState('curate', curateIdxRef.current, s)
     else if (modeRef.current === 'daily') saveGameState(dailyKeyRef.current, dailyIdxRef.current, s)
   }
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!isKeyboardUndo(e)) return
+      e.preventDefault()
+      handleUndo()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [handleUndo])
 
   const handleReset = () => {
     usedUndoOrResetRef.current = true

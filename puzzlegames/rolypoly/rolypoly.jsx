@@ -3,6 +3,7 @@ import { SVG_UNROLLED } from '../../src/shared/icons/rolyPolyBugUnrolledSvg.js'
 import { SVG_ROLLED } from '../../src/shared/icons/rolyPolyBugRolledSvg.js'
 import puzzleData from './puzzles.js'
 import TopBar from '../../src/shared/TopBar.jsx'
+import { isKeyboardUndo } from '../../src/shared/keyboardUndo.js'
 import DiceFace from '../../src/shared/DiceFace.jsx'
 import SharedModalShell from '../../src/shared/SharedModalShell.jsx'
 import SimpleGameStatsModal from '../../src/shared/SimpleGameStatsModal.jsx'
@@ -758,6 +759,11 @@ export default function RolyPoly() {
 
   useEffect(() => {
     const onKey = (e) => {
+      if (isKeyboardUndo(e)) {
+        e.preventDefault()
+        handleUndo()
+        return
+      }
       const map = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' }
       if (map[e.key]) {
         e.preventDefault()
@@ -766,7 +772,7 @@ export default function RolyPoly() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [runSlide])
+  }, [runSlide, handleUndo])
 
   const pointerIdRef = useRef(null)
   const dragStartRef = useRef({ x: 0, y: 0 })

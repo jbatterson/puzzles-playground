@@ -183,6 +183,70 @@ export function canMovePieceIn(pieces, pi, dr, dc, size) {
 }
 
 /**
+ * Shortest pure-walk path from the beetle to (tr, tc).
+ * Walk cells are empty (not a tetromino cell, not the ball). The hole is walkable.
+ * @returns {{ r: number, c: number }[] | null} cells after the start (empty if already there),
+ *   or null if out of bounds / blocked / unreachable.
+ */
+export function findWalkPath(state, tr, tc) {
+  if (!state?.player) return null
+  const size = state.size ?? DEFAULT_SIZE
+  if (!inBounds(tr, tc, size)) return null
+
+  const sr = state.player.r
+  const sc = state.player.c
+  if (sr === tr && sc === tc) return []
+
+  const blocked = new Set()
+  for (const piece of state.pieces || []) {
+    for (const cell of piece.cells) blocked.add(cell.r * size + cell.c)
+  }
+  if (state.ball) blocked.add(state.ball.r * size + state.ball.c)
+
+  const goal = tr * size + tc
+  if (blocked.has(goal)) return null
+
+  const start = sr * size + sc
+  /** @type {number[]} */
+  const prev = new Array(size * size).fill(-1)
+  prev[start] = start
+  const qr = [sr]
+  const qc = [sc]
+  const dirs = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ]
+
+  for (let i = 0; i < qr.length; i++) {
+    const r = qr[i]
+    const c = qc[i]
+    for (const [dr, dc] of dirs) {
+      const nr = r + dr
+      const nc = c + dc
+      if (!inBounds(nr, nc, size)) continue
+      const k = nr * size + nc
+      if (prev[k] !== -1 || blocked.has(k)) continue
+      prev[k] = r * size + c
+      if (k === goal) {
+        const path = []
+        let cur = goal
+        while (cur !== start) {
+          path.push({ r: (cur / size) | 0, c: cur % size })
+          cur = prev[cur]
+        }
+        path.reverse()
+        return path
+      }
+      qr.push(nr)
+      qc.push(nc)
+    }
+  }
+  return null
+}
+
+/**
  * Attempt one orthogonal step. Does not mutate `state`.
  * Ball push is free; tetromino push sets `pushedTetromino: true`.
  * @returns {{ ok: true, state: object, pushedTetromino: boolean } | { ok: false }}

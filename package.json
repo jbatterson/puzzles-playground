@@ -24,6 +24,7 @@
     "enumerate:5x5-3block": "node tools/tetromino/enumerateThreeBlock5x5.mjs",
     "enumerate:6x6-3block-hard": "node tools/tetromino/enumerateThreeBlock6x6Hard.mjs",
     "enumerate:6x6-3block-medium": "node tools/tetromino/enumerateThreeBlock6x6Medium.mjs",
+    "enumerate:6x6-4block-hard": "node tools/tetromino/enumerateFourBlock6x6Hard.mjs",
     "verify:tetromino": "node tools/tetromino/verifyTetrominoPuzzles.mjs",
     "dedupe:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/dedupePuzzles.mjs",
     "compact:puzzles": "node --import ./tools/registerSharedContractsResolve.mjs tools/compactPuzzleData.mjs",

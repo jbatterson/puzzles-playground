@@ -8,6 +8,7 @@ import {
   pieceAtIn,
   pieceTypeClass,
   tryMove,
+  findWalkPath,
   checkWon,
   puzzleFingerprint,
   initPlayState,
@@ -52,6 +53,8 @@ import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyP
 const SCUTTLEBUG_MAX_CELL_PX = 80
 const SCUTTLEBUG_SUITE_MODAL_MS = 500
 const MAX_PUSH_DISPLAY = 99
+/** Match `.player-layer` CSS transition so each walk step eases into the next. */
+const WALK_STEP_MS = 90
 const SWIPE_THRESHOLD_PX = 36
 /** Dominant axis must beat the other by this ratio so diagonal flicks don't pick the wrong way. */
 const SWIPE_AXIS_RATIO = 1.2
@@ -283,6 +286,8 @@ export default function Scuttlebug() {
   playRef.current = play
   historyRef.current = history
   pushesRef.current = pushes
+  const walkTimerRef = useRef(null)
+  const walkBusyRef = useRef(false)
   const [cellW, setCellW] = useState(40)
   const [cellH, setCellH] = useState(40)
 
@@ -455,9 +460,23 @@ export default function Scuttlebug() {
     onStep: applyPlaybackStep,
   })
 
+  const cancelWalkAnim = useCallback(() => {
+    if (walkTimerRef.current != null) {
+      window.clearTimeout(walkTimerRef.current)
+      walkTimerRef.current = null
+    }
+    walkBusyRef.current = false
+  }, [])
+
+  useEffect(() => () => cancelWalkAnim(), [cancelWalkAnim])
+
+  useEffect(() => {
+    cancelWalkAnim()
+  }, [currentPuzzleData, cancelWalkAnim])
+
   const applyDirection = useCallback(
     (dr, dc) => {
-      if (solved || !play || !currentPuzzleData) return
+      if (walkBusyRef.current || solved || !play || !currentPuzzleData) return
       noteManualInteraction()
       const result = tryMove(play, dr, dc)
       if (!result.ok) return
@@ -480,6 +499,78 @@ export default function Scuttlebug() {
       persistNow(nextPlay, newHist, newPushes, done)
     },
     [solved, play, currentPuzzleData, history, pushes, persistNow, noteManualInteraction]
+  )
+
+  /** Animate the shortest empty-cell walk; one undo restores the start. */
+  const applyWalkPath = useCallback(
+    (path) => {
+      if (walkBusyRef.current || solved || !play || !currentPuzzleData || !path?.length) {
+        return false
+      }
+
+      const fromPlay = play
+      const pathStates = []
+      let state = fromPlay
+      for (const cell of path) {
+        const dr = cell.r - state.player.r
+        const dc = cell.c - state.player.c
+        const result = tryMove(state, dr, dc)
+        if (!result.ok || result.pushedTetromino) return false
+        state = result.state
+        pathStates.push(state)
+        // Reaching the hole wins; don't continue past it.
+        if (checkWon(state)) break
+      }
+      if (pathStates.length === 0) return false
+
+      noteManualInteraction()
+      cancelWalkAnim()
+      walkBusyRef.current = true
+
+      const oldPushes = pushes
+      const newHist = [...history, { play: clone(fromPlay), pushes: oldPushes }]
+      historyRef.current = newHist
+      setHistory(newHist)
+
+      let step = 0
+      const finish = (finalPlay) => {
+        walkTimerRef.current = null
+        walkBusyRef.current = false
+        playRef.current = finalPlay
+        setPlay(finalPlay)
+        const done = checkWon(finalPlay)
+        if (done) {
+          setSolved(true)
+          setCelebrating(true)
+          setPostSolveCtaAttention(true)
+        }
+        persistNow(finalPlay, newHist, oldPushes, done)
+      }
+
+      const tick = () => {
+        const next = pathStates[step]
+        playRef.current = next
+        setPlay(next)
+        step += 1
+        if (step >= pathStates.length) {
+          finish(next)
+          return
+        }
+        walkTimerRef.current = window.setTimeout(tick, WALK_STEP_MS)
+      }
+      tick()
+      return true
+    },
+    [
+      solved,
+      play,
+      currentPuzzleData,
+      history,
+      pushes,
+      noteManualInteraction,
+      cancelWalkAnim,
+      persistNow,
+    ]
   )
 
   useEffect(() => {
@@ -551,6 +642,7 @@ export default function Scuttlebug() {
   }, [solved])
 
   const handleUndo = useCallback(() => {
+    if (walkBusyRef.current) cancelWalkAnim()
     if (history.length === 0) return
     noteManualInteraction()
     const prev = history[history.length - 1]
@@ -576,10 +668,12 @@ export default function Scuttlebug() {
     dailyIdx,
     mode,
     noteManualInteraction,
+    cancelWalkAnim,
   ])
 
   const handleReset = useCallback(() => {
     if (!currentPuzzleData) return
+    cancelWalkAnim()
     stopPlayback()
     resetFromData(currentPuzzleData, null)
     if (curateMode) clearGameState('curate', curateIdx)
@@ -593,6 +687,7 @@ export default function Scuttlebug() {
     dailyIdx,
     mode,
     stopPlayback,
+    cancelWalkAnim,
   ])
 
   const base = import.meta.env.BASE_URL
@@ -677,7 +772,7 @@ export default function Scuttlebug() {
   const swipeCommittedRef = useRef(false)
 
   const tryCommitSwipe = (clientX, clientY) => {
-    if (!play || swipeCommittedRef.current) return false
+    if (!play || walkBusyRef.current || swipeCommittedRef.current) return false
     const dx = clientX - dragStartRef.current.x
     const dy = clientY - dragStartRef.current.y
     const dist = Math.hypot(dx, dy)
@@ -696,14 +791,22 @@ export default function Scuttlebug() {
     return true
   }
 
-  const tryAdjacentTap = (clientX, clientY) => {
-    if (!play) return
+  const tryBoardTap = (clientX, clientY) => {
+    if (!play || solved || walkBusyRef.current) return
     const el = wrapperRef.current
     if (!el) return
     const rect = el.getBoundingClientRect()
     const g = gridSizeRef.current
     const c = Math.floor((clientX - rect.left) / (rect.width / g))
     const r = Math.floor((clientY - rect.top) / (rect.height / g))
+    if (r < 0 || c < 0 || r >= g || c >= g) return
+
+    const path = findWalkPath(play, r, c)
+    if (path && path.length > 0) {
+      applyWalkPath(path)
+      return
+    }
+    // Adjacent tetromino: still allow a one-step push.
     const dr = r - play.player.r
     const dc = c - play.player.c
     if (Math.abs(dr) + Math.abs(dc) === 1) applyDirection(dr, dc)
@@ -736,8 +839,8 @@ export default function Scuttlebug() {
     }
     if (swipeCommittedRef.current) return
     if (tryCommitSwipe(e.clientX, e.clientY)) return
-    // Short press: step into an orthogonally adjacent cell (no d-pad).
-    tryAdjacentTap(e.clientX, e.clientY)
+    // Tap: walk the shortest path to a reachable empty cell (or push if adjacent).
+    tryBoardTap(e.clientX, e.clientY)
   }
 
   const onPointerCancel = () => {
@@ -1126,7 +1229,7 @@ export default function Scuttlebug() {
           </div>
           <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
             Reach the hole by walking and pushing tetrominoes. Each tetromino push counts. Use{' '}
-            <b>arrow keys</b>/<b>WASD</b> or <b>swipe on the board</b>.
+            <b>arrow keys</b>/<b>WASD</b>, <b>swipe</b>, or <b>tap a reachable square</b>.
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

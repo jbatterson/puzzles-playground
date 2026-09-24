@@ -20,6 +20,8 @@
     "analyze:freedom": "node tools/tetromino/analyzeFreedom.mjs",
     "analyze:move-score": "node tools/tetromino/analyzeMoveScore.mjs",
     "analyze:end-dupes": "node tools/tetromino/analyzeEndStateDupes.mjs",
+    "analyze:moving-core-dupes": "node tools/tetromino/analyzeMovingCoreDupes.mjs",
+    "analyze:st-swap-dupes": "node tools/tetromino/analyzeMovingCoreDupes.mjs --mode=st-swap --st-diff-only",
     "enumerate:5x5-2block": "node tools/tetromino/enumerateTwoBlock5x5.mjs",
     "enumerate:5x5-3block": "node tools/tetromino/enumerateThreeBlock5x5.mjs",
     "enumerate:6x6-3block-hard": "node tools/tetromino/enumerateThreeBlock6x6Hard.mjs",

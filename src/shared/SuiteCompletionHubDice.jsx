@@ -2,7 +2,7 @@ import React from 'react'
 import DiceFace from './DiceFace.jsx'
 import { HubDiceStar, HubDiceCheck } from './HubDiceStar.jsx'
 import { isTileGameKey } from '@shared-contracts/gameChrome.js'
-import { PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
+import { PUZZLE_SUITE_CORRECT_GREEN, PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
 import {
   getEnabledTierIndices,
   readSuiteDashboardPreferences,
@@ -10,9 +10,15 @@ import {
 
 /**
  * Hub-style dice for the completion modal (matches home card row; respects suite tier prefs).
- * @param {{ gameKey: string, completions: boolean[], perfects: boolean[], moveCounts?: (number|null)[] }} props
+ * @param {{ gameKey: string, completions: boolean[], perfects: boolean[], moveCounts?: (number|null)[], doneColor?: string }} props
  */
-export default function SuiteCompletionHubDice({ gameKey, completions, perfects, moveCounts }) {
+export default function SuiteCompletionHubDice({
+  gameKey,
+  completions,
+  perfects,
+  moveCounts,
+  doneColor = PUZZLE_SUITE_CORRECT_GREEN,
+}) {
   const isTileGame = isTileGameKey(gameKey)
   const prefs = readSuiteDashboardPreferences()
   const slots = getEnabledTierIndices(gameKey, prefs)
@@ -51,7 +57,7 @@ export default function SuiteCompletionHubDice({ gameKey, completions, perfects,
               width: '28px',
               height: '28px',
               borderRadius: '6px',
-              background: done ? '#6b9b3b' : PUZZLE_SUITE_SURFACE_INCOMPLETE,
+              background: done ? doneColor : PUZZLE_SUITE_SURFACE_INCOMPLETE,
               color: done ? '#fff' : PUZZLE_SUITE_INK,
               fontWeight: 900,
               fontSize: '1rem',

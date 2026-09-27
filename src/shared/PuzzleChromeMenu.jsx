@@ -47,10 +47,22 @@ const iconStyle = {
  *   onHelp: () => void,
  *   onTutorial?: () => void,
  *   hasTutorial?: boolean,
+ *   showYesterdayToggle?: boolean,
+ *   viewingYesterday?: boolean,
+ *   onToggleYesterday?: () => void,
  * }}} props
  */
 export default function PuzzleChromeMenu({ puzzleChrome }) {
-  const { gameKey, onStats, onHelp, onTutorial, hasTutorial } = puzzleChrome
+  const {
+    gameKey,
+    onStats,
+    onHelp,
+    onTutorial,
+    hasTutorial,
+    showYesterdayToggle,
+    viewingYesterday,
+    onToggleYesterday,
+  } = puzzleChrome
   const [open, setOpen] = useState(false)
   const rootRef = useRef(null)
   const btnRef = useRef(null)
@@ -111,6 +123,10 @@ export default function PuzzleChromeMenu({ puzzleChrome }) {
   const runTutorial = () => {
     close()
     onTutorial?.()
+  }
+  const runYesterdayToggle = () => {
+    close()
+    onToggleYesterday?.()
   }
 
   return (
@@ -208,6 +224,19 @@ export default function PuzzleChromeMenu({ puzzleChrome }) {
             <button type="button" className="puzzle-chrome-menu-item" onClick={runTutorial}>
               <i className="fa-solid fa-lightbulb" style={iconStyle} aria-hidden />
               <span className="puzzle-chrome-menu-row-text">TUTORIAL</span>
+            </button>
+          ) : null}
+
+          {showYesterdayToggle && typeof onToggleYesterday === 'function' ? (
+            <button type="button" className="puzzle-chrome-menu-item" onClick={runYesterdayToggle}>
+              <i
+                className={`fa-solid ${viewingYesterday ? 'fa-calendar-day' : 'fa-calendar-minus'}`}
+                style={iconStyle}
+                aria-hidden
+              />
+              <span className="puzzle-chrome-menu-row-text">
+                {viewingYesterday ? "TODAY'S PUZZLE" : "YESTERDAY'S PUZZLE"}
+              </span>
             </button>
           ) : null}
         </div>

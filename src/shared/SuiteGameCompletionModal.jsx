@@ -3,9 +3,11 @@ import FloatingModalShell from './FloatingModalShell.jsx'
 import { MODAL_INTENTS } from '@shared-contracts/modalIntents.js'
 import { computeSimpleGameStats } from '@shared-contracts/simpleGameStats.js'
 import { buildHubSharePlaintext } from '@shared-contracts/hubSharePlaintext.js'
-import { GAME_KEYS, getGameChrome } from '@shared-contracts/gameChrome.js'
+import { GAME_KEYS } from '@shared-contracts/gameChrome.js'
 import { CTA_LABELS } from '@shared-contracts/ctaLabels.js'
+import { PUZZLE_SUITE_PRACTICE_BLUE } from '@shared-contracts/chromeUi.js'
 import { isSuiteTimerEnabled } from '@shared-contracts/suiteDashboardPreferences.js'
+import { getSuiteCompletionHeadline } from '@shared-contracts/suiteCompletionHeadlines.js'
 import {
   finalizeSuiteGameTimerFromModal,
   formatPuzzleDateHeading,
@@ -18,20 +20,25 @@ import SuiteCompletionTitle from './SuiteCompletionTitle.jsx'
 import SuiteCompletionHubDice from './SuiteCompletionHubDice.jsx'
 import SuiteCompletionBaPlug from './SuiteCompletionBaPlug.jsx'
 
-/** Win-modal headings (uppercase + punctuation per design). */
-const COMPLETION_HEADLINE = Object.freeze({
-  [GAME_KEYS.SUMTILES]: 'AWE-SUM!',
-  [GAME_KEYS.PRODUCTILES]: 'PRODUCTIVE!',
-  [GAME_KEYS.ROLYPOLY]: 'ON A ROLL!',
-})
-
 function pluralUnit(n, singular, plural) {
   return n === 1 ? singular : plural
 }
 
 /**
  * All Ten–style completion surface: suite stats, hub dice, share + hub CTAs, BA plug.
- * @param {{ show: boolean, onClose: () => void, gameKey: string, dateKey: string, hubDiceCompletions: boolean[], hubDicePerfects: boolean[], hubDiceMoveCounts?: (number|null)[] }} props
+ * Yesterday-practice: no stats/timer/share; TODAY'S PUZZLE + ALL PUZZLES; blue dice.
+ *
+ * @param {{
+ *   show: boolean,
+ *   onClose: () => void,
+ *   gameKey: string,
+ *   dateKey: string,
+ *   hubDiceCompletions: boolean[],
+ *   hubDicePerfects: boolean[],
+ *   hubDiceMoveCounts?: (number|null)[],
+ *   practiceMode?: boolean,
+ *   onTodaysPuzzle?: () => void,
+ * }} props
  */
 export default function SuiteGameCompletionModal({
   show,
@@ -41,25 +48,29 @@ export default function SuiteGameCompletionModal({
   hubDiceCompletions,
   hubDicePerfects,
   hubDiceMoveCounts,
+  practiceMode = false,
+  onTodaysPuzzle,
 }) {
   const base = import.meta.env.BASE_URL
-  const { title: gameTitle } = getGameChrome(gameKey)
-  const modalTitle = COMPLETION_HEADLINE[gameKey] ?? `${gameTitle.toUpperCase()}!`
+  const modalTitle = useMemo(
+    () => getSuiteCompletionHeadline(gameKey, dateKey),
+    [gameKey, dateKey]
+  )
 
   const stats = useMemo(() => {
-    if (!show || !gameKey) return { played: 0, streak: 0, stars: 0, avgMoves: '' }
+    if (!show || !gameKey || practiceMode) return { played: 0, streak: 0, stars: 0, avgMoves: '' }
     return computeSimpleGameStats(gameKey)
-  }, [show, gameKey])
+  }, [show, gameKey, practiceMode])
 
   const isTileGame = gameKey === GAME_KEYS.SUMTILES || gameKey === GAME_KEYS.PRODUCTILES
 
   const [elapsedMsDisplay, setElapsedMsDisplay] = useState(null)
 
   useLayoutEffect(() => {
-    if (!show || !gameKey || !dateKey) return
+    if (!show || !gameKey || !dateKey || practiceMode) return
     finalizeSuiteGameTimerFromModal(gameKey, dateKey)
     setElapsedMsDisplay(readSuiteGameElapsedMs(gameKey, dateKey))
-  }, [show, gameKey, dateKey])
+  }, [show, gameKey, dateKey, practiceMode])
 
   useEffect(() => {
     if (show) return
@@ -138,6 +149,11 @@ export default function SuiteGameCompletionModal({
     }
   }, [gameKey, dateKey, base])
 
+  const handleTodaysPuzzle = useCallback(() => {
+    onClose()
+    onTodaysPuzzle?.()
+  }, [onClose, onTodaysPuzzle])
+
   const shareToastViewportStyle =
     shareUi != null && shareUi.top != null
       ? {
@@ -151,7 +167,7 @@ export default function SuiteGameCompletionModal({
         }
       : undefined
 
-  const timerEnabled = isSuiteTimerEnabled()
+  const timerEnabled = !practiceMode && isSuiteTimerEnabled()
   const timeHms = timerEnabled ? formatAllTenElapsedMsForShare(elapsedMsDisplay ?? 0) : null
 
   const showDiceBlock =
@@ -170,33 +186,35 @@ export default function SuiteGameCompletionModal({
       >
         <SuiteCompletionTitle>{modalTitle}</SuiteCompletionTitle>
 
-        <div className="simple-game-stats-row suite-completion-stats">
-          <div className="simple-game-stats-col">
-            <div className="simple-game-stats-label">Played</div>
-            <div className="simple-game-stats-value">{stats.played}</div>
-            <div className="simple-game-stats-unit">{pluralUnit(stats.played, 'day', 'days')}</div>
-          </div>
-          <div className="simple-game-stats-col">
-            <div className="simple-game-stats-label">Streak</div>
-            <div className="simple-game-stats-value">{stats.streak}</div>
-            <div className="simple-game-stats-unit">{pluralUnit(stats.streak, 'day', 'days')}</div>
-          </div>
-          {isTileGame ? (
+        {!practiceMode ? (
+          <div className="simple-game-stats-row suite-completion-stats">
             <div className="simple-game-stats-col">
-              <div className="simple-game-stats-label">AVG MOVES</div>
-              <div className="simple-game-stats-value">{stats.avgMoves || '–|–|–'}</div>
-              <div className="simple-game-stats-unit"></div>
+              <div className="simple-game-stats-label">Played</div>
+              <div className="simple-game-stats-value">{stats.played}</div>
+              <div className="simple-game-stats-unit">{pluralUnit(stats.played, 'day', 'days')}</div>
             </div>
-          ) : (
             <div className="simple-game-stats-col">
-              <div className="simple-game-stats-label">Stars</div>
-              <div className="simple-game-stats-value">{stats.stars}</div>
-              <div className="simple-game-stats-unit">
-                {pluralUnit(stats.stars, 'time', 'times')}
+              <div className="simple-game-stats-label">Streak</div>
+              <div className="simple-game-stats-value">{stats.streak}</div>
+              <div className="simple-game-stats-unit">{pluralUnit(stats.streak, 'day', 'days')}</div>
+            </div>
+            {isTileGame ? (
+              <div className="simple-game-stats-col">
+                <div className="simple-game-stats-label">AVG MOVES</div>
+                <div className="simple-game-stats-value">{stats.avgMoves || '–|–|–'}</div>
+                <div className="simple-game-stats-unit"></div>
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="simple-game-stats-col">
+                <div className="simple-game-stats-label">Stars</div>
+                <div className="simple-game-stats-value">{stats.stars}</div>
+                <div className="simple-game-stats-unit">
+                  {pluralUnit(stats.stars, 'time', 'times')}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {showDiceBlock ? (
           <div className="suite-completion-hub-dice-block">
@@ -206,6 +224,7 @@ export default function SuiteGameCompletionModal({
               completions={hubDiceCompletions}
               perfects={hubDicePerfects}
               moveCounts={hubDiceMoveCounts}
+              doneColor={practiceMode ? PUZZLE_SUITE_PRACTICE_BLUE : undefined}
             />
             {timeHms != null ? (
               <div
@@ -219,27 +238,37 @@ export default function SuiteGameCompletionModal({
         ) : null}
 
         <div className="suite-completion-actions-row">
-          <button
-            ref={shareAnchorRef}
-            type="button"
-            className="btn-secondary suite-completion-action-btn"
-            onClick={handleShare}
-            aria-label="Share results"
-          >
-            Share
-            <ShareIcon size={18} />
-          </button>
+          {practiceMode ? (
+            <button
+              type="button"
+              className="btn-secondary suite-completion-action-btn"
+              onClick={handleTodaysPuzzle}
+            >
+              {CTA_LABELS.TODAYS_PUZZLE_UPPER}
+            </button>
+          ) : (
+            <button
+              ref={shareAnchorRef}
+              type="button"
+              className="btn-secondary suite-completion-action-btn"
+              onClick={handleShare}
+              aria-label="Share results"
+            >
+              Share
+              <ShareIcon size={18} />
+            </button>
+          )}
           <a
             href={base}
             className="btn-primary suite-completion-action-btn suite-completion-all-puzzles"
           >
-            {CTA_LABELS.ALL_PUZZLES}
+            {practiceMode ? CTA_LABELS.ALL_PUZZLES_UPPER : CTA_LABELS.ALL_PUZZLES}
           </a>
         </div>
 
         <SuiteCompletionBaPlug />
       </FloatingModalShell>
-      {show && shareUi != null && (
+      {show && !practiceMode && shareUi != null && (
         <ShareResultToast
           preview={shareUi.preview}
           fadeOut={shareUi.fadeOut}

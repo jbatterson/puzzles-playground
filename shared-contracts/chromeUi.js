@@ -24,6 +24,9 @@ export const PUZZLE_SUITE_INK_ON_DISABLED = 'rgba(26, 61, 91, 0.52)'
 /** Correct / completed fills (hub progress dice, difficulty tiers, in-grid “right”) — All Ten solved targets use the same token via `done`. */
 export const PUZZLE_SUITE_CORRECT_GREEN = '#6b9b3b'
 
+/** Yesterday-practice completion fill (distinct from official green). */
+export const PUZZLE_SUITE_PRACTICE_BLUE = '#5a9fc4'
+
 export const CHROME_ASSET_URLS = Object.freeze({
   CUBE_ICON: 'https://beastacademy.com/u/AllTen/cube.svg',
   BEAST_ACADEMY_LOGO: 'https://beastacademy.com/u/AllTen/beastacademy-logo.svg',

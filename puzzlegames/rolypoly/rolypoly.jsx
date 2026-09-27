@@ -13,7 +13,12 @@ import PlaygroundLinksModal from '../../src/shared/PlaygroundLinksModal.jsx'
 import useInstructionsGate from '../../src/shared/useInstructionsGate.js'
 import { MODAL_INTENTS } from '@shared-contracts/modalIntents.js'
 import { GAME_KEYS, getGameChrome } from '@shared-contracts/gameChrome.js'
-import { PUZZLE_SUITE_INK, PUZZLE_SUITE_SURFACE_INCOMPLETE } from '@shared-contracts/chromeUi.js'
+import {
+  PUZZLE_SUITE_CORRECT_GREEN,
+  PUZZLE_SUITE_INK,
+  PUZZLE_SUITE_PRACTICE_BLUE,
+  PUZZLE_SUITE_SURFACE_INCOMPLETE,
+} from '@shared-contracts/chromeUi.js'
 import { CTA_LABELS } from '@shared-contracts/ctaLabels.js'
 import { persistHubDailySlot } from '@shared-contracts/hubEntry.js'
 import {
@@ -30,6 +35,7 @@ import {
 } from '@shared-contracts/tutorialResume.js'
 import { hasShareableHubProgress } from '@shared-contracts/hubSharePlaintext.js'
 import GameShareNavButton from '../../src/shared/GameShareNavButton.jsx'
+import YesterdaySolutionNavButton from '../../src/shared/YesterdaySolutionNavButton.jsx'
 import RolyPolyIcon from '../../src/shared/icons/RolyPolyIcon.jsx'
 import { buildTierRoster, formatCurateClipboard } from '../../src/shared/curateRoster.js'
 import { useCurateModeFromRoster } from '../../src/shared/useCurateMode.js'
@@ -37,6 +43,11 @@ import { CurateCopyToast, CurateLevelNav } from '../../src/shared/CurateModeChro
 import { useCurateSolutionPlayback } from '../../src/shared/useCurateSolutionPlayback.js'
 import SmartRightButton from '../../src/shared/SmartRightButton.jsx'
 import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyPuzzleDate.js'
+import {
+  getYesterdayCalendarKey,
+  getYesterdayNavDateLabel,
+  toPracticeStorageDateKey,
+} from '@shared-contracts/yesterdayPractice.js'
 
 const DEFAULT_ROLYPOLY_GRID = 7
 /** Match productiles/sumtiles board cell cap so small grids do not overscale. */
@@ -51,8 +62,8 @@ const ROLYPOLY_TUTORIAL_HINT =
 /** Shift hard rotation so today's 3-star stays the pre-expansion puzzle after hard pool grew. */
 const HARD_DAY_OFFSET = 144
 
-function getDailyPuzzles() {
-  const key = getDailyKey()
+function getDailyPuzzles(dateKey = getDailyKey()) {
+  const key = dateKey
   const dayIndex = getDayIndex(key)
   const easy = puzzleData.easy || []
   const medium = puzzleData.medium || []
@@ -246,6 +257,7 @@ function PuzzleBoxes({
   moveCounts,
   onChange,
   tierSlots = [0, 1, 2],
+  doneColor = PUZZLE_SUITE_CORRECT_GREEN,
 }) {
   return (
     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -263,7 +275,7 @@ function PuzzleBoxes({
             alignItems: 'center',
             justifyContent: 'center',
             background: completions[i]
-              ? '#6b9b3b'
+              ? doneColor
               : current === i
                 ? PUZZLE_SUITE_INK
                 : PUZZLE_SUITE_SURFACE_INCOMPLETE,
@@ -295,13 +307,23 @@ function PuzzleBoxes({
 
 export default function RolyPoly() {
   const chrome = getGameChrome(GAME_KEYS.ROLYPOLY)
-  const daily = useMemo(() => getDailyPuzzles(), [])
-  const dateLabel = useMemo(() => getDateLabel(daily.key), [daily.key])
+  const todayKey = useMemo(() => getDailyKey(), [])
+  const [viewingYesterday, setViewingYesterday] = useState(false)
+  const daily = useMemo(
+    () => getDailyPuzzles(viewingYesterday ? getYesterdayCalendarKey() : todayKey),
+    [viewingYesterday, todayKey]
+  )
+  const progressKey = viewingYesterday ? toPracticeStorageDateKey(daily.key) : daily.key
+  const dateLabel = useMemo(
+    () => (viewingYesterday ? getYesterdayNavDateLabel(daily.key) : getDateLabel(daily.key)),
+    [viewingYesterday, daily.key]
+  )
   const roster = useMemo(() => buildTierRoster(puzzleData), [])
   const { curateMode, curateIdx, setCurateIdx, exitCurateHref } = useCurateModeFromRoster(roster)
 
   const wrapperRef = useRef(null)
   const dailyKeyRef = useRef(daily.key)
+  const progressKeyRef = useRef(progressKey)
   const dailyIdxRef = useRef(0)
   const modeRef = useRef('daily')
   const curateModeRef = useRef(false)
@@ -327,18 +349,20 @@ export default function RolyPoly() {
     return getEnabledTierIndices(GAME_KEYS.ROLYPOLY)
   }, [suitePrefsEpoch])
   dailyKeyRef.current = daily.key
+  progressKeyRef.current = progressKey
   dailyIdxRef.current = dailyIdx
   modeRef.current = mode
   curateModeRef.current = curateMode
   curateIdxRef.current = curateIdx
 
-  const [completions, setCompletions] = useState(() => loadCompletions(daily.key))
-  const [perfects, setPerfects] = useState(() => loadPerfects(daily.key))
-  const [moveCounts, setMoveCounts] = useState(() => loadMoveCounts(daily.key))
+  const [completions, setCompletions] = useState(() => loadCompletions(todayKey))
+  const [perfects, setPerfects] = useState(() => loadPerfects(todayKey))
+  const [moveCounts, setMoveCounts] = useState(() => loadMoveCounts(todayKey))
   const canShareHub = useMemo(() => {
     void completions
-    return hasShareableHubProgress(GAME_KEYS.ROLYPOLY, daily.key)
-  }, [daily.key, completions])
+    if (viewingYesterday) return false
+    return hasShareableHubProgress(GAME_KEYS.ROLYPOLY, todayKey)
+  }, [todayKey, completions, viewingYesterday])
 
   const [balls, setBalls] = useState([])
   const [targets, setTargets] = useState([])
@@ -370,6 +394,13 @@ export default function RolyPoly() {
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const allDailyDoneCompletionRef = useRef(null)
   const completionMarkedRef = useRef(false)
+
+  useEffect(() => {
+    setCompletions(loadCompletions(progressKey))
+    setPerfects(loadPerfects(progressKey))
+    setMoveCounts(loadMoveCounts(progressKey))
+    allDailyDoneCompletionRef.current = null
+  }, [progressKey])
 
   useEffect(() => {
     if (!solved) completionMarkedRef.current = false
@@ -418,9 +449,9 @@ export default function RolyPoly() {
   }, [curateMode, mode, tutorialIdx])
 
   useEffect(() => {
-    if (curateMode || mode !== 'daily') return
+    if (curateMode || mode !== 'daily' || viewingYesterday) return
     persistHubDailySlot(GAME_KEYS.ROLYPOLY, daily.key, dailyIdx)
-  }, [curateMode, mode, daily.key, dailyIdx])
+  }, [curateMode, mode, daily.key, dailyIdx, viewingYesterday])
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
@@ -441,16 +472,16 @@ export default function RolyPoly() {
         return
       }
     } else if (mode === 'daily') {
-      const saved = loadGameState(daily.key, dailyIdx, data)
+      const saved = loadGameState(progressKey, dailyIdx, data)
       if (saved?.balls) {
         resetFromData(data, saved)
-        setMoveCounts(loadMoveCounts(daily.key))
+        setMoveCounts(loadMoveCounts(progressKey))
         return
       }
     }
     resetFromData(data, null)
-    if (mode === 'daily' && !curateMode) setMoveCounts(loadMoveCounts(daily.key))
-  }, [currentPuzzleData, curateMode, curateIdx, daily.key, dailyIdx, mode, resetFromData])
+    if (mode === 'daily' && !curateMode) setMoveCounts(loadMoveCounts(progressKey))
+  }, [currentPuzzleData, curateMode, curateIdx, progressKey, dailyIdx, mode, resetFromData])
 
   const measureCellLayout = useCallback(() => {
     const el = wrapperRef.current
@@ -483,9 +514,9 @@ export default function RolyPoly() {
       const data = currentPuzzleData
       if (!data) return
       if (curateMode) saveGameState('curate', curateIdx, data, b, h, m, sol)
-      else if (mode === 'daily') saveGameState(daily.key, dailyIdx, data, b, h, m, sol)
+      else if (mode === 'daily') saveGameState(progressKey, dailyIdx, data, b, h, m, sol)
     },
-    [currentPuzzleData, curateMode, curateIdx, daily.key, dailyIdx, mode]
+    [currentPuzzleData, curateMode, curateIdx, progressKey, dailyIdx, mode]
   )
 
   const applyPlaybackStep = useCallback(
@@ -536,15 +567,16 @@ export default function RolyPoly() {
   )
 
   const {
+    playbackStatus,
     playbackButtonLabel,
     playbackButtonEnabled,
     togglePlayback,
     noteManualInteraction,
     stopPlayback,
   } = useCurateSolutionPlayback({
-    active: curateMode,
+    active: curateMode || viewingYesterday,
     solution: currentPuzzleData?.solution ?? '',
-    resetKey: curateIdx,
+    resetKey: curateMode ? curateIdx : `${progressKey}:${dailyIdx}`,
     isInitial: history.length === 0,
     onStep: applyPlaybackStep,
     intervalMs: ROLYPOLY_ANIM_MS + 80,
@@ -617,16 +649,16 @@ export default function RolyPoly() {
     const { targets: puzzleTargets } = initFromPuzzle(currentPuzzleData)
     if (!checkSolved(balls, puzzleTargets)) return
     completionMarkedRef.current = true
-    markComplete(daily.key, dailyIdx, moves, getRolyPolyParMoves(currentPuzzleData))
-    setCompletions(loadCompletions(daily.key))
-    setPerfects(loadPerfects(daily.key))
-    setMoveCounts(loadMoveCounts(daily.key))
-    clearGameState(daily.key, dailyIdx)
-  }, [solved, curateMode, mode, daily.key, dailyIdx, moves, currentPuzzleData, balls])
+    markComplete(progressKey, dailyIdx, moves, getRolyPolyParMoves(currentPuzzleData))
+    setCompletions(loadCompletions(progressKey))
+    setPerfects(loadPerfects(progressKey))
+    setMoveCounts(loadMoveCounts(progressKey))
+    clearGameState(progressKey, dailyIdx)
+  }, [solved, curateMode, mode, progressKey, dailyIdx, moves, currentPuzzleData, balls])
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
-    const done = isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, daily.key)
+    const done = isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, progressKey)
     if (allDailyDoneCompletionRef.current === null) {
       allDailyDoneCompletionRef.current = done
       return
@@ -635,9 +667,9 @@ export default function RolyPoly() {
       window.setTimeout(() => setShowCompletionModal(true), ROLYPOLY_SUITE_MODAL_MS)
     }
     allDailyDoneCompletionRef.current = done
-  }, [curateMode, mode, completions, daily.key, suitePrefsEpoch])
+  }, [curateMode, mode, completions, progressKey, suitePrefsEpoch])
 
-  const suiteDone = isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, daily.key)
+  const suiteDone = isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, progressKey)
   const primaryLabel = solved
     ? curateMode
       ? curateIdx < roster.length - 1
@@ -652,11 +684,12 @@ export default function RolyPoly() {
           : CTA_LABELS.NEXT_PUZZLE
     : null
 
-  useSuiteCompletionTimer(GAME_KEYS.ROLYPOLY, daily.key, {
-    track: !curateMode && mode === 'daily',
-    alreadyFullyComplete: isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, daily.key),
+  useSuiteCompletionTimer(GAME_KEYS.ROLYPOLY, todayKey, {
+    track: !curateMode && mode === 'daily' && !viewingYesterday,
+    alreadyFullyComplete: isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, todayKey),
     pauseForHubCompleteCta:
-      primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.NEXT_PUZZLE,
+      !viewingYesterday &&
+      (primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.NEXT_PUZZLE),
   })
 
   useEffect(() => {
@@ -679,7 +712,7 @@ export default function RolyPoly() {
       if (curateMode)
         saveGameState('curate', curateIdx, data, prev.balls, newHist, prev.moves, false)
       else if (mode === 'daily')
-        saveGameState(daily.key, dailyIdx, data, prev.balls, newHist, prev.moves, false)
+        saveGameState(progressKey, dailyIdx, data, prev.balls, newHist, prev.moves, false)
     }
   }, [
     history,
@@ -687,7 +720,7 @@ export default function RolyPoly() {
     currentPuzzleData,
     curateMode,
     curateIdx,
-    daily.key,
+    progressKey,
     dailyIdx,
     mode,
     noteManualInteraction,
@@ -702,13 +735,13 @@ export default function RolyPoly() {
     setPendingLockIds(new Set())
     resetFromData(currentPuzzleData, null)
     if (curateMode) clearGameState('curate', curateIdx)
-    else if (mode === 'daily') clearGameState(daily.key, dailyIdx)
+    else if (mode === 'daily') clearGameState(progressKey, dailyIdx)
   }, [
     currentPuzzleData,
     resetFromData,
     curateMode,
     curateIdx,
-    daily.key,
+    progressKey,
     dailyIdx,
     mode,
     stopPlayback,
@@ -724,17 +757,41 @@ export default function RolyPoly() {
     if (mode === 'tutorial') {
       if (tutorialIdx < puzzleData.tutorial.length - 1) setTutorialIdx((i) => i + 1)
       else {
+        setViewingYesterday(false)
         setMode('daily')
         setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
       }
     } else {
-      const next = nextIncompleteEnabledTierExcluding(GAME_KEYS.ROLYPOLY, daily.key, dailyIdx)
+      const next = nextIncompleteEnabledTierExcluding(GAME_KEYS.ROLYPOLY, progressKey, dailyIdx)
       if (next !== null) {
         setSolved(false)
         setDailyIdx(next)
       }
     }
   }
+
+  const exitYesterdayToToday = useCallback(() => {
+    setShowCompletionModal(false)
+    setViewingYesterday(false)
+    setMode('daily')
+    setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+  }, [])
+
+  const handleToggleYesterday = useCallback(() => {
+    setShowCompletionModal(false)
+    setViewingYesterday((was) => {
+      const next = !was
+      if (next) {
+        setMode('daily')
+        const pk = toPracticeStorageDateKey(getYesterdayCalendarKey())
+        const first = nextIncompleteEnabledTierExcluding(GAME_KEYS.ROLYPOLY, pk, -1)
+        setDailyIdx(first ?? clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+      } else {
+        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+      }
+      return next
+    })
+  }, [])
 
   const handleStatsClick = useCallback(() => {
     if (curateMode) {
@@ -910,10 +967,14 @@ export default function RolyPoly() {
           onStats: handleStatsClick,
           onHelp: () => setShowInstructions(true),
           onTutorial: () => {
+            setViewingYesterday(false)
             setMode('tutorial')
             setTutorialIdx(0)
           },
           hasTutorial: (puzzleData.tutorial?.length ?? 0) > 0,
+          showYesterdayToggle: !curateMode && mode === 'daily',
+          viewingYesterday,
+          onToggleYesterday: handleToggleYesterday,
         }}
       />
 
@@ -1014,15 +1075,26 @@ export default function RolyPoly() {
                 moveCounts={moveCounts}
                 onChange={setDailyIdx}
                 tierSlots={tierSlots}
+                doneColor={viewingYesterday ? PUZZLE_SUITE_PRACTICE_BLUE : PUZZLE_SUITE_CORRECT_GREEN}
               />
             </div>
           </div>
           <div className="level-nav__right-slot">
-            <GameShareNavButton
-              gameKey={GAME_KEYS.ROLYPOLY}
-              dateKey={daily.key}
-              canShare={canShareHub}
-            />
+            {viewingYesterday ? (
+              <YesterdaySolutionNavButton
+                playbackEnabled={playbackButtonEnabled}
+                playbackStatus={playbackStatus}
+                onTogglePlayback={togglePlayback}
+                onReset={handleReset}
+                canReset={history.length > 0}
+              />
+            ) : (
+              <GameShareNavButton
+                gameKey={GAME_KEYS.ROLYPOLY}
+                dateKey={todayKey}
+                canShare={canShareHub}
+              />
+            )}
           </div>
         </div>
       )}
@@ -1168,10 +1240,10 @@ export default function RolyPoly() {
         onClose={() => setShowStats(false)}
         gameKey={GAME_KEYS.ROLYPOLY}
         dailySuiteFooter={{
-          dateKey: daily.key,
-          completions,
-          perfects,
-          moveCounts,
+          dateKey: todayKey,
+          completions: viewingYesterday ? loadCompletions(todayKey) : completions,
+          perfects: viewingYesterday ? loadPerfects(todayKey) : perfects,
+          moveCounts: viewingYesterday ? loadMoveCounts(todayKey) : moveCounts,
         }}
       />
       <SuiteGameCompletionModal
@@ -1182,6 +1254,8 @@ export default function RolyPoly() {
         hubDiceCompletions={completions}
         hubDicePerfects={perfects}
         hubDiceMoveCounts={moveCounts}
+        practiceMode={viewingYesterday}
+        onTodaysPuzzle={exitYesterdayToToday}
       />
     </div>
   )

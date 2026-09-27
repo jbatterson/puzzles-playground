@@ -637,7 +637,6 @@ export default function DungBeetle() {
     setCompletions(loadCompletions(progressKey))
     setPerfects(loadPerfects(progressKey))
     setMoveCounts(loadMoveCounts(progressKey))
-    clearGameState(progressKey, dailyIdx)
   }, [solved, curateMode, mode, progressKey, dailyIdx, pushes, currentPuzzleData, play])
 
   useEffect(() => {
@@ -669,11 +668,8 @@ export default function DungBeetle() {
     : null
 
   useSuiteCompletionTimer(GAME_KEYS.DUNGBEETLE, todayKey, {
-    track: !curateMode && mode === 'daily' && !viewingYesterday,
-    alreadyFullyComplete: isSuiteCompleteForPrefs(GAME_KEYS.DUNGBEETLE, todayKey),
-    pauseForHubCompleteCta:
-      !viewingYesterday &&
-      (primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.NEXT_PUZZLE),
+    countingUnsolvedPuzzle:
+      !curateMode && mode === 'daily' && !viewingYesterday && !completions[dailyIdx] && !solved,
   })
 
   useEffect(() => {

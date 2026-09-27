@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { buildHubSharePlaintext } from '../hubSharePlaintext.js'
+import {
+  buildAllHubSharePlaintext,
+  buildHubSharePlaintext,
+  hasAnyShareableHubProgress,
+} from '../hubSharePlaintext.js'
+import { suiteElapsedKey } from '../suiteCompletionTimer.js'
 
 const BASE = '/'
 const DATE = '2025-04-09'
@@ -64,5 +69,59 @@ describe('buildHubSharePlaintext', () => {
       expect(text).toContain('(5 moves ⭐)')
       expect(text).not.toContain('First try!')
     })
+  })
+})
+
+describe('buildAllHubSharePlaintext', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('returns empty string when nothing is shareable', () => {
+    expect(buildAllHubSharePlaintext(DATE, BASE)).toBe('')
+    expect(hasAnyShareableHubProgress(DATE)).toBe(false)
+  })
+
+  it('concatenates shareable games in hub order with a single hub URL', () => {
+    localStorage.setItem(`rolypoly:${DATE}:0`, '1')
+    localStorage.setItem(`rolypoly:${DATE}:0:moves`, '7')
+    localStorage.setItem(`rolypoly:${DATE}:1`, '1')
+    localStorage.setItem(`rolypoly:${DATE}:1:moves`, '11')
+    localStorage.setItem(`rolypoly:${DATE}:2`, '1')
+    localStorage.setItem(`rolypoly:${DATE}:2:moves`, '17')
+    localStorage.setItem(suiteElapsedKey('rolypoly', DATE), String(88000))
+
+    localStorage.setItem(`dungbeetle:${DATE}:0`, '1')
+    localStorage.setItem(`dungbeetle:${DATE}:0:moves`, '6')
+    localStorage.setItem(suiteElapsedKey('dungbeetle', DATE), String(21000))
+
+    // Sum Tiles has no progress — omitted even though it appears earlier on the hub
+    const text = buildAllHubSharePlaintext(DATE, BASE)
+    const hubUrl = new URL(BASE, window.location.origin).href
+
+    expect(hasAnyShareableHubProgress(DATE)).toBe(true)
+    expect(text).toBe(
+      [
+        'ROLY POLY',
+        'Easy   🟩 (7 moves)',
+        'Med   🟩 (11 moves)',
+        'Hard   🟩 (17 moves)',
+        '00:01:28',
+        '',
+        'DUNG BEETLE',
+        'Easy   🟩 (6 moves)',
+        'Med   ⬜',
+        'Hard   ⬜',
+        '00:00:21',
+        '',
+        hubUrl,
+      ].join('\n')
+    )
+    expect(text).not.toContain('/puzzlegames/')
+  })
+
+  it('respects baseHref for the hub URL only', () => {
+    localStorage.setItem(`productiles:${DATE}:0`, '1')
+    const text = buildAllHubSharePlaintext(DATE, '/MyApp/')
+    expect(text).toContain(new URL('/MyApp/', window.location.origin).href)
+    expect(text).not.toContain('puzzlegames')
   })
 })

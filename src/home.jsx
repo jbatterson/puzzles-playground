@@ -25,6 +25,7 @@ import { getDailyKey, computeStreak } from '@shared-contracts/dailyPuzzleDate.js
 import { formatPuzzleDateHeading } from '@shared-contracts/suiteCompletionTimer.js'
 import { isTileGameKey } from '@shared-contracts/gameChrome.js'
 import { loadCompletions, loadPerfects, loadMoveCounts } from '@shared-contracts/hubProgress.js'
+import HubShareNavButton from './shared/HubShareNavButton.jsx'
 
 const base = import.meta.env.BASE_URL
 
@@ -347,12 +348,26 @@ export default function Home() {
                 }
 
                 .hp-tiles-section { margin-top: 22px; }
+                .hp-section-heading {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                    margin-bottom: 10px;
+                }
                 .hp-section-label {
                     font-size: 0.72rem;
                     font-weight: 900;
                     letter-spacing: 0.12em;
                     color: var(--puzzle-ink-muted);
                     margin-bottom: 10px;
+                }
+                .hp-section-heading .hp-section-label {
+                    margin-bottom: 0;
+                }
+                .hp-section-share {
+                    position: relative;
+                    flex-shrink: 0;
                 }
                 .hp-tile-grid {
                     display: grid;
@@ -411,7 +426,10 @@ export default function Home() {
 
           <div className="hp-divider" />
 
-          <div className="hp-section-label">MY PUZZLES</div>
+          <div className="hp-section-heading">
+            <div className="hp-section-label">MY PUZZLES</div>
+            <HubShareNavButton dateKey={dateKey} />
+          </div>
           <section className="hp-list">
             {gamesOnDashboard.map(({ key, href, Icon, title, desc }) => {
               const tierSlots = getEnabledTierIndices(key, suitePrefs)

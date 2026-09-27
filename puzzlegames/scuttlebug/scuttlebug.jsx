@@ -631,7 +631,6 @@ export default function Scuttlebug() {
     setCompletions(loadCompletions(progressKey))
     setPerfects(loadPerfects(progressKey))
     setMoveCounts(loadMoveCounts(progressKey))
-    clearGameState(progressKey, dailyIdx)
   }, [solved, curateMode, mode, progressKey, dailyIdx, pushes, currentPuzzleData, play])
 
   useEffect(() => {
@@ -663,11 +662,8 @@ export default function Scuttlebug() {
     : null
 
   useSuiteCompletionTimer(GAME_KEYS.SCUTTLEBUG, todayKey, {
-    track: !curateMode && mode === 'daily' && !viewingYesterday,
-    alreadyFullyComplete: isSuiteCompleteForPrefs(GAME_KEYS.SCUTTLEBUG, todayKey),
-    pauseForHubCompleteCta:
-      !viewingYesterday &&
-      (primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.NEXT_PUZZLE),
+    countingUnsolvedPuzzle:
+      !curateMode && mode === 'daily' && !viewingYesterday && !completions[dailyIdx] && !solved,
   })
 
   useEffect(() => {

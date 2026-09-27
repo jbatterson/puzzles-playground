@@ -653,7 +653,6 @@ export default function RolyPoly() {
     setCompletions(loadCompletions(progressKey))
     setPerfects(loadPerfects(progressKey))
     setMoveCounts(loadMoveCounts(progressKey))
-    clearGameState(progressKey, dailyIdx)
   }, [solved, curateMode, mode, progressKey, dailyIdx, moves, currentPuzzleData, balls])
 
   useEffect(() => {
@@ -685,11 +684,8 @@ export default function RolyPoly() {
     : null
 
   useSuiteCompletionTimer(GAME_KEYS.ROLYPOLY, todayKey, {
-    track: !curateMode && mode === 'daily' && !viewingYesterday,
-    alreadyFullyComplete: isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, todayKey),
-    pauseForHubCompleteCta:
-      !viewingYesterday &&
-      (primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.NEXT_PUZZLE),
+    countingUnsolvedPuzzle:
+      !curateMode && mode === 'daily' && !viewingYesterday && !completions[dailyIdx] && !solved,
   })
 
   useEffect(() => {

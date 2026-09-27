@@ -1,7 +1,8 @@
 /**
- * Suite session timer: elapsed active play time (tab visible, not on post-win hub CTAs
- * “Next Puzzle” / “All Puzzles”). Persisted bank + optional open segment; finalize merges into
- * suiteElapsedMs. Recording runs regardless of the hub “timer on” display preference.
+ * Suite session timer: time spent with an unsolved daily puzzle on screen in a visible,
+ * focused window. The hook adds capped per-tick deltas into a persisted bank; finalize
+ * merges the bank into suiteElapsedMs. Recording runs regardless of the hub “timer on”
+ * display preference.
  */
 
 import { lsGet } from './hubProgress.js'
@@ -34,16 +35,17 @@ function suiteTimerEndKey(gameKey, dateKey) {
   return `${gameKey}:${dateKey}:suiteTimerEndMs`
 }
 
-/** Active-time model: banked ms since last finalize + optional running segment. */
-function suiteTimerBankMsKey(gameKey, dateKey) {
+/** Active-time model: ms banked since last finalize. */
+export function suiteTimerBankMsKey(gameKey, dateKey) {
   return `${gameKey}:${dateKey}:suiteTimerBankMs`
 }
 
+/** Written by the previous open-segment model; ignored now and cleared when seen. */
 function suiteTimerResumeAtKey(gameKey, dateKey) {
   return `${gameKey}:${dateKey}:suiteTimerResumeAt`
 }
 
-function suiteTimerActiveModelKey(gameKey, dateKey) {
+export function suiteTimerActiveModelKey(gameKey, dateKey) {
   return `${gameKey}:${dateKey}:suiteTimerActiveModel`
 }
 
@@ -61,31 +63,6 @@ function readBankMs(gameKey, dateKey) {
   if (raw == null) return 0
   const n = parseInt(raw, 10)
   return Number.isFinite(n) ? Math.max(0, n) : 0
-}
-
-/** Add open segment [resumeAt, atMs] into bank; clear resume. */
-export function flushSuiteTimerOpenSegment(gameKey, dateKey, atMs) {
-  if (!gameKey || !dateKey) return
-  if (!isActiveTimeModel(gameKey, dateKey)) return
-  const rk = suiteTimerResumeAtKey(gameKey, dateKey)
-  const raw = lsGet(rk)
-  if (raw == null) return
-  const t = parseInt(raw, 10)
-  lsRemove(rk)
-  if (!Number.isFinite(t)) return
-  const delta = Math.max(0, atMs - t)
-  if (delta === 0) return
-  const bk = suiteTimerBankMsKey(gameKey, dateKey)
-  lsSet(bk, String(readBankMs(gameKey, dateKey) + delta))
-}
-
-function readOpenSegmentMs(gameKey, dateKey, atMs) {
-  if (!isActiveTimeModel(gameKey, dateKey)) return 0
-  const raw = lsGet(suiteTimerResumeAtKey(gameKey, dateKey))
-  if (raw == null) return 0
-  const t = parseInt(raw, 10)
-  if (!Number.isFinite(t)) return 0
-  return Math.max(0, atMs - t)
 }
 
 function readLegacyWallElapsedMs(gameKey, dateKey) {
@@ -113,47 +90,31 @@ function readDailySlotCompletionMask(gameKey, dateKey) {
 }
 
 /**
- * @param {string} gameKey
- * @param {string} dateKey
- * @param {{ track: boolean, alreadyFullyComplete: boolean }} opts
+ * Mark this game/date as using the active-time model and record a first-start timestamp
+ * (idempotent). Clears any open segment left by the previous timer model.
  */
-export function ensureSuiteGameTimerStart(gameKey, dateKey, opts) {
-  const { track, alreadyFullyComplete } = opts
-  if (!track || !gameKey || !dateKey) return
-  if (alreadyFullyComplete) return
-  markSuiteTimerActiveTimeModel(gameKey, dateKey)
+export function ensureSuiteGameTimerStart(gameKey, dateKey) {
+  if (!gameKey || !dateKey) return
+  lsSet(suiteTimerActiveModelKey(gameKey, dateKey), '1')
+  lsRemove(suiteTimerResumeAtKey(gameKey, dateKey))
   const sk = suiteTimerStartKey(gameKey, dateKey)
   if (lsGet(sk)) return
   lsSet(sk, String(Date.now()))
 }
 
-/** Enable active-time keys for this game/date (idempotent). */
-function markSuiteTimerActiveTimeModel(gameKey, dateKey) {
-  if (!gameKey || !dateKey) return
-  lsSet(suiteTimerActiveModelKey(gameKey, dateKey), '1')
-}
-
-/**
- * Start or stop the open segment from persisted bank based on whether play time should accrue.
- * Call whenever tab visibility or hub-complete CTA pause toggles (and on mount).
- */
-export function syncSuiteTimerPlayingState(gameKey, dateKey, shouldCountMs) {
+/** Add counted play time to the persisted bank. No-op unless the active-time model is on. */
+export function addToSuiteTimerBank(gameKey, dateKey, deltaMs) {
   if (!gameKey || !dateKey) return
   if (!isActiveTimeModel(gameKey, dateKey)) return
-  const now = Date.now()
-  const rk = suiteTimerResumeAtKey(gameKey, dateKey)
-  const hasResume = lsGet(rk) != null
-  if (shouldCountMs) {
-    if (!hasResume) lsSet(rk, String(now))
-    return
-  }
-  flushSuiteTimerOpenSegment(gameKey, dateKey, now)
+  const d = Math.floor(Number(deltaMs))
+  if (!Number.isFinite(d) || d <= 0) return
+  lsSet(suiteTimerBankMsKey(gameKey, dateKey), String(readBankMs(gameKey, dateKey) + d))
 }
 
 /**
  * On completion modal open: if at least one daily slot was newly completed since we
  * last recorded an end time, set end = now and elapsed. Active model: committed ek +
- * banked session ms (+ flush open segment).
+ * banked ms.
  */
 export function finalizeSuiteGameTimerFromModal(gameKey, dateKey) {
   if (!gameKey || !dateKey) return
@@ -191,7 +152,6 @@ export function finalizeSuiteGameTimerFromModal(gameKey, dateKey) {
 
   let elapsed
   if (isActiveTimeModel(gameKey, dateKey)) {
-    flushSuiteTimerOpenSegment(gameKey, dateKey, endMs)
     const bank = readBankMs(gameKey, dateKey)
     const prevCommitted = ekLegacy != null ? parseInt(ekLegacy, 10) : 0
     const baseCommitted = Number.isFinite(prevCommitted) ? Math.max(0, prevCommitted) : 0
@@ -211,14 +171,10 @@ export function finalizeSuiteGameTimerFromModal(gameKey, dateKey) {
 export function readSuiteGameElapsedMs(gameKey, dateKey) {
   if (!gameKey || !dateKey) return null
   if (isActiveTimeModel(gameKey, dateKey)) {
-    const now = Date.now()
     const committedRaw = lsGet(suiteElapsedKey(gameKey, dateKey))
     const committed = committedRaw != null ? parseInt(committedRaw, 10) : NaN
     const base = Number.isFinite(committed) ? Math.max(0, committed) : 0
-    return Math.max(
-      0,
-      base + readBankMs(gameKey, dateKey) + readOpenSegmentMs(gameKey, dateKey, now)
-    )
+    return base + readBankMs(gameKey, dateKey)
   }
   return readLegacyWallElapsedMs(gameKey, dateKey)
 }

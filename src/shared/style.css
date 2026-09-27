@@ -1501,6 +1501,10 @@ body {
   margin-bottom: 0.35rem;
 }
 
+.share-result-toast--short .share-result-toast__head {
+  margin-bottom: 0;
+}
+
 .share-result-toast__body {
   font-weight: 600;
   white-space: pre-wrap;

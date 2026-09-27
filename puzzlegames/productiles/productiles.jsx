@@ -989,10 +989,8 @@ export default function Productiles() {
     : null
 
   useSuiteCompletionTimer(GAME_KEYS.PRODUCTILES, daily.key, {
-    track: !curateMode && mode === 'daily',
-    alreadyFullyComplete: isSuiteCompleteForPrefs(GAME_KEYS.PRODUCTILES, daily.key),
-    pauseForHubCompleteCta:
-      primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.NEXT_PUZZLE,
+    countingUnsolvedPuzzle:
+      !curateMode && mode === 'daily' && !completions[dailyIdx] && !isSolved,
   })
 
   const base = import.meta.env.BASE_URL

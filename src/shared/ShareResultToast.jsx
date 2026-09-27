@@ -4,9 +4,10 @@ import React from 'react'
 export const SHARE_RESULT_TOAST_MS = 2500
 
 /**
- * Shared navy preview toast after copying share plaintext.
+ * Shared navy toast after copying share plaintext.
  * Positioned below the anchor (`top: 100%`). Parent must be `position: relative` (wide anchor for in-game rows).
  * Pass `onDismiss` to show a close control and clear the auto-hide timer when dismissed.
+ * When `short` is true, only “Results copied to clipboard.” is shown (no preview body).
  */
 export default function ShareResultToast({
   preview,
@@ -14,6 +15,7 @@ export default function ShareResultToast({
   onTransitionEnd,
   onDismiss,
   align = 'end',
+  short = false,
   /** Merged onto root; use for e.g. fixed viewport positioning (in-game share). */
   style: rootStyle,
 }) {
@@ -22,15 +24,17 @@ export default function ShareResultToast({
 
   return (
     <div
-      className={`toast-panel share-result-toast share-result-toast--below ${alignClass}${fadeOut ? ' share-result-toast--fadeOut' : ''}`}
+      className={`toast-panel share-result-toast share-result-toast--below ${alignClass}${short ? ' share-result-toast--short' : ''}${fadeOut ? ' share-result-toast--fadeOut' : ''}`}
       style={rootStyle}
       role="status"
       onTransitionEnd={onTransitionEnd}
     >
       <div className="toast-row share-result-toast__row">
         <div className="toast-text share-result-toast__inner">
-          <div className="share-result-toast__head">Results copied to clipboard:</div>
-          <div className="share-result-toast__body">{preview}</div>
+          <div className="share-result-toast__head">
+            {short ? 'Results copied to clipboard.' : 'Results copied to clipboard:'}
+          </div>
+          {!short && <div className="share-result-toast__body">{preview}</div>}
         </div>
         {onDismiss != null && (
           <button

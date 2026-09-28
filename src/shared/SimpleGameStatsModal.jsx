@@ -7,11 +7,17 @@ import {
   buildHubSharePlaintext,
   hasShareableHubProgress,
 } from '@shared-contracts/hubSharePlaintext.js'
-import { isSuiteTimerEnabled } from '@shared-contracts/suiteDashboardPreferences.js'
+import {
+  isSuiteCompleteForPrefs,
+  isSuiteTimerEnabled,
+} from '@shared-contracts/suiteDashboardPreferences.js'
+import { isBonusUnlocked } from '@shared-contracts/bonusPuzzle.js'
 import {
   formatPuzzleDateHeading,
   readSuiteGameElapsedMs,
 } from '@shared-contracts/suiteCompletionTimer.js'
+import { readBonusGameElapsedMs } from '@shared-contracts/bonusCompletionTimer.js'
+import { isBonusComplete } from '@shared-contracts/bonusPuzzle.js'
 import { formatAllTenElapsedMsForShare } from '@shared-contracts/allTenSharePlaintext.js'
 import ShareIcon from './ShareIcon.jsx'
 import ShareResultToast, { SHARE_RESULT_TOAST_MS } from './ShareResultToast.jsx'
@@ -47,17 +53,17 @@ export default function SimpleGameStatsModal({ show, onClose, gameKey, dailySuit
     dailySuiteFooter &&
     dailySuiteFooter.dateKey &&
     Array.isArray(dailySuiteFooter.completions) &&
-    dailySuiteFooter.completions.length === 3 &&
+    dailySuiteFooter.completions.length >= 3 &&
     Array.isArray(dailySuiteFooter.perfects) &&
-    dailySuiteFooter.perfects.length === 3
+    dailySuiteFooter.perfects.length >= 3
   )
 
   const base = import.meta.env.BASE_URL
 
   const allDailyComplete = useMemo(() => {
-    if (!useSuiteLayout || !dailySuiteFooter) return false
-    return dailySuiteFooter.completions.every(Boolean)
-  }, [useSuiteLayout, dailySuiteFooter])
+    if (!useSuiteLayout || !dailySuiteFooter || !gameKey) return false
+    return isSuiteCompleteForPrefs(gameKey, dailySuiteFooter.dateKey)
+  }, [useSuiteLayout, dailySuiteFooter, gameKey])
 
   const elapsedMsForDay = useMemo(() => {
     if (!show || !useSuiteLayout || !gameKey || !dailySuiteFooter?.dateKey || !allDailyComplete)
@@ -183,7 +189,20 @@ export default function SimpleGameStatsModal({ show, onClose, gameKey, dailySuit
   )
 
   if (useSuiteLayout && dailySuiteFooter) {
-    const timeHms = elapsedMsForDay != null ? formatAllTenElapsedMsForShare(elapsedMsForDay) : null
+    const suiteTimeHms =
+      elapsedMsForDay != null ? formatAllTenElapsedMsForShare(elapsedMsForDay) : null
+    const bonusMs =
+      suiteTimeHms != null &&
+      isBonusComplete(gameKey, dailySuiteFooter.dateKey) &&
+      isSuiteTimerEnabled()
+        ? readBonusGameElapsedMs(gameKey, dailySuiteFooter.dateKey)
+        : null
+    const timeHms =
+      suiteTimeHms == null
+        ? null
+        : bonusMs != null
+          ? `${suiteTimeHms} (+${formatAllTenElapsedMsForShare(bonusMs)})`
+          : suiteTimeHms
 
     return (
       <>
@@ -204,7 +223,7 @@ export default function SimpleGameStatsModal({ show, onClose, gameKey, dailySuit
               completions={dailySuiteFooter.completions}
               perfects={dailySuiteFooter.perfects}
               moveCounts={dailySuiteFooter.moveCounts}
-              cluelessAttempts={dailySuiteFooter.cluelessAttempts ?? null}
+              bonusUnlocked={isBonusUnlocked(gameKey, dailySuiteFooter.dateKey)}
             />
             {timeHms != null ? (
               <div

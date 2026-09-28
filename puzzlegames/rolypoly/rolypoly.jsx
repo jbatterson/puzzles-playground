@@ -9,7 +9,13 @@ import SharedModalShell from '../../src/shared/SharedModalShell.jsx'
 import SimpleGameStatsModal from '../../src/shared/SimpleGameStatsModal.jsx'
 import SuiteGameCompletionModal from '../../src/shared/SuiteGameCompletionModal.jsx'
 import useSuiteCompletionTimer from '../../src/shared/useSuiteCompletionTimer.js'
+import useBonusCompletionTimer from '../../src/shared/useBonusCompletionTimer.js'
 import PlaygroundLinksModal from '../../src/shared/PlaygroundLinksModal.jsx'
+import { finalizeBonusGameTimer } from '@shared-contracts/bonusCompletionTimer.js'
+import {
+  BONUS_SLOT,
+  isBonusUnlocked,
+} from '@shared-contracts/bonusPuzzle.js'
 import useInstructionsGate from '../../src/shared/useInstructionsGate.js'
 import { MODAL_INTENTS } from '@shared-contracts/modalIntents.js'
 import { GAME_KEYS, getGameChrome } from '@shared-contracts/gameChrome.js'
@@ -61,6 +67,8 @@ const ROLYPOLY_TUTORIAL_HINT =
 
 /** Shift hard rotation so today's 3-star stays the pre-expansion puzzle after hard pool grew. */
 const HARD_DAY_OFFSET = 144
+/** Offset bonus cycle relative to hard so the same day is less likely to share a layout family. */
+const BONUS_DAY_OFFSET = 37
 
 function getDailyPuzzles(dateKey = getDailyKey()) {
   const key = dateKey
@@ -68,22 +76,26 @@ function getDailyPuzzles(dateKey = getDailyKey()) {
   const easy = puzzleData.easy || []
   const medium = puzzleData.medium || []
   const hard = puzzleData.hard || []
+  const bonus = puzzleData.bonus || []
   return {
     puzzles: [
       easy[dayIndex % easy.length],
       medium[dayIndex % medium.length],
       hard[(dayIndex + HARD_DAY_OFFSET) % hard.length],
+      bonus.length ? bonus[(dayIndex + BONUS_DAY_OFFSET) % bonus.length] : null,
     ],
     key,
   }
 }
 
 function loadCompletions(dateKey) {
-  return [0, 1, 2].map((i) => ['1', '2'].includes(localStorage.getItem(`rolypoly:${dateKey}:${i}`)))
+  return [0, 1, 2, 3].map((i) =>
+    ['1', '2'].includes(localStorage.getItem(`rolypoly:${dateKey}:${i}`))
+  )
 }
 
 function loadPerfects(dateKey) {
-  return [0, 1, 2].map((i) => localStorage.getItem(`rolypoly:${dateKey}:${i}`) === '2')
+  return [0, 1, 2, 3].map((i) => localStorage.getItem(`rolypoly:${dateKey}:${i}`) === '2')
 }
 
 function getStoredMoveCount(dateKey, idx) {
@@ -114,7 +126,7 @@ function saveMoveCount(dateKey, idx, moves) {
 }
 
 function loadMoveCounts(dateKey) {
-  return [0, 1, 2].map((i) => {
+  return [0, 1, 2, 3].map((i) => {
     const v = localStorage.getItem(`rolypoly:${dateKey}:${i}:moves`)
     return v != null ? parseInt(v, 10) : null
   })
@@ -296,6 +308,8 @@ function PuzzleBoxes({
             ) : (
               '✓'
             )
+          ) : i === BONUS_SLOT ? (
+            '!'
           ) : (
             <DiceFace count={i + 1} size={20} />
           )}
@@ -344,20 +358,26 @@ export default function RolyPoly() {
     )
   )
   const suitePrefsEpoch = useSuitePrefsEpoch()
+  const [completions, setCompletions] = useState(() => loadCompletions(todayKey))
+  const [perfects, setPerfects] = useState(() => loadPerfects(todayKey))
+  const [moveCounts, setMoveCounts] = useState(() => loadMoveCounts(todayKey))
+  // Today: unlock from live progress. Yesterday practice: only if official day was 3-starred.
+  const bonusUnlockKey = viewingYesterday ? daily.key : progressKey
+  const bonusUnlocked = useMemo(() => {
+    void perfects
+    return isBonusUnlocked(GAME_KEYS.ROLYPOLY, bonusUnlockKey)
+  }, [bonusUnlockKey, perfects])
   const tierSlots = useMemo(() => {
     void suitePrefsEpoch
-    return getEnabledTierIndices(GAME_KEYS.ROLYPOLY)
-  }, [suitePrefsEpoch])
+    const base = getEnabledTierIndices(GAME_KEYS.ROLYPOLY)
+    return bonusUnlocked ? [...base, BONUS_SLOT] : base
+  }, [suitePrefsEpoch, bonusUnlocked])
   dailyKeyRef.current = daily.key
   progressKeyRef.current = progressKey
   dailyIdxRef.current = dailyIdx
   modeRef.current = mode
   curateModeRef.current = curateMode
   curateIdxRef.current = curateIdx
-
-  const [completions, setCompletions] = useState(() => loadCompletions(todayKey))
-  const [perfects, setPerfects] = useState(() => loadPerfects(todayKey))
-  const [moveCounts, setMoveCounts] = useState(() => loadMoveCounts(todayKey))
   const canShareHub = useMemo(() => {
     void completions
     if (viewingYesterday) return false
@@ -393,6 +413,8 @@ export default function RolyPoly() {
   const [curateCopyHint, setCurateCopyHint] = useState(null)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const allDailyDoneCompletionRef = useRef(null)
+  const bonusUnlockedModalRef = useRef(null)
+  const bonusCompleteModalRef = useRef(null)
   const completionMarkedRef = useRef(false)
 
   useEffect(() => {
@@ -400,6 +422,8 @@ export default function RolyPoly() {
     setPerfects(loadPerfects(progressKey))
     setMoveCounts(loadMoveCounts(progressKey))
     allDailyDoneCompletionRef.current = null
+    bonusUnlockedModalRef.current = null
+    bonusCompleteModalRef.current = null
   }, [progressKey])
 
   useEffect(() => {
@@ -455,9 +479,14 @@ export default function RolyPoly() {
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
-    const c = clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, dailyIdx)
+    const c = clampDailyIndexToTierPrefs(
+      GAME_KEYS.ROLYPOLY,
+      dailyIdx,
+      undefined,
+      bonusUnlockKey
+    )
     if (c !== dailyIdx) setDailyIdx(c)
-  }, [curateMode, mode, suitePrefsEpoch, dailyIdx])
+  }, [curateMode, mode, suitePrefsEpoch, dailyIdx, bonusUnlockKey, bonusUnlocked])
 
   // useLayoutEffect: puzzle switch must clear `solved` before useEffect (markComplete) runs;
   // otherwise stale solved=true from the previous tier marks the new daily slot complete.
@@ -650,25 +679,53 @@ export default function RolyPoly() {
     if (!checkSolved(balls, puzzleTargets)) return
     completionMarkedRef.current = true
     markComplete(progressKey, dailyIdx, moves, getRolyPolyParMoves(currentPuzzleData))
+    if (dailyIdx === BONUS_SLOT && !viewingYesterday) {
+      finalizeBonusGameTimer(GAME_KEYS.ROLYPOLY, todayKey)
+    }
     setCompletions(loadCompletions(progressKey))
     setPerfects(loadPerfects(progressKey))
     setMoveCounts(loadMoveCounts(progressKey))
-  }, [solved, curateMode, mode, progressKey, dailyIdx, moves, currentPuzzleData, balls])
+  }, [
+    solved,
+    curateMode,
+    mode,
+    progressKey,
+    dailyIdx,
+    moves,
+    currentPuzzleData,
+    balls,
+    viewingYesterday,
+    todayKey,
+  ])
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
     const done = isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, progressKey)
-    if (allDailyDoneCompletionRef.current === null) {
-      allDailyDoneCompletionRef.current = done
-      return
+    const unlocked = isBonusUnlocked(GAME_KEYS.ROLYPOLY, bonusUnlockKey)
+    const bonusDoneNow = !!completions[BONUS_SLOT]
+
+    const primed =
+      allDailyDoneCompletionRef.current !== null &&
+      bonusUnlockedModalRef.current !== null &&
+      bonusCompleteModalRef.current !== null
+
+    if (primed) {
+      const lateBonusUnlock =
+        unlocked && !bonusUnlockedModalRef.current && allDailyDoneCompletionRef.current === true
+      const suiteJustFinished = done && !allDailyDoneCompletionRef.current
+      const bonusJustFinished = bonusDoneNow && !bonusCompleteModalRef.current
+      if (lateBonusUnlock || suiteJustFinished || bonusJustFinished) {
+        window.setTimeout(() => setShowCompletionModal(true), ROLYPOLY_SUITE_MODAL_MS)
+      }
     }
-    if (done && !allDailyDoneCompletionRef.current) {
-      window.setTimeout(() => setShowCompletionModal(true), ROLYPOLY_SUITE_MODAL_MS)
-    }
+
     allDailyDoneCompletionRef.current = done
-  }, [curateMode, mode, completions, progressKey, suitePrefsEpoch])
+    bonusUnlockedModalRef.current = unlocked
+    bonusCompleteModalRef.current = bonusDoneNow
+  }, [curateMode, mode, completions, perfects, progressKey, bonusUnlockKey, suitePrefsEpoch])
 
   const suiteDone = isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, progressKey)
+  const bonusDone = !!completions[BONUS_SLOT]
   const primaryLabel = solved
     ? curateMode
       ? curateIdx < roster.length - 1
@@ -679,13 +736,30 @@ export default function RolyPoly() {
           ? CTA_LABELS.NEXT_PUZZLE
           : CTA_LABELS.PLAY_TODAY
         : suiteDone
-          ? CTA_LABELS.ALL_PUZZLES
+          ? bonusUnlocked && !bonusDone
+            ? CTA_LABELS.BONUS_PUZZLE
+            : CTA_LABELS.ALL_PUZZLES
           : CTA_LABELS.NEXT_PUZZLE
     : null
 
   useSuiteCompletionTimer(GAME_KEYS.ROLYPOLY, todayKey, {
     countingUnsolvedPuzzle:
-      !curateMode && mode === 'daily' && !viewingYesterday && !completions[dailyIdx] && !solved,
+      !curateMode &&
+      mode === 'daily' &&
+      !viewingYesterday &&
+      dailyIdx !== BONUS_SLOT &&
+      !completions[dailyIdx] &&
+      !solved,
+  })
+
+  useBonusCompletionTimer(GAME_KEYS.ROLYPOLY, todayKey, {
+    countingUnsolvedBonus:
+      !curateMode &&
+      mode === 'daily' &&
+      !viewingYesterday &&
+      dailyIdx === BONUS_SLOT &&
+      !completions[BONUS_SLOT] &&
+      !solved,
   })
 
   useEffect(() => {
@@ -755,8 +829,15 @@ export default function RolyPoly() {
       else {
         setViewingYesterday(false)
         setMode('daily')
-        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, progressKey))
       }
+    } else if (
+      isSuiteCompleteForPrefs(GAME_KEYS.ROLYPOLY, progressKey) &&
+      isBonusUnlocked(GAME_KEYS.ROLYPOLY, bonusUnlockKey) &&
+      !completions[BONUS_SLOT]
+    ) {
+      setSolved(false)
+      setDailyIdx(BONUS_SLOT)
     } else {
       const next = nextIncompleteEnabledTierExcluding(GAME_KEYS.ROLYPOLY, progressKey, dailyIdx)
       if (next !== null) {
@@ -770,7 +851,14 @@ export default function RolyPoly() {
     setShowCompletionModal(false)
     setViewingYesterday(false)
     setMode('daily')
-    setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+    setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, todayKey))
+  }, [todayKey])
+
+  const goToBonusPuzzle = useCallback(() => {
+    setShowCompletionModal(false)
+    setMode('daily')
+    setSolved(false)
+    setDailyIdx(BONUS_SLOT)
   }, [])
 
   const handleToggleYesterday = useCallback(() => {
@@ -781,13 +869,13 @@ export default function RolyPoly() {
         setMode('daily')
         const pk = toPracticeStorageDateKey(getYesterdayCalendarKey())
         const first = nextIncompleteEnabledTierExcluding(GAME_KEYS.ROLYPOLY, pk, -1)
-        setDailyIdx(first ?? clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+        setDailyIdx(first ?? clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, pk))
       } else {
-        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, todayKey))
       }
       return next
     })
-  }, [])
+  }, [todayKey])
 
   const handleStatsClick = useCallback(() => {
     if (curateMode) {
@@ -1038,7 +1126,7 @@ export default function RolyPoly() {
               className="skip-link"
               onClick={() => {
                 setMode('daily')
-                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, todayKey))
               }}
             >
               Skip Tutorial
@@ -1162,7 +1250,11 @@ export default function RolyPoly() {
         </button>
         <SmartRightButton
           primaryLabel={primaryLabel}
-          primaryHref={primaryLabel === CTA_LABELS.ALL_PUZZLES ? base : undefined}
+          primaryHref={
+            primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.ALL_PUZZLES_UPPER
+              ? base
+              : undefined
+          }
           onPrimaryClick={handlePrimary}
           attention={postSolveCtaAttention}
           resetDisabled={history.length === 0}
@@ -1208,7 +1300,7 @@ export default function RolyPoly() {
                 onClick={() => {
                   closeInstructions()
                   setMode('daily')
-                  setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+                  setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, todayKey))
                 }}
               >
                 {CTA_LABELS.SKIP_TUTORIAL}
@@ -1221,7 +1313,7 @@ export default function RolyPoly() {
               onClick={() => {
                 closeInstructions()
                 setMode('daily')
-                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0))
+                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, todayKey))
               }}
             >
               {CTA_LABELS.PLAY_TODAYS_PUZZLES_UPPER}
@@ -1252,6 +1344,9 @@ export default function RolyPoly() {
         hubDiceMoveCounts={moveCounts}
         practiceMode={viewingYesterday}
         onTodaysPuzzle={exitYesterdayToToday}
+        bonusUnlocked={bonusUnlocked}
+        bonusComplete={bonusDone}
+        onBonusPuzzle={goToBonusPuzzle}
       />
     </div>
   )

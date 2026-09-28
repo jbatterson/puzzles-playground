@@ -1,5 +1,5 @@
-/** Tier order for suite games (tutorial + daily difficulties). */
-export const DEFAULT_SUITE_TIER_ORDER = ['tutorial', 'easy', 'medium', 'hard']
+/** Tier order for suite games (tutorial + daily difficulties + optional bonus). */
+export const DEFAULT_SUITE_TIER_ORDER = ['tutorial', 'easy', 'medium', 'hard', 'bonus']
 
 /**
  * @param {Record<string, unknown>} puzzleData — default export from a game's puzzles.js

@@ -24,7 +24,18 @@ import {
 import { getDailyKey, computeStreak } from '@shared-contracts/dailyPuzzleDate.js'
 import { formatPuzzleDateHeading } from '@shared-contracts/suiteCompletionTimer.js'
 import { isTileGameKey } from '@shared-contracts/gameChrome.js'
-import { loadCompletions, loadPerfects, loadMoveCounts } from '@shared-contracts/hubProgress.js'
+import {
+  loadCompletions,
+  loadPerfects,
+  loadMoveCounts,
+  lsGet,
+} from '@shared-contracts/hubProgress.js'
+import {
+  BONUS_SLOT,
+  hasBonusPuzzleSupport,
+  isBonusUnlocked,
+  loadBonusMoveCount,
+} from '@shared-contracts/bonusPuzzle.js'
 import HubShareNavButton from './shared/HubShareNavButton.jsx'
 
 const base = import.meta.env.BASE_URL
@@ -37,12 +48,13 @@ function dayHasCompletion(gameKey, dateKey) {
   return false
 }
 
-function PuzzleBoxes({ gameKey, completions, perfects, moveCounts, tierSlots }) {
+function PuzzleBoxes({ gameKey, completions, perfects, moveCounts, tierSlots, bonusUnlocked }) {
   const isTileGame = isTileGameKey(gameKey)
   const c = completions ?? [false, false, false]
   const p = perfects ?? [false, false, false]
   const mc = moveCounts ?? [null, null, null]
-  const slots = tierSlots ?? [0, 1, 2]
+  const baseSlots = tierSlots ?? [0, 1, 2]
+  const slots = bonusUnlocked ? [...baseSlots, BONUS_SLOT] : baseSlots
   return (
     <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
       {slots.map((i) => {
@@ -50,7 +62,11 @@ function PuzzleBoxes({ gameKey, completions, perfects, moveCounts, tierSlots }) 
         const perfect = p[i]
         const moves = mc[i] != null ? mc[i] : null
         const content = !done ? (
-          <DiceFace count={i + 1} size={20} />
+          i === BONUS_SLOT ? (
+            '!'
+          ) : (
+            <DiceFace count={i + 1} size={20} />
+          )
         ) : isTileGame ? (
           perfect ? (
             <HubDiceStar />
@@ -137,15 +153,38 @@ export default function Home() {
   const refreshSuitePrefs = useCallback(() => setSuitePrefs(readSuiteDashboardPreferences()), [])
 
   const completions = useMemo(
-    () => Object.fromEntries(GAMES.map((g) => [g.key, loadCompletions(g.key, dateKey)])),
+    () =>
+      Object.fromEntries(
+        GAMES.map((g) => {
+          const base = loadCompletions(g.key, dateKey)
+          if (!hasBonusPuzzleSupport(g.key)) return [g.key, base]
+          const bonusDone = ['1', '2'].includes(lsGet(`${g.key}:${dateKey}:${BONUS_SLOT}`))
+          return [g.key, [...base, bonusDone]]
+        })
+      ),
     [dateKey]
   )
   const perfects = useMemo(
-    () => Object.fromEntries(GAMES.map((g) => [g.key, loadPerfects(g.key, dateKey)])),
+    () =>
+      Object.fromEntries(
+        GAMES.map((g) => {
+          const base = loadPerfects(g.key, dateKey)
+          if (!hasBonusPuzzleSupport(g.key)) return [g.key, base]
+          const bonusPerfect = lsGet(`${g.key}:${dateKey}:${BONUS_SLOT}`) === '2'
+          return [g.key, [...base, bonusPerfect]]
+        })
+      ),
     [dateKey]
   )
   const moveCounts = useMemo(
-    () => Object.fromEntries(GAMES.map((g) => [g.key, loadMoveCounts(g.key, dateKey)])),
+    () =>
+      Object.fromEntries(
+        GAMES.map((g) => {
+          const base = loadMoveCounts(g.key, dateKey)
+          if (!hasBonusPuzzleSupport(g.key)) return [g.key, base]
+          return [g.key, [...base, loadBonusMoveCount(g.key, dateKey)]]
+        })
+      ),
     [dateKey]
   )
 
@@ -433,10 +472,12 @@ export default function Home() {
           <section className="hp-list">
             {gamesOnDashboard.map(({ key, href, Icon, title, desc }) => {
               const tierSlots = getEnabledTierIndices(key, suitePrefs)
+              const bonusUnlocked = hasBonusPuzzleSupport(key) && isBonusUnlocked(key, dateKey)
               const cardHref = hubHrefFirstUnfinishedThreeWithPrefs(
                 href,
                 completions[key],
-                suitePrefs
+                suitePrefs,
+                dateKey
               )
               return (
                 <a key={key} className="hp-card" href={cardHref}>
@@ -460,6 +501,7 @@ export default function Home() {
                         perfects={perfects[key]}
                         moveCounts={moveCounts[key]}
                         tierSlots={tierSlots}
+                        bonusUnlocked={bonusUnlocked}
                       />
                       {streaks[key] > 0 && (
                         <span style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.35 }}>
@@ -481,7 +523,8 @@ export default function Home() {
                   const tileHref = hubHrefFirstUnfinishedThreeWithPrefs(
                     href,
                     completions[key],
-                    suitePrefs
+                    suitePrefs,
+                    dateKey
                   )
                   return (
                     <a key={key} className="hp-tile" href={tileHref}>

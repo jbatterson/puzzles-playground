@@ -9,6 +9,12 @@ import {
   stripHubDailyPuzzleParamFromUrl,
 } from './hubEntry.js'
 import { GAME_KEYS } from './gameChrome.js'
+import {
+  BONUS_SLOT,
+  hasBonusPuzzleSupport,
+  isBonusComplete,
+  isBonusUnlocked,
+} from './bonusPuzzle.js'
 
 export const SUITE_DASHBOARD_PREFS_KEY = 'suiteDashboardPreferences'
 export const SUITE_DASHBOARD_PREFS_VERSION = 1
@@ -186,17 +192,29 @@ export function getEnabledTierIndices(gameKey, prefs = readSuiteDashboardPrefere
   return [0, 1, 2].filter((i) => mask[i])
 }
 
-export function clampDailyIndexToTierPrefs(gameKey, idx, prefs = readSuiteDashboardPreferences()) {
+/**
+ * Clamp a daily slot index to enabled tiers. Bonus slot (3) is kept when unlocked.
+ * @param {string} [dateKey] — required to preserve bonus slot; without it, 3 clamps away
+ */
+export function clampDailyIndexToTierPrefs(
+  gameKey,
+  idx,
+  prefs = readSuiteDashboardPreferences(),
+  dateKey = null
+) {
+  const n = typeof idx === 'number' && Number.isFinite(idx) ? Math.floor(idx) : 0
+  if (n === 3 && dateKey && hasBonusPuzzleSupport(gameKey) && isBonusUnlocked(gameKey, dateKey)) {
+    return 3
+  }
   const enabled = getEnabledTierIndices(gameKey, prefs)
   if (enabled.length === 0) return 0
-  const n = typeof idx === 'number' && Number.isFinite(idx) ? Math.floor(idx) : 0
   if (enabled.includes(n)) return n
   return enabled[0]
 }
 
 /**
  * Like `resolveHubDailySlotOnLoad` but clamps to enabled tiers and strips bad `?p=`.
- * @returns {number} 0..2
+ * @returns {number} 0..3
  */
 export function resolveHubDailySlotWithPrefs(
   gameKey,
@@ -208,7 +226,7 @@ export function resolveHubDailySlotWithPrefs(
   const k = hubDailySlotStorageKey(gameKey, dateKey)
   let resolved = 0
   if (fromUrl != null) {
-    resolved = clampDailyIndexToTierPrefs(gameKey, fromUrl, prefs)
+    resolved = clampDailyIndexToTierPrefs(gameKey, fromUrl, prefs, dateKey)
     try {
       localStorage.setItem(k, String(resolved))
     } catch {
@@ -221,14 +239,14 @@ export function resolveHubDailySlotWithPrefs(
     const raw = localStorage.getItem(k)
     if (raw != null) {
       const n = parseInt(raw, 10)
-      if (n >= 0 && n <= 2) {
-        return clampDailyIndexToTierPrefs(gameKey, n, prefs)
+      if (n >= 0 && n <= 3) {
+        return clampDailyIndexToTierPrefs(gameKey, n, prefs, dateKey)
       }
     }
   } catch {
     // ignore
   }
-  return clampDailyIndexToTierPrefs(gameKey, 0, prefs)
+  return clampDailyIndexToTierPrefs(gameKey, 0, prefs, dateKey)
 }
 
 function storageGet(key) {
@@ -291,12 +309,15 @@ export function firstUnfinishedEnabledTierIndex(
 
 /**
  * @param {string} href
- * @param {boolean[]} doneThree length 3
+ * @param {boolean[]} doneThree length 3+
+ * @param {object} [prefs]
+ * @param {string} [dateKey] — when set, may deep-link to bonus (p=4) if unlocked and incomplete
  */
 export function hubHrefFirstUnfinishedThreeWithPrefs(
   href,
   doneThree,
-  prefs = readSuiteDashboardPreferences()
+  prefs = readSuiteDashboardPreferences(),
+  dateKey = null
 ) {
   const gameKey = hrefToGameKey(href)
   if (!gameKey || !isThreeTierGameKey(gameKey)) {
@@ -305,7 +326,18 @@ export function hubHrefFirstUnfinishedThreeWithPrefs(
   const enabled = getEnabledTierIndices(gameKey, prefs)
   if (!Array.isArray(doneThree) || doneThree.length < 3) return href
   const first = enabled.find((i) => !doneThree[i])
-  const idx = first !== undefined ? first : (enabled[0] ?? 0)
+  if (first !== undefined) {
+    return `${href}${href.includes('?') ? '&' : '?'}p=${first + 1}`
+  }
+  if (
+    dateKey &&
+    hasBonusPuzzleSupport(gameKey) &&
+    isBonusUnlocked(gameKey, dateKey) &&
+    !isBonusComplete(gameKey, dateKey)
+  ) {
+    return `${href}${href.includes('?') ? '&' : '?'}p=${BONUS_SLOT + 1}`
+  }
+  const idx = enabled[0] ?? 0
   return `${href}${href.includes('?') ? '&' : '?'}p=${idx + 1}`
 }
 

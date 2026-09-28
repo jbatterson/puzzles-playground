@@ -11,4 +11,6 @@ export const CTA_LABELS = Object.freeze({
   TODAYS_PUZZLE_UPPER: "TODAY'S PUZZLE",
   ALL_PUZZLES_UPPER: 'ALL PUZZLES',
   NEXT_PUZZLE: 'Next Puzzle',
+  /** Suite completion modal — full-width CTA when Easy/Med/Hard are all starred. */
+  BONUS_PUZZLE: 'BONUS PUZZLE',
 })

@@ -13,6 +13,10 @@ import {
   formatPuzzleDateHeading,
   readSuiteGameElapsedMs,
 } from '@shared-contracts/suiteCompletionTimer.js'
+import {
+  finalizeBonusGameTimer,
+  readBonusGameElapsedMs,
+} from '@shared-contracts/bonusCompletionTimer.js'
 import { formatAllTenElapsedMsForShare } from '@shared-contracts/allTenSharePlaintext.js'
 import ShareIcon from './ShareIcon.jsx'
 import ShareResultToast, { SHARE_RESULT_TOAST_MS } from './ShareResultToast.jsx'
@@ -38,6 +42,9 @@ function pluralUnit(n, singular, plural) {
  *   hubDiceMoveCounts?: (number|null)[],
  *   practiceMode?: boolean,
  *   onTodaysPuzzle?: () => void,
+ *   bonusUnlocked?: boolean,
+ *   bonusComplete?: boolean,
+ *   onBonusPuzzle?: () => void,
  * }} props
  */
 export default function SuiteGameCompletionModal({
@@ -50,12 +57,15 @@ export default function SuiteGameCompletionModal({
   hubDiceMoveCounts,
   practiceMode = false,
   onTodaysPuzzle,
+  bonusUnlocked = false,
+  bonusComplete = false,
+  onBonusPuzzle,
 }) {
   const base = import.meta.env.BASE_URL
-  const modalTitle = useMemo(
-    () => getSuiteCompletionHeadline(gameKey, dateKey),
-    [gameKey, dateKey]
-  )
+  const modalTitle = useMemo(() => {
+    if (bonusUnlocked && !bonusComplete) return 'Bonus Unlocked!'
+    return getSuiteCompletionHeadline(gameKey, dateKey)
+  }, [gameKey, dateKey, bonusUnlocked, bonusComplete])
 
   const stats = useMemo(() => {
     if (!show || !gameKey || practiceMode) return { played: 0, streak: 0, stars: 0, avgMoves: '' }
@@ -65,16 +75,24 @@ export default function SuiteGameCompletionModal({
   const isTileGame = gameKey === GAME_KEYS.SUMTILES || gameKey === GAME_KEYS.PRODUCTILES
 
   const [elapsedMsDisplay, setElapsedMsDisplay] = useState(null)
+  const [bonusElapsedMsDisplay, setBonusElapsedMsDisplay] = useState(null)
 
   useLayoutEffect(() => {
     if (!show || !gameKey || !dateKey || practiceMode) return
     finalizeSuiteGameTimerFromModal(gameKey, dateKey)
     setElapsedMsDisplay(readSuiteGameElapsedMs(gameKey, dateKey))
-  }, [show, gameKey, dateKey, practiceMode])
+    if (bonusComplete) {
+      finalizeBonusGameTimer(gameKey, dateKey)
+      setBonusElapsedMsDisplay(readBonusGameElapsedMs(gameKey, dateKey))
+    } else {
+      setBonusElapsedMsDisplay(null)
+    }
+  }, [show, gameKey, dateKey, practiceMode, bonusComplete])
 
   useEffect(() => {
     if (show) return
     setElapsedMsDisplay(null)
+    setBonusElapsedMsDisplay(null)
   }, [show])
 
   /** Clipboard preview toast: lives outside the modal panel so it is not clipped by overflow. */
@@ -154,6 +172,11 @@ export default function SuiteGameCompletionModal({
     onTodaysPuzzle?.()
   }, [onClose, onTodaysPuzzle])
 
+  const handleBonusPuzzle = useCallback(() => {
+    onClose()
+    onBonusPuzzle?.()
+  }, [onClose, onBonusPuzzle])
+
   const shareToastViewportStyle =
     shareUi != null && shareUi.top != null
       ? {
@@ -168,13 +191,25 @@ export default function SuiteGameCompletionModal({
       : undefined
 
   const timerEnabled = !practiceMode && isSuiteTimerEnabled()
-  const timeHms = timerEnabled ? formatAllTenElapsedMsForShare(elapsedMsDisplay ?? 0) : null
+  const suiteTimeHms = timerEnabled ? formatAllTenElapsedMsForShare(elapsedMsDisplay ?? 0) : null
+  const bonusTimeHms =
+    timerEnabled && bonusElapsedMsDisplay != null
+      ? formatAllTenElapsedMsForShare(bonusElapsedMsDisplay)
+      : null
+  const timeHms =
+    suiteTimeHms == null
+      ? null
+      : bonusTimeHms != null
+        ? `${suiteTimeHms} (+${bonusTimeHms})`
+        : suiteTimeHms
 
   const showDiceBlock =
     Array.isArray(hubDiceCompletions) &&
-    hubDiceCompletions.length === 3 &&
+    hubDiceCompletions.length >= 3 &&
     Array.isArray(hubDicePerfects) &&
-    hubDicePerfects.length === 3
+    hubDicePerfects.length >= 3
+
+  const showBonusCta = bonusUnlocked && !bonusComplete && typeof onBonusPuzzle === 'function'
 
   return (
     <>
@@ -225,6 +260,7 @@ export default function SuiteGameCompletionModal({
               perfects={hubDicePerfects}
               moveCounts={hubDiceMoveCounts}
               doneColor={practiceMode ? PUZZLE_SUITE_PRACTICE_BLUE : undefined}
+              bonusUnlocked={bonusUnlocked}
             />
             {timeHms != null ? (
               <div
@@ -235,6 +271,16 @@ export default function SuiteGameCompletionModal({
               </div>
             ) : null}
           </div>
+        ) : null}
+
+        {showBonusCta ? (
+          <button
+            type="button"
+            className="btn-primary suite-completion-bonus-btn"
+            onClick={handleBonusPuzzle}
+          >
+            {CTA_LABELS.BONUS_PUZZLE}
+          </button>
         ) : null}
 
         <div className="suite-completion-actions-row">

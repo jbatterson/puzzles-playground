@@ -33,4 +33,4 @@ export function formatRolyPolyTier(name, puzzles) {
   return lines.join('\n')
 }
 
-export const ROLY_POLY_TIER_ORDER = ['tutorial', 'easy', 'medium', 'hard']
+export const ROLY_POLY_TIER_ORDER = ['tutorial', 'easy', 'medium', 'hard', 'bonus']

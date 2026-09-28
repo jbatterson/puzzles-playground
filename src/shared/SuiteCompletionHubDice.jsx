@@ -7,10 +7,30 @@ import {
   getEnabledTierIndices,
   readSuiteDashboardPreferences,
 } from '@shared-contracts/suiteDashboardPreferences.js'
+import { BONUS_SLOT } from '@shared-contracts/bonusPuzzle.js'
+
+function dieContent({ done, isTileGame, perfect, moves, incompleteFace }) {
+  if (!done) return incompleteFace
+  if (isTileGame) {
+    if (perfect) return <HubDiceStar />
+    if (moves != null) return String(Math.min(moves, 99))
+    return <HubDiceCheck />
+  }
+  return perfect ? <HubDiceStar /> : <HubDiceCheck />
+}
 
 /**
  * Hub-style dice for the completion modal (matches home card row; respects suite tier prefs).
- * @param {{ gameKey: string, completions: boolean[], perfects: boolean[], moveCounts?: (number|null)[], doneColor?: string }} props
+ * When `bonusUnlocked`, appends a 4th die (incomplete = "!").
+ *
+ * @param {{
+ *   gameKey: string,
+ *   completions: boolean[],
+ *   perfects: boolean[],
+ *   moveCounts?: (number|null)[],
+ *   doneColor?: string,
+ *   bonusUnlocked?: boolean,
+ * }} props
  */
 export default function SuiteCompletionHubDice({
   gameKey,
@@ -18,10 +38,12 @@ export default function SuiteCompletionHubDice({
   perfects,
   moveCounts,
   doneColor = PUZZLE_SUITE_CORRECT_GREEN,
+  bonusUnlocked = false,
 }) {
   const isTileGame = isTileGameKey(gameKey)
   const prefs = readSuiteDashboardPreferences()
   const slots = getEnabledTierIndices(gameKey, prefs)
+  const showSlots = bonusUnlocked ? [...slots, BONUS_SLOT] : slots
 
   return (
     <div
@@ -32,24 +54,22 @@ export default function SuiteCompletionHubDice({
         justifyContent: 'center',
       }}
     >
-      {slots.map((i) => {
+      {showSlots.map((i) => {
         const done = !!completions[i]
         const moves = moveCounts != null ? moveCounts[i] : null
-        const content = !done ? (
-          <DiceFace count={i + 1} size={20} />
-        ) : isTileGame ? (
-          perfects[i] ? (
-            <HubDiceStar />
-          ) : moves != null ? (
-            String(Math.min(moves, 99))
+        const incompleteFace =
+          i === BONUS_SLOT ? (
+            '!'
           ) : (
-            <HubDiceCheck />
+            <DiceFace count={i + 1} size={20} />
           )
-        ) : perfects[i] ? (
-          <HubDiceStar />
-        ) : (
-          <HubDiceCheck />
-        )
+        const content = dieContent({
+          done,
+          isTileGame,
+          perfect: !!perfects[i],
+          moves,
+          incompleteFace,
+        })
         return (
           <div
             key={i}

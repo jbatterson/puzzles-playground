@@ -676,6 +676,15 @@ body {
   margin: 0.35rem 0 0.15rem;
 }
 
+.suite-completion-bonus-btn {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 14px;
+  justify-content: center;
+  align-items: center;
+}
+
 .suite-completion-actions-row {
   display: flex;
   flex-direction: row;

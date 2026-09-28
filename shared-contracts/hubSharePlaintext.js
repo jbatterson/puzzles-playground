@@ -4,9 +4,15 @@
  */
 
 import { readSuiteGameElapsedMs } from './suiteCompletionTimer.js'
+import { readBonusGameElapsedMs } from './bonusCompletionTimer.js'
 import { formatAllTenElapsedMsForShare } from './allTenSharePlaintext.js'
 import { isTileGameKey } from './gameChrome.js'
-import { loadCompletions, loadPerfects, loadMoveCounts } from './hubProgress.js'
+import { loadCompletions, loadPerfects, loadMoveCounts, lsGet } from './hubProgress.js'
+import {
+  BONUS_SLOT,
+  hasBonusPuzzleSupport,
+  isBonusUnlocked,
+} from './bonusPuzzle.js'
 import {
   getEnabledTierIndices,
   isSuiteTimerEnabled,
@@ -39,6 +45,33 @@ function absoluteUrl(href, baseHref) {
   return new URL(href, origin || 'http://localhost').href
 }
 
+function formatTierMovesSuffix(perfects, moveCounts, i) {
+  if (moveCounts == null || moveCounts[i] == null) return ''
+  const star = perfects && perfects[i] ? ' ⭐' : ''
+  return ` (${moveCounts[i]} moves${star})`
+}
+
+function formatBonusLine(gameKey, dateKey) {
+  const done = ['1', '2'].includes(lsGet(`${gameKey}:${dateKey}:${BONUS_SLOT}`))
+  if (!done) return 'Bonus   ⬜\n'
+  const movesRaw = lsGet(`${gameKey}:${dateKey}:${BONUS_SLOT}:moves`)
+  const moves = movesRaw != null ? parseInt(movesRaw, 10) : null
+  const perfect = lsGet(`${gameKey}:${dateKey}:${BONUS_SLOT}`) === '2'
+  let suffix = ''
+  if (moves != null && Number.isFinite(moves)) {
+    const star = perfect ? ' ⭐' : ''
+    let timePart = ''
+    if (isSuiteTimerEnabled()) {
+      const ms = readBonusGameElapsedMs(gameKey, dateKey)
+      if (ms != null) timePart = ` ${formatAllTenElapsedMsForShare(ms)}`
+    }
+    suffix = ` (${moves} moves${star}${timePart})`
+  } else if (perfect) {
+    suffix = ' ⭐'
+  }
+  return `Bonus   🟩${suffix}\n`
+}
+
 /**
  * One game’s share body (title, tiers, optional timer). No play URL.
  * @returns {string} empty when the game key is unknown
@@ -52,8 +85,7 @@ function buildShareBody(key, title, completions, perfects, moveCounts, dateKey, 
     if (completions[i]) {
       let moves = ''
       if (isTileGame && moveCounts && moveCounts[i] != null) {
-        const star = perfects && perfects[i] ? ' ⭐' : ''
-        moves = ` (${moveCounts[i]} moves${star})`
+        moves = formatTierMovesSuffix(perfects, moveCounts, i)
       }
       const firstTry = !isTileGame && perfects && perfects[i] ? ' (⭐ First try!)' : ''
       out += `${label}   🟩${moves}${firstTry}\n`
@@ -62,6 +94,9 @@ function buildShareBody(key, title, completions, perfects, moveCounts, dateKey, 
     }
   }
   out += elapsedLineForShare(key, dateKey)
+  if (hasBonusPuzzleSupport(key) && isBonusUnlocked(key, dateKey)) {
+    out += formatBonusLine(key, dateKey)
+  }
   return out
 }
 

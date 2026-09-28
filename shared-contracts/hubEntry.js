@@ -1,6 +1,6 @@
 /**
- * Hub deep-links to the first unfinished daily puzzle (1=easiest … 3=hardest).
- * Games read `?p=1|2|3` and map to index 0..2.
+ * Hub deep-links to the first unfinished daily puzzle (1=easiest … 3=hardest, 4=bonus).
+ * Games read `?p=1|2|3|4` and map to index 0..3.
  *
  * Refresh keeps the last-opened slot via `hubDailySlot:{gameKey}:{dateKey}` in localStorage.
  * Hub links still append `?p=` so entering from home picks the lowest-numbered incomplete puzzle.
@@ -14,7 +14,7 @@ export function hubDailySlotStorageKey(gameKey, dateKey) {
 
 /**
  * @param {string} [search] defaults to `window.location.search` in browser
- * @returns {number | null} 0..2 when `p` is valid; `null` if absent or invalid
+ * @returns {number | null} 0..3 when `p` is valid; `null` if absent or invalid
  */
 export function parseHubDailyPuzzleIndexFromUrl(search) {
   const s = search ?? (typeof window !== 'undefined' ? window.location.search : '')
@@ -22,7 +22,7 @@ export function parseHubDailyPuzzleIndexFromUrl(search) {
     const p = new URLSearchParams(s).get('p')
     if (p == null) return null
     const n = parseInt(p, 10)
-    if (n >= 1 && n <= 3) return n - 1
+    if (n >= 1 && n <= 4) return n - 1
   } catch {
     // ignore
   }
@@ -42,7 +42,7 @@ export function stripHubDailyPuzzleParamFromUrl() {
  * @param {string} gameKey from `GAME_KEYS`
  * @param {string} dateKey same string used for that game’s daily saves (e.g. PST calendar key)
  * @param {string} [search] URL search, usually `window.location.search`
- * @returns {number} daily slot index 0..2
+ * @returns {number} daily slot index 0..3
  */
 export function resolveHubDailySlotOnLoad(gameKey, dateKey, search) {
   const fromUrl = parseHubDailyPuzzleIndexFromUrl(search)
@@ -60,7 +60,7 @@ export function resolveHubDailySlotOnLoad(gameKey, dateKey, search) {
     const raw = localStorage.getItem(k)
     if (raw != null) {
       const n = parseInt(raw, 10)
-      if (n >= 0 && n <= 2) return n
+      if (n >= 0 && n <= 3) return n
     }
   } catch {
     // ignore
@@ -69,7 +69,7 @@ export function resolveHubDailySlotOnLoad(gameKey, dateKey, search) {
 }
 
 export function persistHubDailySlot(gameKey, dateKey, idx) {
-  if (idx < 0 || idx > 2) return
+  if (idx < 0 || idx > 3) return
   try {
     localStorage.setItem(hubDailySlotStorageKey(gameKey, dateKey), String(idx))
   } catch {

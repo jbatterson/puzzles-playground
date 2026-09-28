@@ -5,6 +5,7 @@ import {
   hasAnyShareableHubProgress,
 } from '../hubSharePlaintext.js'
 import { suiteElapsedKey } from '../suiteCompletionTimer.js'
+import { bonusElapsedKey } from '../bonusCompletionTimer.js'
 
 const BASE = '/'
 const DATE = '2025-04-09'
@@ -68,6 +69,36 @@ describe('buildHubSharePlaintext', () => {
       const text = buildHubSharePlaintext('rolypoly', DATE, BASE)
       expect(text).toContain('(5 moves ⭐)')
       expect(text).not.toContain('First try!')
+    })
+
+    it('omits Bonus until Easy/Med/Hard are all starred', () => {
+      localStorage.setItem(`rolypoly:${DATE}:0`, '2')
+      localStorage.setItem(`rolypoly:${DATE}:1`, '2')
+      localStorage.setItem(`rolypoly:${DATE}:2`, '1')
+      const text = buildHubSharePlaintext('rolypoly', DATE, BASE)
+      expect(text).not.toContain('Bonus')
+    })
+
+    it('includes Bonus line with moves, star, and long timer after unlock', () => {
+      localStorage.setItem(`rolypoly:${DATE}:0`, '2')
+      localStorage.setItem(`rolypoly:${DATE}:0:moves`, '7')
+      localStorage.setItem(`rolypoly:${DATE}:1`, '2')
+      localStorage.setItem(`rolypoly:${DATE}:1:moves`, '11')
+      localStorage.setItem(`rolypoly:${DATE}:2`, '2')
+      localStorage.setItem(`rolypoly:${DATE}:2:moves`, '16')
+      localStorage.setItem(suiteElapsedKey('rolypoly', DATE), String(88000))
+      localStorage.setItem(`rolypoly:${DATE}:3`, '2')
+      localStorage.setItem(`rolypoly:${DATE}:3:moves`, '26')
+      localStorage.setItem(bonusElapsedKey('rolypoly', DATE), String(296000))
+      localStorage.setItem(`rolypoly:${DATE}:bonusTimerActiveModel`, '1')
+      localStorage.setItem(`rolypoly:${DATE}:bonusElapsedFinalized`, '1')
+
+      const text = buildHubSharePlaintext('rolypoly', DATE, BASE)
+      expect(text).toContain('Easy   🟩 (7 moves ⭐)')
+      expect(text).toContain('Med   🟩 (11 moves ⭐)')
+      expect(text).toContain('Hard   🟩 (16 moves ⭐)')
+      expect(text).toContain('00:01:28')
+      expect(text).toContain('Bonus   🟩 (26 moves ⭐ 00:04:56)')
     })
   })
 })

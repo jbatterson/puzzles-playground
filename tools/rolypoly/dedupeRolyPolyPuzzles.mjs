@@ -1,10 +1,11 @@
 /**
  * Remove duplicate Roly Poly puzzles in puzzlegames/rolypoly/puzzles.js:
  * - Within each tier: exact duplicate objects (same layout + metadata).
- * - Across easy/medium/hard: same layout fingerprint (balls/targets/blocks/size), keep first seen.
+ * - Across easy/medium/hard/bonus: same layout fingerprint (balls/targets/blocks/size), keep first seen
+ *   (tier order: easy → medium → hard → bonus).
  *
- *   node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/dedupeRolyPolyPuzzles.mjs
- *   node --import ./tools/registerSharedContractsResolve.mjs tools/rolypoly/dedupeRolyPolyPuzzles.mjs --write
+ *   node tools/rolypoly/dedupeRolyPolyPuzzles.mjs
+ *   node tools/rolypoly/dedupeRolyPolyPuzzles.mjs --write
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -16,7 +17,7 @@ const repoRoot = path.resolve(import.meta.dirname, '..', '..')
 const PUZZLES_REL = 'puzzlegames/rolypoly/puzzles.js'
 const write = process.argv.includes('--write')
 
-const POOL_TIERS = ['easy', 'medium', 'hard']
+const POOL_TIERS = ['easy', 'medium', 'hard', 'bonus']
 
 function canonicalKey(v) {
   if (v === null || typeof v !== 'object') return JSON.stringify(v)
@@ -58,7 +59,7 @@ function dedupeTierExact(list) {
 
 function dedupePoolByLayout(tiers) {
   const seen = new Set()
-  const out = { easy: [], medium: [], hard: [] }
+  const out = { easy: [], medium: [], hard: [], bonus: [] }
   let removed = 0
   for (const tier of POOL_TIERS) {
     for (const p of tiers[tier] || []) {
@@ -79,7 +80,8 @@ const HEADER = `/**
  *
  * Each puzzle's \`solution\` is a minimum-move path with the lowest inner \`dif\` weight, then lexicographic LRUD tie-break - tools/rolypoly/rolyPolyBfsSolver.mjs (\`analyzeCanonicalSolution\`). Refresh: npm run canonicalize:rolypoly -- --write
  * \`dif\` = inner sum times size multiplier (5->3, 6->4, 7->5) - tools/rolypoly/computeRolyPolyDif.mjs. Optional \`solns\` = distinct shortest winning paths.
- * Non-tutorial: sorted by dif within tier; easy dif < 52, medium 52–108, hard dif > 108 (reorganize script).
+ * Non-tutorial: sorted by dif within tier; easy dif &lt; 52, medium 52–108, hard dif &gt; 108.
+ * Bonus: harder-than-hard (par &gt; 20); expand toward ~75.
  */
 export default {
 `
@@ -113,6 +115,8 @@ async function main() {
     return
   }
 
+  console.log(`Bonus: ${(afterExact.bonus || []).length} → ${(afterLayout.bonus || []).length}`)
+
   const body = [
     formatRolyPolyTier('tutorial', tutorial),
     '',
@@ -121,6 +125,8 @@ async function main() {
     formatRolyPolyTier('medium', afterLayout.medium),
     '',
     formatRolyPolyTier('hard', afterLayout.hard),
+    '',
+    formatRolyPolyTier('bonus', afterLayout.bonus || []),
     '',
     '}',
   ].join('\n')

@@ -20,7 +20,10 @@ import SharedModalShell from '../../src/shared/SharedModalShell.jsx'
 import SimpleGameStatsModal from '../../src/shared/SimpleGameStatsModal.jsx'
 import SuiteGameCompletionModal from '../../src/shared/SuiteGameCompletionModal.jsx'
 import useSuiteCompletionTimer from '../../src/shared/useSuiteCompletionTimer.js'
+import useBonusCompletionTimer from '../../src/shared/useBonusCompletionTimer.js'
 import PlaygroundLinksModal from '../../src/shared/PlaygroundLinksModal.jsx'
+import { finalizeBonusGameTimer } from '@shared-contracts/bonusCompletionTimer.js'
+import { BONUS_SLOT, isBonusUnlocked } from '@shared-contracts/bonusPuzzle.js'
 import useInstructionsGate from '../../src/shared/useInstructionsGate.js'
 import { MODAL_INTENTS } from '@shared-contracts/modalIntents.js'
 import { GAME_KEYS, getGameChrome } from '@shared-contracts/gameChrome.js'
@@ -72,7 +75,7 @@ const SWIPE_AXIS_RATIO = 1.2
 
 function normalizeTier(data) {
   const out = {}
-  for (const tier of ['tutorial', 'easy', 'medium', 'hard']) {
+  for (const tier of ['tutorial', 'easy', 'medium', 'hard', 'bonus']) {
     out[tier] = (data[tier] || []).map((p) => normalizePuzzleInput(p, true))
   }
   return out
@@ -80,28 +83,35 @@ function normalizeTier(data) {
 
 const puzzleData = normalizeTier(rawPuzzleData)
 
+/** Offset bonus cycle relative to hard. */
+const BONUS_DAY_OFFSET = 53
+
 function getDailyPuzzles(dateKey = getDailyKey()) {
   const key = dateKey
   const dayIndex = getDayIndex(key)
   const easy = puzzleData.easy || []
   const medium = puzzleData.medium || []
   const hard = puzzleData.hard || []
+  const bonus = puzzleData.bonus || []
   return {
     puzzles: [
       easy[dayIndex % easy.length],
       medium[dayIndex % medium.length],
       hard[dayIndex % hard.length],
+      bonus.length ? bonus[(dayIndex + BONUS_DAY_OFFSET) % bonus.length] : null,
     ],
     key,
   }
 }
 
 function loadCompletions(dateKey) {
-  return [0, 1, 2].map((i) => ['1', '2'].includes(localStorage.getItem(`dungbeetle:${dateKey}:${i}`)))
+  return [0, 1, 2, 3].map((i) =>
+    ['1', '2'].includes(localStorage.getItem(`dungbeetle:${dateKey}:${i}`))
+  )
 }
 
 function loadPerfects(dateKey) {
-  return [0, 1, 2].map((i) => localStorage.getItem(`dungbeetle:${dateKey}:${i}`) === '2')
+  return [0, 1, 2, 3].map((i) => localStorage.getItem(`dungbeetle:${dateKey}:${i}`) === '2')
 }
 
 function getStoredPushCount(dateKey, idx) {
@@ -132,7 +142,7 @@ function markComplete(dateKey, idx, pushesThisRun, puzzleMinPushes) {
 }
 
 function loadMoveCounts(dateKey) {
-  return [0, 1, 2].map((i) => {
+  return [0, 1, 2, 3].map((i) => {
     const v = localStorage.getItem(`dungbeetle:${dateKey}:${i}:moves`)
     return v != null ? parseInt(v, 10) : null
   })
@@ -232,6 +242,8 @@ function PuzzleBoxes({
             ) : (
               '✓'
             )
+          ) : i === BONUS_SLOT ? (
+            '!'
           ) : (
             <DiceFace count={i + 1} size={20} />
           )}
@@ -279,20 +291,26 @@ export default function DungBeetle() {
     )
   )
   const suitePrefsEpoch = useSuitePrefsEpoch()
+  const [completions, setCompletions] = useState(() => loadCompletions(todayKey))
+  const [perfects, setPerfects] = useState(() => loadPerfects(todayKey))
+  const [moveCounts, setMoveCounts] = useState(() => loadMoveCounts(todayKey))
+  // Today: unlock from live progress. Yesterday practice: only if official day was 3-starred.
+  const bonusUnlockKey = viewingYesterday ? daily.key : progressKey
+  const bonusUnlocked = useMemo(() => {
+    void perfects
+    return isBonusUnlocked(GAME_KEYS.DUNGBEETLE, bonusUnlockKey)
+  }, [bonusUnlockKey, perfects])
   const tierSlots = useMemo(() => {
     void suitePrefsEpoch
-    return getEnabledTierIndices(GAME_KEYS.DUNGBEETLE)
-  }, [suitePrefsEpoch])
+    const base = getEnabledTierIndices(GAME_KEYS.DUNGBEETLE)
+    return bonusUnlocked ? [...base, BONUS_SLOT] : base
+  }, [suitePrefsEpoch, bonusUnlocked])
   dailyKeyRef.current = daily.key
   progressKeyRef.current = progressKey
   dailyIdxRef.current = dailyIdx
   modeRef.current = mode
   curateModeRef.current = curateMode
   curateIdxRef.current = curateIdx
-
-  const [completions, setCompletions] = useState(() => loadCompletions(todayKey))
-  const [perfects, setPerfects] = useState(() => loadPerfects(todayKey))
-  const [moveCounts, setMoveCounts] = useState(() => loadMoveCounts(todayKey))
   const canShareHub = useMemo(() => {
     void completions
     if (viewingYesterday) return false
@@ -321,6 +339,8 @@ export default function DungBeetle() {
   const [curateCopyHint, setCurateCopyHint] = useState(null)
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const allDailyDoneCompletionRef = useRef(null)
+  const bonusUnlockedModalRef = useRef(null)
+  const bonusCompleteModalRef = useRef(null)
   const completionMarkedRef = useRef(false)
 
   useEffect(() => {
@@ -328,6 +348,8 @@ export default function DungBeetle() {
     setPerfects(loadPerfects(progressKey))
     setMoveCounts(loadMoveCounts(progressKey))
     allDailyDoneCompletionRef.current = null
+    bonusUnlockedModalRef.current = null
+    bonusCompleteModalRef.current = null
   }, [progressKey])
 
   useEffect(() => {
@@ -385,9 +407,14 @@ export default function DungBeetle() {
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
-    const c = clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, dailyIdx)
+    const c = clampDailyIndexToTierPrefs(
+      GAME_KEYS.DUNGBEETLE,
+      dailyIdx,
+      undefined,
+      bonusUnlockKey
+    )
     if (c !== dailyIdx) setDailyIdx(c)
-  }, [curateMode, mode, suitePrefsEpoch, dailyIdx])
+  }, [curateMode, mode, suitePrefsEpoch, dailyIdx, bonusUnlockKey, bonusUnlocked])
 
   useLayoutEffect(() => {
     completionMarkedRef.current = false
@@ -634,25 +661,53 @@ export default function DungBeetle() {
       return
     completionMarkedRef.current = true
     markComplete(progressKey, dailyIdx, pushes, getParPushes(currentPuzzleData))
+    if (dailyIdx === BONUS_SLOT && !viewingYesterday) {
+      finalizeBonusGameTimer(GAME_KEYS.DUNGBEETLE, todayKey)
+    }
     setCompletions(loadCompletions(progressKey))
     setPerfects(loadPerfects(progressKey))
     setMoveCounts(loadMoveCounts(progressKey))
-  }, [solved, curateMode, mode, progressKey, dailyIdx, pushes, currentPuzzleData, play])
+  }, [
+    solved,
+    curateMode,
+    mode,
+    progressKey,
+    dailyIdx,
+    pushes,
+    currentPuzzleData,
+    play,
+    viewingYesterday,
+    todayKey,
+  ])
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
     const done = isSuiteCompleteForPrefs(GAME_KEYS.DUNGBEETLE, progressKey)
-    if (allDailyDoneCompletionRef.current === null) {
-      allDailyDoneCompletionRef.current = done
-      return
+    const unlocked = isBonusUnlocked(GAME_KEYS.DUNGBEETLE, bonusUnlockKey)
+    const bonusDoneNow = !!completions[BONUS_SLOT]
+
+    const primed =
+      allDailyDoneCompletionRef.current !== null &&
+      bonusUnlockedModalRef.current !== null &&
+      bonusCompleteModalRef.current !== null
+
+    if (primed) {
+      const lateBonusUnlock =
+        unlocked && !bonusUnlockedModalRef.current && allDailyDoneCompletionRef.current === true
+      const suiteJustFinished = done && !allDailyDoneCompletionRef.current
+      const bonusJustFinished = bonusDoneNow && !bonusCompleteModalRef.current
+      if (lateBonusUnlock || suiteJustFinished || bonusJustFinished) {
+        window.setTimeout(() => setShowCompletionModal(true), DUNGBEETLE_SUITE_MODAL_MS)
+      }
     }
-    if (done && !allDailyDoneCompletionRef.current) {
-      window.setTimeout(() => setShowCompletionModal(true), DUNGBEETLE_SUITE_MODAL_MS)
-    }
+
     allDailyDoneCompletionRef.current = done
-  }, [curateMode, mode, completions, progressKey, suitePrefsEpoch])
+    bonusUnlockedModalRef.current = unlocked
+    bonusCompleteModalRef.current = bonusDoneNow
+  }, [curateMode, mode, completions, perfects, progressKey, bonusUnlockKey, suitePrefsEpoch])
 
   const suiteDone = isSuiteCompleteForPrefs(GAME_KEYS.DUNGBEETLE, progressKey)
+  const bonusDone = !!completions[BONUS_SLOT]
   const primaryLabel = solved
     ? curateMode
       ? curateIdx < roster.length - 1
@@ -663,13 +718,30 @@ export default function DungBeetle() {
           ? CTA_LABELS.NEXT_PUZZLE
           : CTA_LABELS.PLAY_TODAY
         : suiteDone
-          ? CTA_LABELS.ALL_PUZZLES
+          ? bonusUnlocked && !bonusDone
+            ? CTA_LABELS.BONUS_PUZZLE
+            : CTA_LABELS.ALL_PUZZLES
           : CTA_LABELS.NEXT_PUZZLE
     : null
 
   useSuiteCompletionTimer(GAME_KEYS.DUNGBEETLE, todayKey, {
     countingUnsolvedPuzzle:
-      !curateMode && mode === 'daily' && !viewingYesterday && !completions[dailyIdx] && !solved,
+      !curateMode &&
+      mode === 'daily' &&
+      !viewingYesterday &&
+      dailyIdx !== BONUS_SLOT &&
+      !completions[dailyIdx] &&
+      !solved,
+  })
+
+  useBonusCompletionTimer(GAME_KEYS.DUNGBEETLE, todayKey, {
+    countingUnsolvedBonus:
+      !curateMode &&
+      mode === 'daily' &&
+      !viewingYesterday &&
+      dailyIdx === BONUS_SLOT &&
+      !completions[BONUS_SLOT] &&
+      !solved,
   })
 
   useEffect(() => {
@@ -737,8 +809,16 @@ export default function DungBeetle() {
       else {
         setViewingYesterday(false)
         setMode('daily')
-        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0))
+        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0, undefined, progressKey))
       }
+    } else if (
+      isSuiteCompleteForPrefs(GAME_KEYS.DUNGBEETLE, progressKey) &&
+      isBonusUnlocked(GAME_KEYS.DUNGBEETLE, bonusUnlockKey) &&
+      !completions[BONUS_SLOT]
+    ) {
+      setSolved(false)
+      setCelebrating(false)
+      setDailyIdx(BONUS_SLOT)
     } else {
       const next = nextIncompleteEnabledTierExcluding(GAME_KEYS.DUNGBEETLE, progressKey, dailyIdx)
       if (next !== null) {
@@ -753,7 +833,15 @@ export default function DungBeetle() {
     setShowCompletionModal(false)
     setViewingYesterday(false)
     setMode('daily')
-    setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0))
+    setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0, undefined, todayKey))
+  }, [todayKey])
+
+  const goToBonusPuzzle = useCallback(() => {
+    setShowCompletionModal(false)
+    setMode('daily')
+    setSolved(false)
+    setCelebrating(false)
+    setDailyIdx(BONUS_SLOT)
   }, [])
 
   const handleToggleYesterday = useCallback(() => {
@@ -764,13 +852,13 @@ export default function DungBeetle() {
         setMode('daily')
         const pk = toPracticeStorageDateKey(getYesterdayCalendarKey())
         const first = nextIncompleteEnabledTierExcluding(GAME_KEYS.DUNGBEETLE, pk, -1)
-        setDailyIdx(first ?? clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0))
+        setDailyIdx(first ?? clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0, undefined, pk))
       } else {
-        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0))
+        setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0, undefined, todayKey))
       }
       return next
     })
-  }, [])
+  }, [todayKey])
 
   const handleStatsClick = useCallback(() => {
     if (curateMode) {
@@ -1139,7 +1227,7 @@ export default function DungBeetle() {
               className="skip-link"
               onClick={() => {
                 setMode('daily')
-                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0))
+                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0, undefined, todayKey))
               }}
             >
               Skip Tutorial
@@ -1300,7 +1388,11 @@ export default function DungBeetle() {
         </button>
         <SmartRightButton
           primaryLabel={primaryLabel}
-          primaryHref={primaryLabel === CTA_LABELS.ALL_PUZZLES ? base : undefined}
+          primaryHref={
+            primaryLabel === CTA_LABELS.ALL_PUZZLES || primaryLabel === CTA_LABELS.ALL_PUZZLES_UPPER
+              ? base
+              : undefined
+          }
           onPrimaryClick={handlePrimary}
           attention={postSolveCtaAttention}
           resetDisabled={history.length === 0}
@@ -1346,7 +1438,7 @@ export default function DungBeetle() {
                 onClick={() => {
                   closeInstructions()
                   setMode('daily')
-                  setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0))
+                  setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0, undefined, todayKey))
                 }}
               >
                 {CTA_LABELS.SKIP_TUTORIAL}
@@ -1359,7 +1451,7 @@ export default function DungBeetle() {
               onClick={() => {
                 closeInstructions()
                 setMode('daily')
-                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0))
+                setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.DUNGBEETLE, 0, undefined, todayKey))
               }}
             >
               {CTA_LABELS.PLAY_TODAYS_PUZZLES_UPPER}
@@ -1390,6 +1482,9 @@ export default function DungBeetle() {
         hubDiceMoveCounts={moveCounts}
         practiceMode={viewingYesterday}
         onTodaysPuzzle={exitYesterdayToToday}
+        bonusUnlocked={bonusUnlocked}
+        bonusComplete={bonusDone}
+        onBonusPuzzle={goToBonusPuzzle}
       />
     </div>
   )

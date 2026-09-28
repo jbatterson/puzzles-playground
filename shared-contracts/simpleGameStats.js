@@ -6,6 +6,7 @@
 import { GAME_KEYS } from './gameChrome.js'
 import { computeStreak } from './dailyPuzzleDate.js'
 import { lsGet } from './hubProgress.js'
+import { hasBonusPuzzleSupport } from './bonusPuzzle.js'
 import {
   getEnabledTierIndices,
   isSuiteCompleteForPrefs,
@@ -35,7 +36,8 @@ function aggregateMultiGameFromStorage(gameKey) {
   const dates = new Set()
   let stars = 0
   const escaped = gameKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const re = new RegExp(`^${escaped}:(\\d{4}-\\d{2}-\\d{2}):([0-2])$`)
+  const slotClass = hasBonusPuzzleSupport(gameKey) ? '[0-3]' : '[0-2]'
+  const re = new RegExp(`^${escaped}:(\\d{4}-\\d{2}-\\d{2}):(${slotClass})$`)
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i)
@@ -55,6 +57,9 @@ function aggregateMultiGameFromStorage(gameKey) {
     for (const ti of enabled) {
       const v = lsGet(`${gameKey}:${date}:${ti}`)
       if (v === '2') stars++
+    }
+    if (hasBonusPuzzleSupport(gameKey) && lsGet(`${gameKey}:${date}:3`) === '2') {
+      stars++
     }
   }
   return { played, stars }

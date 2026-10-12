@@ -26,19 +26,23 @@ export function allTenTargetsToSolveOrderPlaintext(targets) {
     .join(' ')
 }
 
-/** Elapsed milliseconds as HH:MM:SS (hours padded to 2+ digits when needed). */
+/**
+ * Elapsed milliseconds for share/UI timers.
+ * Under one hour: MM:SS. One hour or more: HH:MM:SS (hours padded to 2+ digits).
+ */
 export function formatAllTenElapsedMsForShare(elapsedMs) {
   const n = Number(elapsedMs)
   if (!Number.isFinite(n)) {
-    return '00:00:00'
+    return '00:00'
   }
   const totalSec = Math.floor(Math.max(0, n) / 1000)
   const h = Math.floor(totalSec / 3600)
   const m = Math.floor((totalSec % 3600) / 60)
   const s = totalSec % 60
-  const hh = String(h).padStart(2, '0')
   const mm = String(m).padStart(2, '0')
   const ss = String(s).padStart(2, '0')
+  if (h === 0) return `${mm}:${ss}`
+  const hh = String(h).padStart(2, '0')
   return `${hh}:${mm}:${ss}`
 }
 

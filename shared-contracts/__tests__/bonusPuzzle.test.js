@@ -2,11 +2,15 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import {
   BONUS_SLOT,
   hasBonusPuzzleSupport,
+  isBonusDay,
   isBonusUnlocked,
   isBonusComplete,
 } from '../bonusPuzzle.js'
 
-const DATE = '2026-09-27'
+/** Sunday */
+const SUNDAY = '2026-09-27'
+/** Monday */
+const MONDAY = '2026-09-28'
 
 describe('bonusPuzzle', () => {
   beforeEach(() => localStorage.clear())
@@ -18,20 +22,32 @@ describe('bonusPuzzle', () => {
     expect(hasBonusPuzzleSupport('sumtiles')).toBe(false)
   })
 
-  it('unlocks only when Easy, Med, and Hard are all starred (ignores prefs)', () => {
-    expect(isBonusUnlocked('rolypoly', DATE)).toBe(false)
-    localStorage.setItem(`rolypoly:${DATE}:0`, '2')
-    localStorage.setItem(`rolypoly:${DATE}:1`, '2')
-    expect(isBonusUnlocked('rolypoly', DATE)).toBe(false)
-    localStorage.setItem(`rolypoly:${DATE}:2`, '1')
-    expect(isBonusUnlocked('rolypoly', DATE)).toBe(false)
-    localStorage.setItem(`rolypoly:${DATE}:2`, '2')
-    expect(isBonusUnlocked('rolypoly', DATE)).toBe(true)
+  it('isBonusDay is true only for Sundays', () => {
+    expect(isBonusDay(SUNDAY)).toBe(true)
+    expect(isBonusDay(MONDAY)).toBe(false)
+  })
+
+  it('unlocks on Sundays only when Easy, Med, and Hard are all starred', () => {
+    expect(isBonusUnlocked('rolypoly', SUNDAY)).toBe(false)
+    localStorage.setItem(`rolypoly:${SUNDAY}:0`, '2')
+    localStorage.setItem(`rolypoly:${SUNDAY}:1`, '2')
+    expect(isBonusUnlocked('rolypoly', SUNDAY)).toBe(false)
+    localStorage.setItem(`rolypoly:${SUNDAY}:2`, '1')
+    expect(isBonusUnlocked('rolypoly', SUNDAY)).toBe(false)
+    localStorage.setItem(`rolypoly:${SUNDAY}:2`, '2')
+    expect(isBonusUnlocked('rolypoly', SUNDAY)).toBe(true)
+  })
+
+  it('does not unlock on non-Sundays even with three stars', () => {
+    localStorage.setItem(`rolypoly:${MONDAY}:0`, '2')
+    localStorage.setItem(`rolypoly:${MONDAY}:1`, '2')
+    localStorage.setItem(`rolypoly:${MONDAY}:2`, '2')
+    expect(isBonusUnlocked('rolypoly', MONDAY)).toBe(false)
   })
 
   it('tracks bonus completion on slot 3', () => {
-    expect(isBonusComplete('dungbeetle', DATE)).toBe(false)
-    localStorage.setItem(`dungbeetle:${DATE}:${BONUS_SLOT}`, '1')
-    expect(isBonusComplete('dungbeetle', DATE)).toBe(true)
+    expect(isBonusComplete('dungbeetle', SUNDAY)).toBe(false)
+    localStorage.setItem(`dungbeetle:${SUNDAY}:${BONUS_SLOT}`, '1')
+    expect(isBonusComplete('dungbeetle', SUNDAY)).toBe(true)
   })
 })

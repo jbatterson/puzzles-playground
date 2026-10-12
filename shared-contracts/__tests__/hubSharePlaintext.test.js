@@ -97,8 +97,8 @@ describe('buildHubSharePlaintext', () => {
       expect(text).toContain('Easy   🟩 (7 moves ⭐)')
       expect(text).toContain('Med   🟩 (11 moves ⭐)')
       expect(text).toContain('Hard   🟩 (16 moves ⭐)')
-      expect(text).toContain('00:01:28')
-      expect(text).toContain('Bonus   🟩 (26 moves ⭐ 00:04:56)')
+      expect(text).toContain('01:28')
+      expect(text).toContain('Bonus   🟩 (26 moves ⭐ 04:56)')
     })
   })
 })
@@ -135,13 +135,13 @@ describe('buildAllHubSharePlaintext', () => {
         'Easy   🟩 (7 moves)',
         'Med   🟩 (11 moves)',
         'Hard   🟩 (17 moves)',
-        '00:01:28',
+        '01:28',
         '',
         'DUNG BEETLE',
         'Easy   🟩 (6 moves)',
         'Med   ⬜',
         'Hard   ⬜',
-        '00:00:21',
+        '00:21',
         '',
         hubUrl,
       ].join('\n')

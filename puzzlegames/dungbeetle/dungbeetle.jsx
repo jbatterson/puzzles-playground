@@ -55,6 +55,7 @@ import { SVG_DUNG_BEETLE } from '../../src/shared/icons/dungBeetleSvg.js'
 import { buildTierRoster, formatCurateClipboard } from '../../src/shared/curateRoster.js'
 import { useCurateModeFromRoster } from '../../src/shared/useCurateMode.js'
 import { CurateCopyToast, CurateLevelNav } from '../../src/shared/CurateModeChrome.jsx'
+import DismissibleHintToast from '../../src/shared/DismissibleHintToast.jsx'
 import { useCurateSolutionPlayback } from '../../src/shared/useCurateSolutionPlayback.js'
 import SmartRightButton from '../../src/shared/SmartRightButton.jsx'
 import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyPuzzleDate.js'
@@ -69,6 +70,41 @@ const DUNGBEETLE_SUITE_MODAL_MS = 500
 const MAX_PUSH_DISPLAY = 99
 /** Match `.player-layer` CSS transition so each walk step eases into the next. */
 const WALK_STEP_MS = 90
+const DUNGBEETLE_TUTORIAL_HINT_MOVE_KEYBOARD =
+  'Use the arrow keys to move the beetle. Roll the ball to the hole. You can push blocks out of the way.'
+const DUNGBEETLE_TUTORIAL_HINT_MOVE_TOUCH =
+  'Swipe to move the beetle. Roll the ball to the hole. You can push blocks out of the way.'
+const DUNGBEETLE_TUTORIAL_HINT_WALK_KEYBOARD =
+  'Use WASD if you prefer. Clicking on any square you can reach walks you there automatically.'
+const DUNGBEETLE_TUTORIAL_HINT_WALK_TOUCH =
+  'Clicking any square you can reach walks you there automatically.'
+const DUNGBEETLE_TUTORIAL_HINT_STUCK =
+  'Careful! The wrong push can leave you stuck.'
+const DUNGBEETLE_TUTORIAL_HINT_STUCK_KEYBOARD =
+  `${DUNGBEETLE_TUTORIAL_HINT_STUCK} Use Z to undo.`
+const DUNGBEETLE_TUTORIAL_HINT_CHAIN =
+  'Moving one block can let you move another.'
+const DUNGBEETLE_TUTORIAL_HINT_ORDER =
+  'Sometimes the key is knowing which block to move first.'
+const DUNGBEETLE_TUTORIAL_HINT_DETOUR =
+  "Sometimes you'll need to push the ball away from the hole."
+const DUNGBEETLE_TUTORIAL_HINT_PLAN =
+  'Plan ahead. Think about where pieces can go to get out of each other\'s way.'
+const DUNGBEETLE_TUTORIAL_HINT_STEP =
+  'You can walk over the hole.'
+const DUNGBEETLE_TUTORIAL_HINT_COVER =
+  'You can push blocks to cover the hole.'
+const DUNGBEETLE_TUTORIAL_HINT_BALL =
+  'Sometimes the ball feels like the biggest obstacle.'
+const DUNGBEETLE_TUTORIAL_HINT_STAR =
+  'On daily puzzles, earn a ★ by solving a puzzle in the minimum number of moves.'
+
+/** Phones and tablets. A touchscreen laptop with a pointer still gets the keyboard hint. */
+function isTouchPrimaryDevice() {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
+  return window.matchMedia('(hover: none) and (pointer: coarse)').matches
+}
+
 const SWIPE_THRESHOLD_PX = 36
 /** Dominant axis must beat the other by this ratio so diagonal flicks don't pick the wrong way. */
 const SWIPE_AXIS_RATIO = 1.2
@@ -83,8 +119,12 @@ function normalizeTier(data) {
 
 const puzzleData = normalizeTier(rawPuzzleData)
 
+/** Shift rotations so the 2026-10-11 daily puzzles stayed put after the pools were re-curated. */
+const EASY_DAY_OFFSET = 119
+const MEDIUM_DAY_OFFSET = 465
+const HARD_DAY_OFFSET = 60
 /** Offset bonus cycle relative to hard. */
-const BONUS_DAY_OFFSET = 53
+const BONUS_DAY_OFFSET = 56
 
 function getDailyPuzzles(dateKey = getDailyKey()) {
   const key = dateKey
@@ -95,9 +135,9 @@ function getDailyPuzzles(dateKey = getDailyKey()) {
   const bonus = puzzleData.bonus || []
   return {
     puzzles: [
-      easy[dayIndex % easy.length],
-      medium[dayIndex % medium.length],
-      hard[dayIndex % hard.length],
+      easy[(dayIndex + EASY_DAY_OFFSET) % easy.length],
+      medium[(dayIndex + MEDIUM_DAY_OFFSET) % medium.length],
+      hard[(dayIndex + HARD_DAY_OFFSET) % hard.length],
       bonus.length ? bonus[(dayIndex + BONUS_DAY_OFFSET) % bonus.length] : null,
     ],
     key,
@@ -283,6 +323,18 @@ export default function DungBeetle() {
   const [tutorialIdx, setTutorialIdx] = useState(
     () => getInitialTutorialNav(GAME_KEYS.DUNGBEETLE, puzzleData.tutorial ?? []).tutorialIdx
   )
+  const [tutorialHintMoveDismissed, setTutorialHintMoveDismissed] = useState(false)
+  const [tutorialHintWalkDismissed, setTutorialHintWalkDismissed] = useState(false)
+  const [tutorialHintStuckDismissed, setTutorialHintStuckDismissed] = useState(false)
+  const [tutorialHintChainDismissed, setTutorialHintChainDismissed] = useState(false)
+  const [tutorialHintOrderDismissed, setTutorialHintOrderDismissed] = useState(false)
+  const [tutorialHintDetourDismissed, setTutorialHintDetourDismissed] = useState(false)
+  const [tutorialHintPlanDismissed, setTutorialHintPlanDismissed] = useState(false)
+  const [tutorialHintStepDismissed, setTutorialHintStepDismissed] = useState(false)
+  const [tutorialHintCoverDismissed, setTutorialHintCoverDismissed] = useState(false)
+  const [tutorialHintBallDismissed, setTutorialHintBallDismissed] = useState(false)
+  const [tutorialHintStarDismissed, setTutorialHintStarDismissed] = useState(false)
+  const [touchPrimary] = useState(isTouchPrimaryDevice)
   const [dailyIdx, setDailyIdx] = useState(() =>
     resolveHubDailySlotWithPrefs(
       GAME_KEYS.DUNGBEETLE,
@@ -1207,9 +1259,107 @@ export default function DungBeetle() {
             >
               ←
             </button>
-            <div className="level-label">
-              <span className="sub">Tutorial</span>
-              <span className="num">{tutorialIdx + 1}</span>
+            <div
+              style={{
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}
+            >
+              <div className="level-label">
+                <span className="sub">Tutorial</span>
+                <span className="num">{tutorialIdx + 1}</span>
+              </div>
+              {tutorialIdx === 0 && !tutorialHintMoveDismissed && (
+                <DismissibleHintToast
+                  message={
+                    touchPrimary
+                      ? DUNGBEETLE_TUTORIAL_HINT_MOVE_TOUCH
+                      : DUNGBEETLE_TUTORIAL_HINT_MOVE_KEYBOARD
+                  }
+                  align="center"
+                  onDismiss={() => setTutorialHintMoveDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 1 && !tutorialHintWalkDismissed && (
+                <DismissibleHintToast
+                  message={
+                    touchPrimary
+                      ? DUNGBEETLE_TUTORIAL_HINT_WALK_TOUCH
+                      : DUNGBEETLE_TUTORIAL_HINT_WALK_KEYBOARD
+                  }
+                  align="center"
+                  onDismiss={() => setTutorialHintWalkDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 2 && !tutorialHintChainDismissed && (
+                <DismissibleHintToast
+                  message={DUNGBEETLE_TUTORIAL_HINT_CHAIN}
+                  align="center"
+                  onDismiss={() => setTutorialHintChainDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 3 && !tutorialHintStuckDismissed && (
+                <DismissibleHintToast
+                  message={
+                    touchPrimary
+                      ? DUNGBEETLE_TUTORIAL_HINT_STUCK
+                      : DUNGBEETLE_TUTORIAL_HINT_STUCK_KEYBOARD
+                  }
+                  align="center"
+                  onDismiss={() => setTutorialHintStuckDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 4 && !tutorialHintOrderDismissed && (
+                <DismissibleHintToast
+                  message={DUNGBEETLE_TUTORIAL_HINT_ORDER}
+                  align="center"
+                  onDismiss={() => setTutorialHintOrderDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 5 && !tutorialHintDetourDismissed && (
+                <DismissibleHintToast
+                  message={DUNGBEETLE_TUTORIAL_HINT_DETOUR}
+                  align="center"
+                  onDismiss={() => setTutorialHintDetourDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 6 && !tutorialHintPlanDismissed && (
+                <DismissibleHintToast
+                  message={DUNGBEETLE_TUTORIAL_HINT_PLAN}
+                  align="center"
+                  onDismiss={() => setTutorialHintPlanDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 7 && !tutorialHintStepDismissed && (
+                <DismissibleHintToast
+                  message={DUNGBEETLE_TUTORIAL_HINT_STEP}
+                  align="center"
+                  onDismiss={() => setTutorialHintStepDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 8 && !tutorialHintCoverDismissed && (
+                <DismissibleHintToast
+                  message={DUNGBEETLE_TUTORIAL_HINT_COVER}
+                  align="center"
+                  onDismiss={() => setTutorialHintCoverDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 9 && !tutorialHintBallDismissed && (
+                <DismissibleHintToast
+                  message={DUNGBEETLE_TUTORIAL_HINT_BALL}
+                  align="center"
+                  onDismiss={() => setTutorialHintBallDismissed(true)}
+                />
+              )}
+              {tutorialIdx === 10 && !tutorialHintStarDismissed && (
+                <DismissibleHintToast
+                  message={DUNGBEETLE_TUTORIAL_HINT_STAR}
+                  align="center"
+                  onDismiss={() => setTutorialHintStarDismissed(true)}
+                />
+              )}
             </div>
             <button
               type="button"

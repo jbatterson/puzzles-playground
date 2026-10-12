@@ -1,10 +1,12 @@
 /**
  * Optional 4th “bonus” daily slot for Roly Poly / Dung Beetle.
- * Unlock requires stars (storage `'2'`) on Easy, Med, and Hard — ignores dashboard tier prefs.
+ * Offered on Sundays only. Unlock requires stars (storage `'2'`) on Easy, Med,
+ * and Hard — ignores dashboard tier prefs.
  */
 
 import { GAME_KEYS } from './gameChrome.js'
 import { lsGet } from './hubProgress.js'
+import { weekdayIndexSun0 } from './suiteCompletionHeadlines.js'
 
 /** Daily puzzle index for the bonus slot (Easy=0 … Hard=2, Bonus=3). */
 export const BONUS_SLOT = 3
@@ -16,12 +18,18 @@ export function hasBonusPuzzleSupport(gameKey) {
   return BONUS_GAME_KEY_SET.has(gameKey)
 }
 
+/** Bonus is only available on Sundays (Pacific calendar date of `dateKey`). */
+export function isBonusDay(dateKey) {
+  return weekdayIndexSun0(dateKey) === 0
+}
+
 /**
- * True when Easy, Med, and Hard are all starred for this game/date (indices 0–2).
- * Does not consult suite dashboard tier preferences.
+ * True on Sundays when Easy, Med, and Hard are all starred for this game/date
+ * (indices 0–2). Does not consult suite dashboard tier preferences.
  */
 export function isBonusUnlocked(gameKey, dateKey) {
   if (!hasBonusPuzzleSupport(gameKey) || !dateKey) return false
+  if (!isBonusDay(dateKey)) return false
   for (let i = 0; i < 3; i++) {
     if (lsGet(`${gameKey}:${dateKey}:${i}`) !== '2') return false
   }

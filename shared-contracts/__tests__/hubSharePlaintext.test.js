@@ -9,6 +9,8 @@ import { bonusElapsedKey } from '../bonusCompletionTimer.js'
 
 const BASE = '/'
 const DATE = '2025-04-09'
+/** Bonus is Sunday-only. */
+const SUNDAY = '2026-09-27'
 
 describe('buildHubSharePlaintext', () => {
   beforeEach(() => localStorage.clear())
@@ -72,28 +74,36 @@ describe('buildHubSharePlaintext', () => {
     })
 
     it('omits Bonus until Easy/Med/Hard are all starred', () => {
+      localStorage.setItem(`rolypoly:${SUNDAY}:0`, '2')
+      localStorage.setItem(`rolypoly:${SUNDAY}:1`, '2')
+      localStorage.setItem(`rolypoly:${SUNDAY}:2`, '1')
+      const text = buildHubSharePlaintext('rolypoly', SUNDAY, BASE)
+      expect(text).not.toContain('Bonus')
+    })
+
+    it('omits Bonus on non-Sundays even with three stars', () => {
       localStorage.setItem(`rolypoly:${DATE}:0`, '2')
       localStorage.setItem(`rolypoly:${DATE}:1`, '2')
-      localStorage.setItem(`rolypoly:${DATE}:2`, '1')
+      localStorage.setItem(`rolypoly:${DATE}:2`, '2')
       const text = buildHubSharePlaintext('rolypoly', DATE, BASE)
       expect(text).not.toContain('Bonus')
     })
 
     it('includes Bonus line with moves, star, and long timer after unlock', () => {
-      localStorage.setItem(`rolypoly:${DATE}:0`, '2')
-      localStorage.setItem(`rolypoly:${DATE}:0:moves`, '7')
-      localStorage.setItem(`rolypoly:${DATE}:1`, '2')
-      localStorage.setItem(`rolypoly:${DATE}:1:moves`, '11')
-      localStorage.setItem(`rolypoly:${DATE}:2`, '2')
-      localStorage.setItem(`rolypoly:${DATE}:2:moves`, '16')
-      localStorage.setItem(suiteElapsedKey('rolypoly', DATE), String(88000))
-      localStorage.setItem(`rolypoly:${DATE}:3`, '2')
-      localStorage.setItem(`rolypoly:${DATE}:3:moves`, '26')
-      localStorage.setItem(bonusElapsedKey('rolypoly', DATE), String(296000))
-      localStorage.setItem(`rolypoly:${DATE}:bonusTimerActiveModel`, '1')
-      localStorage.setItem(`rolypoly:${DATE}:bonusElapsedFinalized`, '1')
+      localStorage.setItem(`rolypoly:${SUNDAY}:0`, '2')
+      localStorage.setItem(`rolypoly:${SUNDAY}:0:moves`, '7')
+      localStorage.setItem(`rolypoly:${SUNDAY}:1`, '2')
+      localStorage.setItem(`rolypoly:${SUNDAY}:1:moves`, '11')
+      localStorage.setItem(`rolypoly:${SUNDAY}:2`, '2')
+      localStorage.setItem(`rolypoly:${SUNDAY}:2:moves`, '16')
+      localStorage.setItem(suiteElapsedKey('rolypoly', SUNDAY), String(88000))
+      localStorage.setItem(`rolypoly:${SUNDAY}:3`, '2')
+      localStorage.setItem(`rolypoly:${SUNDAY}:3:moves`, '26')
+      localStorage.setItem(bonusElapsedKey('rolypoly', SUNDAY), String(296000))
+      localStorage.setItem(`rolypoly:${SUNDAY}:bonusTimerActiveModel`, '1')
+      localStorage.setItem(`rolypoly:${SUNDAY}:bonusElapsedFinalized`, '1')
 
-      const text = buildHubSharePlaintext('rolypoly', DATE, BASE)
+      const text = buildHubSharePlaintext('rolypoly', SUNDAY, BASE)
       expect(text).toContain('Easy   🟩 (7 moves ⭐)')
       expect(text).toContain('Med   🟩 (11 moves ⭐)')
       expect(text).toContain('Hard   🟩 (16 moves ⭐)')

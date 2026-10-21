@@ -12,10 +12,7 @@ import useSuiteCompletionTimer from '../../src/shared/useSuiteCompletionTimer.js
 import useBonusCompletionTimer from '../../src/shared/useBonusCompletionTimer.js'
 import PlaygroundLinksModal from '../../src/shared/PlaygroundLinksModal.jsx'
 import { finalizeBonusGameTimer } from '@shared-contracts/bonusCompletionTimer.js'
-import {
-  BONUS_SLOT,
-  isBonusUnlocked,
-} from '@shared-contracts/bonusPuzzle.js'
+import { BONUS_SLOT, isBonusUnlocked } from '@shared-contracts/bonusPuzzle.js'
 import useInstructionsGate from '../../src/shared/useInstructionsGate.js'
 import { MODAL_INTENTS } from '@shared-contracts/modalIntents.js'
 import { GAME_KEYS, getGameChrome } from '@shared-contracts/gameChrome.js'
@@ -46,6 +43,7 @@ import RolyPolyIcon from '../../src/shared/icons/RolyPolyIcon.jsx'
 import { buildTierRoster, formatCurateClipboard } from '../../src/shared/curateRoster.js'
 import { useCurateModeFromRoster } from '../../src/shared/useCurateMode.js'
 import { CurateCopyToast, CurateLevelNav } from '../../src/shared/CurateModeChrome.jsx'
+import DismissibleHintToast from '../../src/shared/DismissibleHintToast.jsx'
 import { useCurateSolutionPlayback } from '../../src/shared/useCurateSolutionPlayback.js'
 import SmartRightButton from '../../src/shared/SmartRightButton.jsx'
 import { getDailyKey, getDateLabel, getDayIndex } from '@shared-contracts/dailyPuzzleDate.js'
@@ -62,9 +60,38 @@ const ROLYPOLY_ANIM_MS = 520
 const ROLYPOLY_SUITE_MODAL_MS = 500
 const MAX_MOVE_DISPLAY = 99
 
-const ROLYPOLY_TUTORIAL_HINT =
-  'Use arrow keys or swipes to slide every bug onto a yellow target. Bugs lock when they land on a target.'
+const ROLYPOLY_TUTORIAL_HINT_0_TOUCH = 'Swipe to move the bug to the target.'
+const ROLYPOLY_TUTORIAL_HINT_0_KEYBOARD = 'Use the arrow keys to reach the target.'
 
+function rolyPolyTutorialHintMessage(idx, coarsePointer) {
+  switch (idx) {
+    case 0:
+      return coarsePointer ? ROLYPOLY_TUTORIAL_HINT_0_TOUCH : ROLYPOLY_TUTORIAL_HINT_0_KEYBOARD
+    case 1:
+      return 'Try to reach the target square in as few moves as possible.'
+    case 2:
+      return 'All of the bugs are at your command until they reach targets.'
+    case 3:
+      return 'Order usually matters.\nBe careful not to fill a target too early.'
+    case 4:
+      return 'Bugs can help each other reach targets.'
+    case 5:
+      return 'Try to solve this one in just 4 moves!'
+    case 6:
+      return undefined
+    case 7:
+      return 'Puzzles can have up to three bugs.'
+    case 8:
+      return undefined
+    case 9:
+      return 'This one is tough!\nYou can always come back to solve it later.'
+    default:
+      return undefined
+  }
+}
+
+/** Keep 2026-10-21 easy on the same layout after tutorial puzzles were inserted into easy. */
+const EASY_DAY_OFFSET = 113
 /** Shift hard rotation so today's 3-star stays the pre-expansion puzzle after hard pool grew. */
 const HARD_DAY_OFFSET = 144
 /** Offset bonus cycle relative to hard so the same day is less likely to share a layout family. */
@@ -79,7 +106,7 @@ function getDailyPuzzles(dateKey = getDailyKey()) {
   const bonus = puzzleData.bonus || []
   return {
     puzzles: [
-      easy[dayIndex % easy.length],
+      easy[(dayIndex + EASY_DAY_OFFSET) % easy.length],
       medium[dayIndex % medium.length],
       hard[(dayIndex + HARD_DAY_OFFSET) % hard.length],
       bonus.length ? bonus[(dayIndex + BONUS_DAY_OFFSET) % bonus.length] : null,
@@ -122,7 +149,10 @@ function markComplete(dateKey, idx, movesThisRun, puzzleMinMoves) {
 }
 
 function saveMoveCount(dateKey, idx, moves) {
-  localStorage.setItem(`rolypoly:${dateKey}:${idx}:moves`, String(Math.min(moves, MAX_MOVE_DISPLAY)))
+  localStorage.setItem(
+    `rolypoly:${dateKey}:${idx}:moves`,
+    String(Math.min(moves, MAX_MOVE_DISPLAY))
+  )
 }
 
 function loadMoveCounts(dateKey) {
@@ -411,6 +441,14 @@ export default function RolyPoly() {
   const [showLinks, setShowLinks] = useState(false)
   const [showStats, setShowStats] = useState(false)
   const [curateCopyHint, setCurateCopyHint] = useState(null)
+  const [coarsePointer, setCoarsePointer] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+  )
+  const [tutorialHintsDismissed, setTutorialHintsDismissed] = useState(() =>
+    Object.fromEntries(
+      Array.from({ length: puzzleData.tutorial?.length ?? 0 }, (_, idx) => [idx, false])
+    )
+  )
   const [showCompletionModal, setShowCompletionModal] = useState(false)
   const allDailyDoneCompletionRef = useRef(null)
   const bonusUnlockedModalRef = useRef(null)
@@ -429,6 +467,14 @@ export default function RolyPoly() {
   useEffect(() => {
     if (!solved) completionMarkedRef.current = false
   }, [solved])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mq = window.matchMedia('(pointer: coarse)')
+    const onChange = () => setCoarsePointer(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   const { hasSeenInstructions, showInstructions, setShowInstructions, closeInstructions } =
     useInstructionsGate('rolypoly:hasSeenInstructions', {
@@ -479,12 +525,7 @@ export default function RolyPoly() {
 
   useEffect(() => {
     if (curateMode || mode !== 'daily') return
-    const c = clampDailyIndexToTierPrefs(
-      GAME_KEYS.ROLYPOLY,
-      dailyIdx,
-      undefined,
-      bonusUnlockKey
-    )
+    const c = clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, dailyIdx, undefined, bonusUnlockKey)
     if (c !== dailyIdx) setDailyIdx(c)
   }, [curateMode, mode, suitePrefsEpoch, dailyIdx, bonusUnlockKey, bonusUnlocked])
 
@@ -560,9 +601,7 @@ export default function RolyPoly() {
       if (!moved) return { ok: false }
 
       const newlyLocked = new Set(
-        nb
-          .filter((b) => b.locked && !ballsNow.find((ob) => ob.id === b.id).locked)
-          .map((b) => b.id)
+        nb.filter((b) => b.locked && !ballsNow.find((ob) => ob.id === b.id).locked).map((b) => b.id)
       )
       const snap = ballsNow.map((x) => ({ ...x }))
       const newHist = [...historyRef.current, { balls: snap, moves: movesRef.current }]
@@ -1106,9 +1145,31 @@ export default function RolyPoly() {
             >
               ←
             </button>
-            <div className="level-label">
-              <span className="sub">Tutorial</span>
-              <span className="num">{tutorialIdx + 1}</span>
+            <div
+              style={{
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}
+            >
+              <div className="level-label">
+                <span className="sub">Tutorial</span>
+                <span className="num">{tutorialIdx + 1}</span>
+              </div>
+              {(() => {
+                const message = rolyPolyTutorialHintMessage(tutorialIdx, coarsePointer)
+                return message && !tutorialHintsDismissed[tutorialIdx] ? (
+                  <DismissibleHintToast
+                    key={tutorialIdx}
+                    message={message}
+                    align="center"
+                    onDismiss={() => {
+                      setTutorialHintsDismissed((d) => ({ ...d, [tutorialIdx]: true }))
+                    }}
+                  />
+                ) : null
+              })()}
             </div>
             <button
               type="button"
@@ -1159,7 +1220,9 @@ export default function RolyPoly() {
                 moveCounts={moveCounts}
                 onChange={setDailyIdx}
                 tierSlots={tierSlots}
-                doneColor={viewingYesterday ? PUZZLE_SUITE_PRACTICE_BLUE : PUZZLE_SUITE_CORRECT_GREEN}
+                doneColor={
+                  viewingYesterday ? PUZZLE_SUITE_PRACTICE_BLUE : PUZZLE_SUITE_CORRECT_GREEN
+                }
               />
             </div>
           </div>
@@ -1300,7 +1363,9 @@ export default function RolyPoly() {
                 onClick={() => {
                   closeInstructions()
                   setMode('daily')
-                  setDailyIdx(clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, todayKey))
+                  setDailyIdx(
+                    clampDailyIndexToTierPrefs(GAME_KEYS.ROLYPOLY, 0, undefined, todayKey)
+                  )
                 }}
               >
                 {CTA_LABELS.SKIP_TUTORIAL}

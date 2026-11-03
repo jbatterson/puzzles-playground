@@ -90,30 +90,38 @@ function getStoredMoveCount(dateKey, idx) {
 }
 
 function markComplete(dateKey, idx, movesThisRun, puzzleMinMoves) {
-  const hitMin =
-    puzzleMinMoves != null && Number.isFinite(puzzleMinMoves) && movesThisRun === puzzleMinMoves
-  const starWorthy = hitMin
-  const key = `sumtiles:${dateKey}:${idx}`
-  const existing = localStorage.getItem(key)
-  const storedMoves = getStoredMoveCount(dateKey, idx)
-  if (existing !== '1' && existing !== '2') {
-    localStorage.setItem(key, starWorthy ? '2' : '1')
-    saveMoveCount(dateKey, idx, movesThisRun)
-  } else if (storedMoves != null && movesThisRun < storedMoves) {
-    localStorage.setItem(key, starWorthy ? '2' : '1')
-    saveMoveCount(dateKey, idx, movesThisRun)
-  } else if (existing === '1' && hitMin) {
-    localStorage.setItem(key, '2')
+  try {
+    const hitMin =
+      puzzleMinMoves != null && Number.isFinite(puzzleMinMoves) && movesThisRun === puzzleMinMoves
+    const starWorthy = hitMin
+    const key = `sumtiles:${dateKey}:${idx}`
+    const existing = localStorage.getItem(key)
+    const storedMoves = getStoredMoveCount(dateKey, idx)
+    if (existing !== '1' && existing !== '2') {
+      localStorage.setItem(key, starWorthy ? '2' : '1')
+      saveMoveCount(dateKey, idx, movesThisRun)
+    } else if (storedMoves != null && movesThisRun < storedMoves) {
+      localStorage.setItem(key, starWorthy ? '2' : '1')
+      saveMoveCount(dateKey, idx, movesThisRun)
+    } else if (existing === '1' && hitMin) {
+      localStorage.setItem(key, '2')
+    }
+  } catch {
+    // ignore quota / private mode — avoid crashing the game page
   }
 }
 
 const MAX_MOVE_DISPLAY = 99
 
 function saveMoveCount(dateKey, idx, moves) {
-  localStorage.setItem(
-    `sumtiles:${dateKey}:${idx}:moves`,
-    String(Math.min(moves, MAX_MOVE_DISPLAY))
-  )
+  try {
+    localStorage.setItem(
+      `sumtiles:${dateKey}:${idx}:moves`,
+      String(Math.min(moves, MAX_MOVE_DISPLAY))
+    )
+  } catch {
+    // ignore
+  }
 }
 
 function loadMoveCounts(dateKey) {

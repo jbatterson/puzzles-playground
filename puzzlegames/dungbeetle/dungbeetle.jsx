@@ -160,24 +160,37 @@ function getStoredPushCount(dateKey, idx) {
 }
 
 function savePushCount(dateKey, idx, pushes) {
-  localStorage.setItem(`dungbeetle:${dateKey}:${idx}:moves`, String(Math.min(pushes, MAX_PUSH_DISPLAY)))
+  try {
+    localStorage.setItem(
+      `dungbeetle:${dateKey}:${idx}:moves`,
+      String(Math.min(pushes, MAX_PUSH_DISPLAY))
+    )
+  } catch {
+    // ignore
+  }
 }
 
 function markComplete(dateKey, idx, pushesThisRun, puzzleMinPushes) {
-  const hitMin =
-    puzzleMinPushes != null && Number.isFinite(puzzleMinPushes) && pushesThisRun === puzzleMinPushes
-  const starWorthy = hitMin
-  const key = `dungbeetle:${dateKey}:${idx}`
-  const existing = localStorage.getItem(key)
-  const storedPushes = getStoredPushCount(dateKey, idx)
-  if (existing !== '1' && existing !== '2') {
-    localStorage.setItem(key, starWorthy ? '2' : '1')
-    savePushCount(dateKey, idx, pushesThisRun)
-  } else if (storedPushes != null && pushesThisRun < storedPushes) {
-    localStorage.setItem(key, starWorthy ? '2' : '1')
-    savePushCount(dateKey, idx, pushesThisRun)
-  } else if (existing === '1' && hitMin) {
-    localStorage.setItem(key, '2')
+  try {
+    const hitMin =
+      puzzleMinPushes != null &&
+      Number.isFinite(puzzleMinPushes) &&
+      pushesThisRun === puzzleMinPushes
+    const starWorthy = hitMin
+    const key = `dungbeetle:${dateKey}:${idx}`
+    const existing = localStorage.getItem(key)
+    const storedPushes = getStoredPushCount(dateKey, idx)
+    if (existing !== '1' && existing !== '2') {
+      localStorage.setItem(key, starWorthy ? '2' : '1')
+      savePushCount(dateKey, idx, pushesThisRun)
+    } else if (storedPushes != null && pushesThisRun < storedPushes) {
+      localStorage.setItem(key, starWorthy ? '2' : '1')
+      savePushCount(dateKey, idx, pushesThisRun)
+    } else if (existing === '1' && hitMin) {
+      localStorage.setItem(key, '2')
+    }
+  } catch {
+    // ignore quota / private mode — avoid crashing the game page
   }
 }
 
